@@ -1,0 +1,140 @@
+# Task Tracker
+
+A lightweight, MS-Planner-style task tracker with **Admin / User roles**, a
+**Kanban board with drag & drop**, projects, comments, file attachments, search,
+i18n (DE/EN), web-push notifications and **PWA** install support.
+
+Built with **Next.js 14 (App Router)**, **TypeScript**, **Prisma + SQLite**,
+**Tailwind + shadcn/ui**, cookie-session auth with **argon2**, and `@dnd-kit`.
+
+![Board](screenshots/03-board.png)
+
+---
+
+## Quick start
+
+```bash
+# 1. install deps
+npm install
+
+# 2. set up env (defaults already work for local dev)
+cp .env.example .env        # on Windows: copy .env.example .env
+
+# 3. create the database + seed demo data
+npx prisma migrate dev      # creates dev.db, runs migration + seed
+
+# 4. run
+npm run dev
+```
+
+Open **http://localhost:3000** → you land on the login page.
+
+> If port 3000 is busy: `npm run dev -- -p 3100`.
+
+### Demo credentials
+
+| Role  | Username                  | Password     |
+| ----- | ------------------------- | ------------ |
+| Admin | `admin`                   | `Admin-2026!` |
+| User  | `alice` / `bob` / `charlie` | `Demo-2026!`  |
+
+The admin sees **all** tasks and the user-management screens. Regular users only
+see tasks they created or that are assigned to them.
+
+---
+
+## Features
+
+- 🔐 **Cookie-session auth** (httpOnly, argon2 password hashing), 2 roles
+- 📋 **Task CRUD** — title, description, status, priority, assignee, due date, project
+- 🗂️ **Kanban board** with drag & drop (`@dnd-kit`) — status updates on drop, optimistic UI
+- 📁 **Projects** — colour-coded, per-project board (`/projects/{id}/board`)
+- 👤 **Assign to user** + **web-push notification** on assignment (optional, see below)
+- ⏰ **Due dates** with overdue / due-today highlighting
+- 💬 **Comments** per task
+- 📎 **File upload** (images + PDF, max 5 MB) stored under `public/uploads`
+- 🔎 **Filter + search** (admin task list)
+- 🌍 **i18n** DE / EN (switch in Settings) — Arabic-ready dictionary structure
+- 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive
+- 🛡️ **Admin** screens: user management + global task list
+
+---
+
+## Scripts
+
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `npm run dev`        | Dev server (PWA disabled for fast reloads)   |
+| `npm run build`      | Production build (`prisma generate` + build) |
+| `npm start`          | Run the production build                      |
+| `npm run seed`       | Re-seed demo data                            |
+| `npm run db:reset`   | Drop, re-migrate and re-seed the database    |
+| `npm test`           | Unit tests (Vitest) — logic + validation     |
+| `npm run test:e2e`   | Playwright happy-path tests                   |
+
+### Tests
+
+```bash
+npm test                 # 17 unit tests (task logic, zod schemas)
+
+# e2e (needs a build + the chromium browser once):
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+---
+
+## Web Push (optional)
+
+Push is **off by default** and the app works fully without it. To enable:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Put the keys in `.env`:
+
+```ini
+NEXT_PUBLIC_VAPID_PUBLIC_KEY="BL...."
+VAPID_PRIVATE_KEY="...."
+VAPID_SUBJECT="mailto:you@example.com"
+```
+
+Restart, open **Settings → Notifications → Enable push**. When a task is assigned
+to a user, they receive a browser notification (handled by `worker/index.js`).
+
+---
+
+## Tech & data model
+
+```
+User ─< Task >─ Project
+        │  ├─< TaskComment
+        │  └─< TaskAttachment
+        └─< Session (cookie auth)
+User ─< PushSubscription
+```
+
+Enums (role / status / priority / locale) are stored as strings because SQLite
+has no native enum; allowed values are validated in `src/lib/enums.ts` and the
+zod schemas in `src/lib/validation.ts`.
+
+### Project structure
+
+```
+prisma/            schema, migration, seed
+src/
+  actions/         server actions (auth, tasks, projects, users, settings)
+  app/
+    login/         public login page
+    (app)/         authenticated area (dashboard, board, projects, tasks, admin, settings)
+    api/push/      push subscription endpoint
+  components/      UI primitives (ui/) + feature components
+  lib/             prisma, auth, i18n, validation, task logic, push
+worker/            custom service-worker (push handlers)
+scripts/           icon generator, screenshot helper
+e2e/               Playwright tests
+```
+
+See **[DEPLOY.md](DEPLOY.md)** for deployment (Vercel / VPS / Cloudflare).

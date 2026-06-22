@@ -1,0 +1,122 @@
+// Task Tracker — Prisma schema
+// SQLite for local dev. Enums are stored as strings (SQLite has no native enum);
+// allowed values are validated in the app layer (src/lib/enums.ts + zod schemas).
+// To move to Postgres: change provider to "postgresql" and DATABASE_URL, then
+// you may optionally convert the string fields to real Prisma enums.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  role         String   @default("User") // "Admin" | "User"
+  avatar       String? // url or emoji
+  locale       String   @default("de") // "de" | "en"
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  sessions          Session[]
+  assignedTasks     Task[]             @relation("AssignedTo")
+  createdTasks      Task[]             @relation("CreatedBy")
+  createdProjects   Project[]          @relation("ProjectCreatedBy")
+  comments          TaskComment[]
+  pushSubscriptions PushSubscription[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  color         String   @default("#6366f1") // indigo
+  createdAt     DateTime @default(now())
+  createdByUserId String
+  createdBy     User     @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id])
+
+  tasks Task[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("Todo") // Todo | InProgress | Done | Archived
+  priority    String    @default("Medium") // Low | Medium | High | Critical
+  position    Int       @default(0) // ordering within a status column
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  assignedToUserId String?
+  assignedTo       User?   @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+
+  createdByUserId String
+  createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+
+  @@index([status])
+  @@index([assignedToUserId])
+  @@index([projectId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskAttachment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fileName   String
+  filePath   String // public path, e.g. /uploads/xxxx.png
+  mimeType   String
+  sizeBytes  Int
+  uploadedAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}

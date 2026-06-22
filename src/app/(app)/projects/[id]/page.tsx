@@ -1,0 +1,95 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, KanbanSquare, Plus } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth";
+import { getDictionary } from "@/lib/i18n";
+import { taskVisibility } from "@/lib/task-access";
+import { compareTasks } from "@/lib/tasks";
+import { TaskCard } from "@/components/task-card";
+import { Button } from "@/components/ui/button";
+import type { Locale } from "@/lib/enums";
+
+export default async function ProjectDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const user = await requireUser();
+  const t = getDictionary(user.locale as Locale);
+
+  const project = await prisma.project.findUnique({
+    where: { id: params.id },
+  });
+  if (!project) notFound();
+
+  const tasks = await prisma.task.findMany({
+    where: { projectId: project.id, ...taskVisibility(user) },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      priority: true,
+      dueDate: true,
+      assignedTo: { select: { name: true } },
+      project: { select: { name: true, color: true } },
+      _count: { select: { comments: true, attachments: true } },
+    },
+  });
+  tasks.sort((a, b) => compareTasks(a, b));
+
+  return (
+    <div className="container py-6">
+      <Link
+        href="/projects"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t["projects.title"]}
+      </Link>
+
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className="h-4 w-4 rounded-full"
+              style={{ backgroundColor: project.color }}
+            />
+            <h1 className="text-2xl font-bold">{project.name}</h1>
+          </div>
+          {project.description && (
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {project.description}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href={`/projects/${project.id}/board`}>
+              <KanbanSquare className="mr-1 h-4 w-4" />
+              {t["projects.openBoard"]}
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/tasks/new?project=${project.id}`}>
+              <Plus className="mr-1 h-4 w-4" />
+              {t["nav.newTask"]}
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {tasks.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+          {t["dashboard.empty"]}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,40 @@
+import { requireUser } from "@/lib/auth";
+import { getDictionary } from "@/lib/i18n";
+import { SettingsForm } from "@/components/settings-form";
+import { PushToggle } from "@/components/push-toggle";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Locale } from "@/lib/enums";
+
+export default async function SettingsPage() {
+  const user = await requireUser();
+  const t = getDictionary(user.locale as Locale);
+  const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
+  return (
+    <div className="container max-w-xl py-6">
+      <h1 className="mb-6 text-2xl font-bold">{t["settings.title"]}</h1>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">
+            {user.name} · @{user.username}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SettingsForm locale={user.locale} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {t["settings.notifications"]}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushToggle vapidPublicKey={vapid} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
