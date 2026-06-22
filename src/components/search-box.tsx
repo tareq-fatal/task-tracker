@@ -26,12 +26,12 @@ export function SearchBox() {
 
   return (
     <div className="relative w-full sm:w-72">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={t("common.search")}
-        className="pl-9"
+        className="ps-9"
       />
     </div>
   );

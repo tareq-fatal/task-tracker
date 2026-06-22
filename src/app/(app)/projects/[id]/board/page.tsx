@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { KanbanBoard } from "@/components/kanban-board";
 import type { Locale } from "@/lib/enums";
@@ -14,7 +15,7 @@ export default async function ProjectBoardPage({
   params: { id: string };
 }) {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const project = await prisma.project.findUnique({ where: { id: params.id } });
   if (!project) notFound();
@@ -44,7 +45,7 @@ export default async function ProjectBoardPage({
         href={`/projects/${project.id}`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         {project.name}
       </Link>
       <div className="mb-5 flex items-center gap-2">

@@ -1,8 +1,16 @@
-# Task Tracker
+# Task Tracker · متعقب المهام
 
 A lightweight, MS-Planner-style task tracker with **Admin / User roles**, a
 **Kanban board with drag & drop**, projects, comments, file attachments, search,
-i18n (DE/EN), web-push notifications and **PWA** install support.
+web-push notifications and **PWA** install support.
+
+**Arabic-first (RTL)** — the default language is Arabic with a full right-to-left
+layout; **English** and **German** are also available via the in-app language
+switcher (Globe icon). The UI uses **logical CSS properties** (`ms/me/ps/pe/start/end`)
+so direction flips cleanly, with **Cairo** for Arabic and **Inter** for Latin scripts.
+
+Light, airy **"cool" theme** only (no dark mode): Sky-Blue primary, Teal accent,
+off-white background — a Linear/Notion-like feel.
 
 Built with **Next.js 14 (App Router)**, **TypeScript**, **Prisma + SQLite**,
 **Tailwind + shadcn/ui**, cookie-session auth with **argon2**, and `@dnd-kit`.
@@ -54,7 +62,7 @@ see tasks they created or that are assigned to them.
 - 💬 **Comments** per task
 - 📎 **File upload** (images + PDF, max 5 MB) stored under `public/uploads`
 - 🔎 **Filter + search** (admin task list)
-- 🌍 **i18n** DE / EN (switch in Settings) — Arabic-ready dictionary structure
+- 🌍 **i18n** Arabic (default, RTL) / English / German — switch via the Globe icon or Settings
 - 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive
 - 🛡️ **Admin** screens: user management + global task list
 

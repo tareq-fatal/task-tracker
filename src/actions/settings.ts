@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, hashPassword } from "@/lib/auth";
+import { setLocaleCookie } from "@/lib/locale";
 import { settingsSchema } from "@/lib/validation";
 
 export type SettingsState = { error?: string; ok?: boolean };
@@ -28,6 +29,7 @@ export async function updateSettingsAction(
   }
 
   await prisma.user.update({ where: { id: user.id }, data });
+  setLocaleCookie(parsed.data.locale);
   revalidatePath("/settings");
   revalidatePath("/", "layout");
   return { ok: true };

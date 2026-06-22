@@ -5,25 +5,28 @@ import { loginAction, type LoginState } from "@/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/components/i18n-provider";
 import { LogIn } from "lucide-react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const { t } = useT();
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      <LogIn className="mr-1 h-4 w-4" />
-      {pending ? "…" : "Anmelden / Sign in"}
+      <LogIn className="me-1 h-4 w-4" />
+      {pending ? "…" : t("login.submit")}
     </Button>
   );
 }
 
 export function LoginForm() {
+  const { t } = useT();
   const [state, formAction] = useFormState<LoginState, FormData>(loginAction, {});
 
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="username">Benutzername / Username</Label>
+        <Label htmlFor="username">{t("login.username")}</Label>
         <Input
           id="username"
           name="username"
@@ -34,7 +37,7 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Passwort / Password</Label>
+        <Label htmlFor="password">{t("login.password")}</Label>
         <Input
           id="password"
           name="password"
@@ -45,9 +48,7 @@ export function LoginForm() {
         />
       </div>
       {state.error && (
-        <p className="text-sm font-medium text-destructive">
-          Benutzername oder Passwort falsch · Invalid username or password
-        </p>
+        <p className="text-sm font-medium text-destructive">{t("login.error")}</p>
       )}
       <SubmitButton />
     </form>

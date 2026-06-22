@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { compareTasks, isOverdue } from "@/lib/tasks";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ const cardSelect = {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const [assigned, created] = await Promise.all([
     prisma.task.findMany({
@@ -51,14 +52,14 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold">{t["dashboard.title"]}</h1>
           {overdueCount > 0 && (
-            <p className="mt-1 text-sm font-medium text-red-600">
+            <p className="mt-1 text-sm font-medium text-rose-600">
               {overdueCount} {t["dashboard.overdue"].toLowerCase()}
             </p>
           )}
         </div>
         <Button asChild className="hidden sm:flex">
           <Link href="/tasks/new">
-            <Plus className="mr-1 h-4 w-4" />
+            <Plus className="me-1 h-4 w-4" />
             {t["nav.newTask"]}
           </Link>
         </Button>

@@ -21,7 +21,7 @@ model User {
   passwordHash String
   role         String   @default("User") // "Admin" | "User"
   avatar       String? // url or emoji
-  locale       String   @default("de") // "de" | "en"
+  locale       String   @default("ar") // "ar" | "en" | "de"
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 

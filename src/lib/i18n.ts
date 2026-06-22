@@ -1,6 +1,105 @@
-import type { Locale } from "./enums";
+import { DEFAULT_LOCALE, type Locale } from "./enums";
 
 export const dictionaries = {
+  ar: {
+    "app.name": "متعقب المهام",
+    "nav.dashboard": "مهامي",
+    "nav.board": "اللوحة",
+    "nav.projects": "المشاريع",
+    "nav.admin.users": "المستخدمون",
+    "nav.admin.tasks": "كل المهام",
+    "nav.settings": "الإعدادات",
+    "nav.logout": "تسجيل الخروج",
+    "nav.newTask": "مهمة جديدة",
+
+    "login.title": "تسجيل الدخول",
+    "login.subtitle": "سجّل الدخول لإدارة مهامك",
+    "login.username": "اسم المستخدم",
+    "login.password": "كلمة المرور",
+    "login.submit": "تسجيل الدخول",
+    "login.error": "اسم المستخدم أو كلمة المرور غير صحيحة",
+    "login.demo": "حسابات تجريبية",
+
+    "dashboard.title": "مهامي",
+    "dashboard.empty": "لا توجد مهام مسندة إليك. وقت القهوة ☕",
+    "dashboard.overdue": "متأخرة",
+    "dashboard.dueToday": "مستحقة اليوم",
+    "dashboard.assignedToMe": "مسندة إليّ",
+    "dashboard.createdByMe": "أنشأتها",
+
+    "board.title": "اللوحة",
+    "board.allProjects": "كل المشاريع",
+
+    "status.Todo": "للتنفيذ",
+    "status.InProgress": "قيد التنفيذ",
+    "status.Done": "مكتمل",
+    "status.Archived": "مؤرشف",
+
+    "priority.Low": "منخفضة",
+    "priority.Medium": "متوسطة",
+    "priority.High": "عالية",
+    "priority.Critical": "حرجة",
+
+    "task.new": "مهمة جديدة",
+    "task.edit": "تعديل المهمة",
+    "task.title": "العنوان",
+    "task.description": "الوصف",
+    "task.status": "الحالة",
+    "task.priority": "الأولوية",
+    "task.assignee": "المسؤول",
+    "task.project": "المشروع",
+    "task.dueDate": "تاريخ الاستحقاق",
+    "task.unassigned": "غير مسندة",
+    "task.noProject": "بدون مشروع",
+    "task.create": "إنشاء مهمة",
+    "task.save": "حفظ",
+    "task.delete": "حذف",
+    "task.deleteConfirm": "هل تريد حذف هذه المهمة؟",
+    "task.createdBy": "أنشأها",
+    "task.comments": "التعليقات",
+    "task.addComment": "أضف تعليقًا…",
+    "task.send": "إرسال",
+    "task.attachments": "المرفقات",
+    "task.upload": "رفع ملف",
+    "task.noComments": "لا توجد تعليقات بعد",
+
+    "projects.title": "المشاريع",
+    "projects.new": "مشروع جديد",
+    "projects.name": "الاسم",
+    "projects.description": "الوصف",
+    "projects.color": "اللون",
+    "projects.create": "إنشاء مشروع",
+    "projects.tasks": "مهام",
+    "projects.openBoard": "فتح اللوحة",
+    "projects.empty": "لا توجد مشاريع بعد",
+
+    "admin.users.title": "إدارة المستخدمين",
+    "admin.users.new": "مستخدم جديد",
+    "admin.users.name": "الاسم",
+    "admin.users.role": "الدور",
+    "admin.users.create": "إنشاء مستخدم",
+    "admin.users.lastActive": "آخر نشاط",
+    "admin.tasks.title": "كل المهام",
+
+    "settings.title": "الإعدادات",
+    "settings.language": "اللغة",
+    "settings.changePassword": "تغيير كلمة المرور",
+    "settings.newPassword": "كلمة مرور جديدة",
+    "settings.save": "حفظ",
+    "settings.saved": "تم الحفظ",
+    "settings.notifications": "الإشعارات",
+    "settings.enablePush": "تفعيل إشعارات المتصفح",
+    "settings.pushUnsupported": "الإشعارات غير مدعومة في هذه البيئة",
+
+    "common.search": "بحث…",
+    "common.filter": "تصفية",
+    "common.all": "الكل",
+    "common.cancel": "إلغاء",
+    "common.loading": "جارٍ التحميل…",
+    "common.none": "—",
+    "common.back": "رجوع",
+    "common.edit": "تعديل",
+  },
   de: {
     "app.name": "Task Tracker",
     "nav.dashboard": "Meine Tasks",
@@ -98,6 +197,7 @@ export const dictionaries = {
     "common.loading": "Lädt…",
     "common.none": "—",
     "common.back": "Zurück",
+    "common.edit": "Bearbeiten",
   },
   en: {
     "app.name": "Task Tracker",
@@ -196,6 +296,7 @@ export const dictionaries = {
     "common.loading": "Loading…",
     "common.none": "—",
     "common.back": "Back",
+    "common.edit": "Edit",
   },
 };
 
@@ -203,7 +304,7 @@ export type TKey = keyof (typeof dictionaries)["de"];
 export type Dict = Record<TKey, string>;
 
 export function getDictionary(locale: Locale): Dict {
-  return dictionaries[locale] ?? dictionaries.de;
+  return dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
 }
 
 export function translate(locale: Locale, key: TKey): string {

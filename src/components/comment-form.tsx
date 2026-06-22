@@ -12,7 +12,7 @@ function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="sm" disabled={pending}>
-      <Send className="mr-1 h-4 w-4" />
+      <Send className="me-1 h-4 w-4" />
       {label}
     </Button>
   );

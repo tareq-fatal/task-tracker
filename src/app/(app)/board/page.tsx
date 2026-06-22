@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ProjectFilter } from "@/components/project-filter";
@@ -12,7 +13,7 @@ export default async function BoardPage({
   searchParams: { project?: string };
 }) {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
   const projectId = searchParams.project;
 
   const where: any = {

@@ -12,6 +12,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
@@ -35,7 +36,7 @@ export default async function TaskDetailPage({
   params: { id: string };
 }) {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const task = await prisma.task.findUnique({
     where: { id: params.id },
@@ -67,7 +68,7 @@ export default async function TaskDetailPage({
         href="/"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         {t["common.back"]}
       </Link>
 
@@ -76,8 +77,8 @@ export default async function TaskDetailPage({
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href={`/tasks/${task.id}/edit`}>
-              <Pencil className="mr-1 h-4 w-4" />
-              {t["task.save"] === "Speichern" ? "Bearbeiten" : "Edit"}
+              <Pencil className="me-1 h-4 w-4" />
+              {t["common.edit"]}
             </Link>
           </Button>
           <DeleteTaskButton taskId={task.id} />
@@ -121,7 +122,7 @@ export default async function TaskDetailPage({
               <CalendarClock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">{t["task.dueDate"]}:</span>
               <span
-                className={cn("font-medium", overdue && "text-red-600")}
+                className={cn("font-medium", overdue && "text-rose-600")}
               >
                 {task.dueDate
                   ? format(task.dueDate, "dd.MM.yyyy")

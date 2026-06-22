@@ -1,27 +1,28 @@
 import { test, expect } from "@playwright/test";
+import { login, useLocale } from "./helpers";
+
+test.beforeEach(async ({ page }) => {
+  await useLocale(page, "de"); // pin German for stable assertions
+});
 
 test("admin can log in and see the dashboard", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByText("Demo-Zugänge / Demo accounts")).toBeVisible();
+  await expect(page.getByText("Demo-Zugänge")).toBeVisible();
 
-  await page.getByLabel(/Benutzername/i).fill("admin");
-  await page.getByLabel(/Passwort/i).fill("Admin-2026!");
-  await page.getByRole("button", { name: /Anmelden|Sign in/i }).click();
+  await page.locator('input[name="username"]').fill("admin");
+  await page.locator('input[name="password"]').fill("Admin-2026!");
+  await page.locator('button[type="submit"]').click();
 
-  // Redirected to the dashboard
   await expect(page).toHaveURL("/");
+  await useLocale(page, "de");
+  await page.reload();
   await expect(
     page.getByRole("heading", { name: /Meine Tasks/i })
   ).toBeVisible();
 });
 
 test("admin can open the kanban board with columns", async ({ page }) => {
-  // log in first
-  await page.goto("/login");
-  await page.getByLabel(/Benutzername/i).fill("admin");
-  await page.getByLabel(/Passwort/i).fill("Admin-2026!");
-  await page.getByRole("button", { name: /Anmelden|Sign in/i }).click();
-  await expect(page).toHaveURL("/");
+  await login(page, "admin", "Admin-2026!", "de");
 
   await page.goto("/board");
   await expect(page.getByRole("heading", { name: /^Board$/ })).toBeVisible();
@@ -32,8 +33,8 @@ test("admin can open the kanban board with columns", async ({ page }) => {
 
 test("invalid credentials show an error", async ({ page }) => {
   await page.goto("/login");
-  await page.getByLabel(/Benutzername/i).fill("admin");
-  await page.getByLabel(/Passwort/i).fill("wrong-password");
-  await page.getByRole("button", { name: /Anmelden|Sign in/i }).click();
+  await page.locator('input[name="username"]').fill("admin");
+  await page.locator('input[name="password"]').fill("wrong-password");
+  await page.locator('button[type="submit"]').click();
   await expect(page.getByText(/falsch|Invalid/i)).toBeVisible();
 });

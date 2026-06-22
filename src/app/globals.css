@@ -2,61 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Light-only "cool" palette — airy, Linear/Notion-like.
+  Background off-white, white cards, Sky-Blue primary, Teal accent.
+*/
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --background: 210 20% 99%; /* #FAFBFC off-white */
+    --foreground: 215 28% 17%; /* #1F2937 gray-800 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 215 28% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 215 28% 17%;
 
-    /* Indigo primary */
-    --primary: 243 75% 59%;
+    /* Sky-Blue primary */
+    --primary: 199 89% 48%; /* #0EA5E9 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 210 40% 96%; /* slate-100 */
+    --secondary-foreground: 215 28% 17%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 220 9% 46%; /* #6B7280 gray-500 */
 
-    /* Teal accent */
-    --accent: 173 80% 40%;
+    /* Teal / Mint accent */
+    --accent: 173 80% 40%; /* #14B8A6 */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    /* Rose for destructive / overdue */
+    --destructive: 350 89% 60%; /* #F43F5E rose-500 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 243 75% 59%;
+    --border: 214 32% 91%; /* slate-200 */
+    --input: 214 32% 91%;
+    --ring: 199 89% 48%;
 
-    --radius: 0.6rem;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 13%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 243 75% 66%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 18%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 173 70% 45%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 63% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 22%;
-    --input: 217 33% 22%;
-    --ring: 243 75% 66%;
+    --radius: 0.75rem;
   }
 }
 
@@ -70,7 +53,7 @@
   }
 }
 
-/* Hide scrollbars on horizontal board scroll but keep functionality */
+/* Thin scrollbar for the horizontal board */
 .board-scroll {
   scrollbar-width: thin;
 }

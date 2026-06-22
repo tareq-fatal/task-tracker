@@ -48,9 +48,9 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
         onClick={() => inputRef.current?.click()}
       >
         {pending ? (
-          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          <Loader2 className="me-1 h-4 w-4 animate-spin" />
         ) : (
-          <Paperclip className="mr-1 h-4 w-4" />
+          <Paperclip className="me-1 h-4 w-4" />
         )}
         {t("task.upload")}
       </Button>

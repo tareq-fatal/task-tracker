@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { updateTaskAction } from "@/actions/tasks";
 import { TaskForm } from "@/components/task-form";
 import type { Locale } from "@/lib/enums";
@@ -15,7 +16,7 @@ export default async function EditTaskPage({
   params: { id: string };
 }) {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task) notFound();
@@ -39,7 +40,7 @@ export default async function EditTaskPage({
         href={`/tasks/${task.id}`}
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         {t["common.back"]}
       </Link>
       <h1 className="mb-6 text-2xl font-bold">{t["task.edit"]}</h1>

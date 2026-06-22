@@ -65,7 +65,7 @@ function distToSeg(px, py, ax, ay, bx, by) {
 function draw(size, maskable) {
   const rgba = Buffer.alloc(size * size * 4);
   const s = size;
-  const indigo = [99, 102, 241];
+  const indigo = [14, 165, 233]; // sky-500 (primary)
   const teal = [45, 212, 191];
   const radius = maskable ? s : s * 0.22; // maskable = full bleed
   // check points

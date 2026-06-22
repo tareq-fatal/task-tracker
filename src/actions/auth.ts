@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, verifyPassword } from "@/lib/auth";
+import { setLocaleCookie } from "@/lib/locale";
+import { isLocale } from "@/lib/enums";
 import { loginSchema } from "@/lib/validation";
 
 export type LoginState = { error?: string };
@@ -29,6 +31,7 @@ export async function loginAction(
   }
 
   await createSession(user.id);
+  if (isLocale(user.locale)) setLocaleCookie(user.locale);
   redirect("/");
 }
 

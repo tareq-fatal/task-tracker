@@ -1,14 +1,29 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Cairo } from "next/font/google";
+import { getActiveLocale } from "@/lib/locale";
+import { dirForLocale } from "@/lib/enums";
 import "./globals.css";
 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  variable: "--font-cairo",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Task Tracker",
-  description: "A lightweight task tracker — boards, projects and teamwork.",
+  title: "متعقب المهام · Task Tracker",
+  description: "تطبيق خفيف لتتبّع المهام — لوحات ومشاريع وعمل جماعي.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Task Tracker",
+    title: "متعقب المهام",
   },
   icons: {
     icon: "/logo.svg",
@@ -17,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#6366f1",
+  themeColor: "#0ea5e9",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -29,9 +44,18 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = getActiveLocale();
+  const dir = dirForLocale(locale);
+  const fontClass = locale === "ar" ? "font-cairo" : "font-sans";
+
   return (
-    <html lang="de" suppressHydrationWarning>
-      <body className="min-h-screen antialiased">{children}</body>
+    <html
+      lang={locale}
+      dir={dir}
+      className={`${inter.variable} ${cairo.variable}`}
+      suppressHydrationWarning
+    >
+      <body className={`min-h-screen antialiased ${fontClass}`}>{children}</body>
     </html>
   );
 }

@@ -20,10 +20,12 @@ import { cn } from "@/lib/utils";
 import { initials } from "@/lib/tasks";
 import { useT } from "@/components/i18n-provider";
 import { logoutAction } from "@/actions/auth";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
+import type { Locale } from "@/lib/enums";
 
 type NavItem = { href: string; label: TKey; icon: React.ElementType; admin?: boolean };
 
@@ -42,9 +44,11 @@ function isActive(pathname: string, href: string) {
 
 export function AppShell({
   user,
+  locale,
   children,
 }: {
   user: SessionUser;
+  locale: Locale;
   children: React.ReactNode;
 }) {
   const { t } = useT();
@@ -71,7 +75,7 @@ export function AppShell({
             <span className="font-semibold">{t("app.name")}</span>
           </Link>
 
-          <nav className="ml-6 hidden items-center gap-1 md:flex">
+          <nav className="ms-6 hidden items-center gap-1 md:flex">
             {items.map((item) => {
               const Icon = item.icon;
               return (
@@ -92,13 +96,14 @@ export function AppShell({
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ms-auto flex items-center gap-2">
             <Button asChild size="sm" className="hidden sm:flex">
               <Link href="/tasks/new">
-                <Plus className="mr-1 h-4 w-4" />
+                <Plus className="me-1 h-4 w-4" />
                 {t("nav.newTask")}
               </Link>
             </Button>
+            <LocaleSwitcher current={locale} />
             <Link href="/settings" aria-label={t("nav.settings")}>
               <Avatar className="h-9 w-9 border">
                 <AvatarFallback className="bg-primary text-primary-foreground">
@@ -151,7 +156,7 @@ export function AppShell({
       <main className="flex-1 pb-20 md:pb-8">{children}</main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 flex items-center justify-around border-t bg-background/95 py-1 backdrop-blur md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t bg-background/95 py-1 backdrop-blur md:hidden">
         {items.slice(0, 3).map((item) => {
           const Icon = item.icon;
           return (

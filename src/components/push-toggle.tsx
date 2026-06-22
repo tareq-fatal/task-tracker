@@ -90,12 +90,12 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
 
   return subscribed ? (
     <Button variant="outline" onClick={disable} disabled={busy}>
-      <BellOff className="mr-1 h-4 w-4" />
+      <BellOff className="me-1 h-4 w-4" />
       {busy ? "…" : "Aus / Off"}
     </Button>
   ) : (
     <Button onClick={enable} disabled={busy}>
-      <Bell className="mr-1 h-4 w-4" />
+      <Bell className="me-1 h-4 w-4" />
       {busy ? "…" : t("settings.enablePush")}
     </Button>
   );

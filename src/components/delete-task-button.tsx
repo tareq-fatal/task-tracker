@@ -21,7 +21,7 @@ export function DeleteTaskButton({ taskId }: { taskId: string }) {
         startTransition(() => deleteTaskAction(taskId));
       }}
     >
-      <Trash2 className="mr-1 h-4 w-4" />
+      <Trash2 className="me-1 h-4 w-4" />
       {t("task.delete")}
     </Button>
   );

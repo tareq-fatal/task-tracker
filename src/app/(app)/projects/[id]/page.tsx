@@ -4,6 +4,7 @@ import { ArrowLeft, KanbanSquare, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { compareTasks } from "@/lib/tasks";
 import { TaskCard } from "@/components/task-card";
@@ -16,7 +17,7 @@ export default async function ProjectDetailPage({
   params: { id: string };
 }) {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const project = await prisma.project.findUnique({
     where: { id: params.id },
@@ -44,7 +45,7 @@ export default async function ProjectDetailPage({
         href="/projects"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
         {t["projects.title"]}
       </Link>
 
@@ -66,13 +67,13 @@ export default async function ProjectDetailPage({
         <div className="flex gap-2">
           <Button asChild variant="outline">
             <Link href={`/projects/${project.id}/board`}>
-              <KanbanSquare className="mr-1 h-4 w-4" />
+              <KanbanSquare className="me-1 h-4 w-4" />
               {t["projects.openBoard"]}
             </Link>
           </Button>
           <Button asChild>
             <Link href={`/tasks/new?project=${project.id}`}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="me-1 h-4 w-4" />
               {t["nav.newTask"]}
             </Link>
           </Button>

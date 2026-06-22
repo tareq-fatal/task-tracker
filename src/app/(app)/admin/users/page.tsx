@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { initials } from "@/lib/tasks";
 import { NewUserDialog } from "@/components/new-user-dialog";
 import { DeleteUserButton } from "@/components/delete-user-button";
@@ -15,7 +16,7 @@ export default async function AdminUsersPage() {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "Admin") redirect("/");
-  const t = getDictionary(me.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "asc" },
@@ -50,7 +51,7 @@ export default async function AdminUsersPage() {
                 @{u.username} · {u.email}
               </p>
             </div>
-            <div className="hidden text-right text-xs text-muted-foreground sm:block">
+            <div className="hidden text-end text-xs text-muted-foreground sm:block">
               <p>
                 {u._count.assignedTasks} {t["projects.tasks"].toLowerCase()}
               </p>

@@ -47,19 +47,20 @@ async function main() {
     where: { username: ADMIN_USERNAME },
     update: {},
     create: {
-      name: "Administrator",
+      name: "المسؤول",
       username: ADMIN_USERNAME,
       email: ADMIN_EMAIL.toLowerCase(),
       passwordHash: adminHash,
       role: "Admin",
-      locale: "de",
+      locale: "ar",
     },
   });
 
+  // Demo users with Arabic display names (login usernames stay ASCII)
   const demoUsers = [
-    { name: "Alice Müller", username: "alice", email: "alice@demo.local" },
-    { name: "Bob Schmidt", username: "bob", email: "bob@demo.local" },
-    { name: "Charlie Weber", username: "charlie", email: "charlie@demo.local" },
+    { name: "علي", username: "alice", email: "alice@demo.local" },
+    { name: "فاطمة", username: "bob", email: "bob@demo.local" },
+    { name: "محمد", username: "charlie", email: "charlie@demo.local" },
   ];
 
   const users: Record<string, string> = { admin: admin.id };
@@ -73,7 +74,7 @@ async function main() {
         email: u.email,
         passwordHash: demoHash,
         role: "User",
-        locale: "de",
+        locale: "ar",
       },
     });
     users[u.username] = created.id;
@@ -85,25 +86,25 @@ async function main() {
 
   const marketing = await prisma.project.create({
     data: {
-      name: "Marketing 2026",
-      description: "Kampagnen, Content und Social Media für 2026.",
+      name: "مهام التسويق ٢٠٢٦",
+      description: "حملات ومحتوى ووسائل تواصل اجتماعي لعام ٢٠٢٦.",
       color: "#ec4899",
       createdByUserId: admin.id,
     },
   });
   const roadmap = await prisma.project.create({
     data: {
-      name: "Q1 Roadmap",
-      description: "Produkt-Features und Releases für Q1.",
-      color: "#6366f1",
+      name: "خارطة الطريق — الربع الأول",
+      description: "ميزات المنتج والإصدارات للربع الأول.",
+      color: "#0ea5e9",
       createdByUserId: admin.id,
     },
   });
 
   const tasks = [
     {
-      title: "Landingpage Redesign",
-      description: "Hero-Section und CTA überarbeiten.",
+      title: "إعادة تصميم الصفحة الرئيسية",
+      description: "تحديث قسم البطل وزر الحث على الإجراء.",
       status: "InProgress",
       priority: "High",
       assignee: "alice",
@@ -111,8 +112,8 @@ async function main() {
       due: daysFromNow(3),
     },
     {
-      title: "Newsletter Q1 versenden",
-      description: "Template finalisieren und Versand planen.",
+      title: "إرسال نشرة الربع الأول",
+      description: "إنهاء القالب وجدولة الإرسال.",
       status: "Todo",
       priority: "Medium",
       assignee: "bob",
@@ -120,8 +121,8 @@ async function main() {
       due: daysFromNow(7),
     },
     {
-      title: "Social-Media-Kalender",
-      description: "Postings für Januar–März planen.",
+      title: "تقويم وسائل التواصل الاجتماعي",
+      description: "تخطيط المنشورات لشهر يناير–مارس.",
       status: "Todo",
       priority: "Low",
       assignee: "charlie",
@@ -129,7 +130,7 @@ async function main() {
       due: daysFromNow(14),
     },
     {
-      title: "Logo-Varianten erstellen",
+      title: "إنشاء نسخ الشعار",
       status: "Done",
       priority: "Medium",
       assignee: "alice",
@@ -137,8 +138,8 @@ async function main() {
       due: daysFromNow(-2),
     },
     {
-      title: "API Authentifizierung",
-      description: "Cookie-Session + Rollen implementieren.",
+      title: "مصادقة واجهة برمجة التطبيقات",
+      description: "تنفيذ جلسات الكوكيز والأدوار.",
       status: "InProgress",
       priority: "Critical",
       assignee: "bob",
@@ -146,8 +147,8 @@ async function main() {
       due: daysFromNow(1),
     },
     {
-      title: "Kanban Drag & Drop",
-      description: "Board mit Statuswechsel per Drag&Drop.",
+      title: "السحب والإفلات في اللوحة",
+      description: "لوحة كانبان مع تغيير الحالة بالسحب.",
       status: "Done",
       priority: "High",
       assignee: "alice",
@@ -155,8 +156,8 @@ async function main() {
       due: daysFromNow(-5),
     },
     {
-      title: "PWA Offline-Support",
-      description: "Service-Worker und Manifest einrichten.",
+      title: "دعم العمل دون اتصال (PWA)",
+      description: "إعداد عامل الخدمة والبيان.",
       status: "Todo",
       priority: "Medium",
       assignee: "charlie",
@@ -164,8 +165,8 @@ async function main() {
       due: daysFromNow(10),
     },
     {
-      title: "Datenbank-Migration vorbereiten",
-      description: "Postgres-Kompatibilität prüfen.",
+      title: "تحضير ترحيل قاعدة البيانات",
+      description: "التحقق من التوافق مع Postgres.",
       status: "Todo",
       priority: "High",
       assignee: "bob",
@@ -173,8 +174,8 @@ async function main() {
       due: daysFromNow(5),
     },
     {
-      title: "Onboarding-Dokumentation",
-      description: "README und Deploy-Guide schreiben.",
+      title: "توثيق الإعداد",
+      description: "كتابة دليل README والنشر.",
       status: "InProgress",
       priority: "Low",
       assignee: "charlie",
@@ -182,8 +183,8 @@ async function main() {
       due: daysFromNow(8),
     },
     {
-      title: "Überfällige Demo-Task",
-      description: "Diese Task ist absichtlich überfällig.",
+      title: "مهمة تجريبية متأخرة",
+      description: "هذه المهمة متأخرة عمدًا.",
       status: "Todo",
       priority: "Critical",
       assignee: "alice",
@@ -209,14 +210,14 @@ async function main() {
 
   // A couple of comments
   const firstTask = await prisma.task.findFirst({
-    where: { title: "API Authentifizierung" },
+    where: { title: "مصادقة واجهة برمجة التطبيقات" },
   });
   if (firstTask) {
     await prisma.taskComment.create({
       data: {
         taskId: firstTask.id,
         userId: users.alice,
-        content: "Ich kann beim Review helfen 👍",
+        content: "يمكنني المساعدة في المراجعة 👍",
       },
     });
   }

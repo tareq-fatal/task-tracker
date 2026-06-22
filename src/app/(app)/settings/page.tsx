@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { SettingsForm } from "@/components/settings-form";
 import { PushToggle } from "@/components/push-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import type { Locale } from "@/lib/enums";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const t = getDictionary(user.locale as Locale);
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
   const vapid = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
   return (
@@ -21,7 +23,7 @@ export default async function SettingsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <SettingsForm locale={user.locale} />
+          <SettingsForm locale={locale} />
         </CardContent>
       </Card>
 

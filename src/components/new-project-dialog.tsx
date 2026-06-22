@@ -52,7 +52,7 @@ export function NewProjectDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-1 h-4 w-4" />
+          <Plus className="me-1 h-4 w-4" />
           {t("projects.new")}
         </Button>
       </DialogTrigger>

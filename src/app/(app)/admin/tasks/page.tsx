@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import { isOverdue } from "@/lib/tasks";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
@@ -19,7 +20,7 @@ export default async function AdminTasksPage({
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "Admin") redirect("/");
-  const t = getDictionary(me.locale as Locale);
+  const t = getDictionary(getActiveLocale());
 
   const q = searchParams.q?.trim();
   const status = searchParams.status;
@@ -78,7 +79,7 @@ export default async function AdminTasksPage({
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b bg-muted/50 text-left text-xs uppercase text-muted-foreground">
+          <thead className="border-b bg-muted/50 text-start text-xs uppercase text-muted-foreground">
             <tr>
               <th className="p-3">{t["task.title"]}</th>
               <th className="p-3">{t["task.status"]}</th>
@@ -125,7 +126,7 @@ export default async function AdminTasksPage({
                   className={cn(
                     "hidden p-3 sm:table-cell",
                     isOverdue(task.dueDate, task.status as any) &&
-                      "font-medium text-red-600"
+                      "font-medium text-rose-600"
                   )}
                 >
                   {task.dueDate ? format(task.dueDate, "dd.MM.yyyy") : t["common.none"]}
