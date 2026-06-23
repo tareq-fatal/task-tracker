@@ -6,8 +6,8 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
+import { taskCardSelect } from "@/lib/task-select";
 import { KanbanBoard } from "@/components/kanban-board";
-import type { Locale } from "@/lib/enums";
 
 export default async function ProjectBoardPage({
   params,
@@ -26,16 +26,7 @@ export default async function ProjectBoardPage({
       ...taskVisibility(user),
       status: { in: ["Todo", "InProgress", "Done"] },
     },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      priority: true,
-      dueDate: true,
-      assignedTo: { select: { name: true } },
-      project: { select: { name: true, color: true } },
-      _count: { select: { comments: true, attachments: true } },
-    },
+    select: taskCardSelect,
     orderBy: { priority: "asc" },
   });
 

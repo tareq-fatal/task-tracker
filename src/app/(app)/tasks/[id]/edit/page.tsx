@@ -7,8 +7,8 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { updateTaskAction } from "@/actions/tasks";
+import { formatDuration } from "@/lib/tasks";
 import { TaskForm } from "@/components/task-form";
-import type { Locale } from "@/lib/enums";
 
 export default async function EditTaskPage({
   params,
@@ -56,6 +56,9 @@ export default async function EditTaskPage({
           assignedToUserId: task.assignedToUserId,
           projectId: task.projectId,
           dueDate: task.dueDate ? format(task.dueDate, "yyyy-MM-dd") : null,
+          estimatedHours:
+            task.estimatedHours != null ? formatDuration(task.estimatedHours) : "",
+          spentHours: task.spentHours > 0 ? formatDuration(task.spentHours) : "",
         }}
         submitLabel={t["task.save"]}
       />

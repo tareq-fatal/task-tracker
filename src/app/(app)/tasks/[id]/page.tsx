@@ -19,6 +19,10 @@ import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
 import { DeleteTaskButton } from "@/components/delete-task-button";
+import { ProgressControl } from "@/components/progress-control";
+import { SubtaskList } from "@/components/subtask-list";
+import { TimerControl } from "@/components/timer-control";
+import { formatDuration } from "@/lib/tasks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,6 +53,7 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "asc" },
       },
       attachments: { orderBy: { uploadedAt: "desc" } },
+      subtasks: { orderBy: { order: "asc" } },
     },
   });
 
@@ -129,6 +134,23 @@ export default async function TaskDetailPage({
                   : t["common.none"]}
               </span>
             </div>
+            {(task.estimatedHours != null || task.spentHours > 0) && (
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {t["task.spent"]}:
+                </span>
+                <span className="font-medium tabular-nums">
+                  {formatDuration(task.spentHours)}
+                  {task.estimatedHours != null && (
+                    <>
+                      {" "}
+                      {t["time.of"]} {formatDuration(task.estimatedHours)}
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2 text-muted-foreground">
               {t["task.createdBy"]}: {task.createdBy.name} ·{" "}
               {format(task.createdAt, "dd.MM.yyyy")}
@@ -136,6 +158,34 @@ export default async function TaskDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Timer */}
+      <div className="mb-6">
+        <TimerControl
+          taskId={task.id}
+          spentHours={task.spentHours}
+          estimatedHours={task.estimatedHours}
+          timerStartedAt={task.timerStartedAt}
+        />
+      </div>
+
+      {/* Progress + Subtasks */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <ProgressControl
+              taskId={task.id}
+              value={task.progress}
+              hasSubtasks={task.subtasks.length > 0}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <SubtaskList taskId={task.id} subtasks={task.subtasks} />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Attachments */}
       <section className="mb-6">

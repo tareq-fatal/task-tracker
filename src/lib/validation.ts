@@ -5,6 +5,7 @@ import {
   TASK_STATUSES,
   LOCALES,
 } from "./enums";
+import { parseDuration } from "./tasks";
 
 const optionalId = z
   .string()
@@ -29,6 +30,23 @@ export const taskSchema = z.object({
     .trim()
     .optional()
     .transform((v) => (v && v.length > 0 ? new Date(v) : null)),
+  // Duration shorthands ("4h", "1d", "2d", "90m") → hours
+  estimatedHours: z
+    .string()
+    .optional()
+    .transform((v) => parseDuration(v)),
+  spentHours: z
+    .string()
+    .optional()
+    .transform((v) => parseDuration(v) ?? 0),
+});
+
+export const subtaskSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+});
+
+export const progressSchema = z.object({
+  progress: z.coerce.number().int().min(0).max(100),
 });
 
 export const projectSchema = z.object({

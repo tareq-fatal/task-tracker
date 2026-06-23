@@ -6,10 +6,10 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
+import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/lib/enums";
 
 export default async function ProjectDetailPage({
   params,
@@ -26,16 +26,7 @@ export default async function ProjectDetailPage({
 
   const tasks = await prisma.task.findMany({
     where: { projectId: project.id, ...taskVisibility(user) },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      priority: true,
-      dueDate: true,
-      assignedTo: { select: { name: true } },
-      project: { select: { name: true, color: true } },
-      _count: { select: { comments: true, attachments: true } },
-    },
+    select: taskCardSelect,
   });
   tasks.sort((a, b) => compareTasks(a, b));
 

@@ -68,6 +68,86 @@ export function compareTasks(
   return ad - bd;
 }
 
+/** Allowed manual progress steps (%). */
+export const PROGRESS_STEPS = [0, 10, 25, 50, 75, 100] as const;
+
+const HOURS_PER_DAY = 8;
+
+/** Progress derived from subtask completion (0 when no subtasks). */
+export function progressFromSubtasks(done: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((done / total) * 100);
+}
+
+/** Clamp a value into the 0-100 progress range (integer). */
+export function clampProgress(value: number): number {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ * Parse a duration shorthand into hours.
+ * Accepts "4h", "1d", "2d", "1.5h", "90m", or a plain number (= hours).
+ * Returns null for empty/invalid input.
+ */
+export function parseDuration(input: string | null | undefined): number | null {
+  if (input == null) return null;
+  const s = String(input).trim().toLowerCase();
+  if (s === "") return null;
+  const m = s.match(/^(\d+(?:[.,]\d+)?)\s*(h|d|m)?$/);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(",", "."));
+  if (Number.isNaN(n) || n < 0) return null;
+  const unit = m[2] ?? "h";
+  if (unit === "d") return n * HOURS_PER_DAY;
+  if (unit === "m") return n / 60;
+  return n;
+}
+
+/** Format hours as a compact label: 8h → "1d", 16h → "2d", else "Xh". */
+export function formatDuration(hours: number | null | undefined): string {
+  if (hours == null || hours <= 0) return "0h";
+  if (hours % HOURS_PER_DAY === 0 && hours >= HOURS_PER_DAY) {
+    return `${hours / HOURS_PER_DAY}d`;
+  }
+  const rounded = Math.round(hours * 10) / 10;
+  return `${rounded}h`;
+}
+
+/** Whole-day difference (due - now), rounded up. Positive = days remaining. */
+export function daysUntil(
+  due: Date | string,
+  now: Date = new Date()
+): number {
+  const d = typeof due === "string" ? new Date(due) : due;
+  const ms = d.getTime() - now.getTime();
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
+/** Whole days a task is overdue (>=1 once past due, rounded up). */
+export function overdueDaysCount(
+  due: Date | string,
+  now: Date = new Date()
+): number {
+  const d = typeof due === "string" ? new Date(due) : due;
+  const ms = now.getTime() - d.getTime();
+  if (ms <= 0) return 0;
+  return Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+}
+
+/** Hours of a currently-running timer (since timerStartedAt). */
+export function runningHours(
+  timerStartedAt: Date | string | null | undefined,
+  now: Date = new Date()
+): number {
+  if (!timerStartedAt) return 0;
+  const d =
+    typeof timerStartedAt === "string"
+      ? new Date(timerStartedAt)
+      : timerStartedAt;
+  return Math.max(0, (now.getTime() - d.getTime()) / (60 * 60 * 1000));
+}
+
 /** Initials for an avatar fallback. */
 export function initials(name: string): string {
   return name

@@ -31,6 +31,14 @@ await page.screenshot({ path: `${out}/03-board.png` });
 await page.goto(`${base}/projects`);
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/04-projects.png` });
+
+// Task detail (progress control + subtasks + timer)
+await page.goto(`${base}/board`);
+await page.waitForTimeout(400);
+await page.locator('a[href^="/tasks/"]:not([href$="/new"])').first().click();
+await page.waitForURL(/\/tasks\/[^/]+$/);
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/09-task-detail.png`, fullPage: true });
 await page.goto(`${base}/admin/tasks`);
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/05-admin-tasks.png` });

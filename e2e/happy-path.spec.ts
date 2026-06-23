@@ -26,9 +26,15 @@ test("admin can open the kanban board with columns", async ({ page }) => {
 
   await page.goto("/board");
   await expect(page.getByRole("heading", { name: /^Board$/ })).toBeVisible();
-  await expect(page.getByText("Zu erledigen")).toBeVisible();
-  await expect(page.getByText("In Arbeit")).toBeVisible();
-  await expect(page.getByText("Erledigt")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Zu erledigen", exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "In Arbeit", exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Erledigt", exact: true })
+  ).toBeVisible();
 });
 
 test("invalid credentials show an error", async ({ page }) => {

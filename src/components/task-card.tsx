@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { format } from "date-fns";
-import { CalendarClock, MessageSquare, Paperclip } from "lucide-react";
+import { MessageSquare, Paperclip, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isOverdue, isDueToday, initials } from "@/lib/tasks";
+import { initials } from "@/lib/tasks";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
-import { useT } from "@/components/i18n-provider";
+import { ProgressBar } from "@/components/progress-bar";
+import { TimeBadge } from "@/components/time-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export type TaskCardData = {
@@ -15,9 +15,14 @@ export type TaskCardData = {
   status: string;
   priority: string;
   dueDate: string | Date | null;
+  progress: number;
+  estimatedHours: number | null;
+  spentHours: number;
+  timerStartedAt: string | Date | null;
+  completedAt: string | Date | null;
   assignedTo: { name: string } | null;
   project: { name: string; color: string } | null;
-  _count?: { comments: number; attachments: number };
+  _count?: { comments: number; attachments: number; subtasks: number };
 };
 
 export function TaskCard({
@@ -27,15 +32,21 @@ export function TaskCard({
   task: TaskCardData;
   showStatus?: boolean;
 }) {
-  const { t } = useT();
-  const overdue = isOverdue(task.dueDate, task.status as any);
-  const dueToday = !overdue && isDueToday(task.dueDate);
+  const done = task.status === "Done" || task.status === "Archived";
+  const subtaskCount = task._count?.subtasks ?? 0;
+  const showBar = task.progress > 0 || subtaskCount > 0;
 
   return (
     <Link href={`/tasks/${task.id}`} className="block">
-      <div className="group rounded-lg border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
+      <div
+        className={cn(
+          "group rounded-xl border bg-card p-4 shadow-sm transition-all duration-200",
+          "hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md",
+          done && "opacity-65"
+        )}
+      >
         {task.project && (
-          <div className="mb-1.5 flex items-center gap-1.5">
+          <div className="mb-2 flex items-center gap-1.5">
             <span
               className="h-2 w-2 rounded-full"
               style={{ backgroundColor: task.project.color }}
@@ -46,29 +57,43 @@ export function TaskCard({
           </div>
         )}
 
-        <p className="mb-2 line-clamp-2 text-sm font-medium leading-snug">
+        <p
+          className={cn(
+            "mb-3 line-clamp-2 text-sm font-medium leading-snug",
+            done && "line-through decoration-muted-foreground/40"
+          )}
+        >
           {task.title}
         </p>
 
-        <div className="mb-2 flex flex-wrap items-center gap-1.5">
-          {showStatus && <StatusBadge status={task.status} />}
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={task.priority} />
+          {showStatus && <StatusBadge status={task.status} />}
+        </div>
+
+        {showBar && (
+          <div className="mb-3 space-y-1">
+            <ProgressBar value={task.progress} />
+            <div className="flex justify-between text-[11px] text-muted-foreground">
+              {subtaskCount > 0 ? (
+                <span className="inline-flex items-center gap-1">
+                  <ListChecks className="h-3 w-3" />
+                  {subtaskCount}
+                </span>
+              ) : (
+                <span />
+              )}
+              <span className="tabular-nums">{task.progress}%</span>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-3">
+          <TimeBadge task={task} />
         </div>
 
         <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            {task.dueDate && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded px-1.5 py-0.5",
-                  overdue && "bg-rose-100 font-medium text-rose-700",
-                  dueToday && "bg-amber-100 font-medium text-amber-700"
-                )}
-              >
-                <CalendarClock className="h-3 w-3" />
-                {format(new Date(task.dueDate), "dd.MM.yyyy")}
-              </span>
-            )}
             {task._count && task._count.comments > 0 && (
               <span className="inline-flex items-center gap-0.5">
                 <MessageSquare className="h-3 w-3" />

@@ -20,6 +20,8 @@ export type TaskDefaults = {
   assignedToUserId?: string | null;
   projectId?: string | null;
   dueDate?: string | null; // yyyy-MM-dd
+  estimatedHours?: string; // shorthand e.g. "4h" / "1d"
+  spentHours?: string;
 };
 
 const selectClass =
@@ -150,6 +152,27 @@ export function TaskForm({
             type="date"
             defaultValue={d.dueDate ?? ""}
             className="sm:w-56"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="estimatedHours">{t("task.estimated")}</Label>
+          <Input
+            id="estimatedHours"
+            name="estimatedHours"
+            defaultValue={d.estimatedHours ?? ""}
+            placeholder="4h"
+          />
+          <p className="text-xs text-muted-foreground">{t("task.timeHint")}</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="spentHours">{t("task.spent")}</Label>
+          <Input
+            id="spentHours"
+            name="spentHours"
+            defaultValue={d.spentHours ?? ""}
+            placeholder="2h"
           />
         </div>
       </div>

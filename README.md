@@ -56,6 +56,9 @@ see tasks they created or that are assigned to them.
 - 🔐 **Cookie-session auth** (httpOnly, argon2 password hashing), 2 roles
 - 📋 **Task CRUD** — title, description, status, priority, assignee, due date, project
 - 🗂️ **Kanban board** with drag & drop (`@dnd-kit`) — status updates on drop, optimistic UI
+- 📊 **Progress** per task (0–100) — manual slider + quick buttons, or **auto-derived from subtasks**
+- ☑️ **Subtasks / checklist** per task — toggle items, progress recalculates automatically
+- ⏱️ **Time tracking** — estimated vs. spent hours, **start/stop timer**, "X of Y", days-remaining, pulsing overdue badge, "done N ago"
 - 📁 **Projects** — colour-coded, per-project board (`/projects/{id}/board`)
 - 👤 **Assign to user** + **web-push notification** on assignment (optional, see below)
 - ⏰ **Due dates** with overdue / due-today highlighting

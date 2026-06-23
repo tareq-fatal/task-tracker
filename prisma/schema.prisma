@@ -67,6 +67,15 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Progress (0-100). Auto-derived from subtasks when any exist, else manual.
+  progress Int @default(0)
+
+  // Time tracking (hours)
+  estimatedHours Float?
+  spentHours     Float     @default(0)
+  timerStartedAt DateTime? // when a running timer was started (null = stopped)
+  completedAt    DateTime? // set when status becomes Done
+
   assignedToUserId String?
   assignedTo       User?   @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
 
@@ -78,10 +87,23 @@ model Task {
 
   comments    TaskComment[]
   attachments TaskAttachment[]
+  subtasks    Subtask[]
 
   @@index([status])
   @@index([assignedToUserId])
   @@index([projectId])
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
 }
 
 model TaskComment {

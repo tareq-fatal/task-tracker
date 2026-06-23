@@ -5,20 +5,11 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { compareTasks, isOverdue } from "@/lib/tasks";
+import { taskCardSelect } from "@/lib/task-select";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
-import type { Locale } from "@/lib/enums";
 
-const cardSelect = {
-  id: true,
-  title: true,
-  status: true,
-  priority: true,
-  dueDate: true,
-  assignedTo: { select: { name: true } },
-  project: { select: { name: true, color: true } },
-  _count: { select: { comments: true, attachments: true } },
-} as const;
+const cardSelect = taskCardSelect;
 
 export default async function DashboardPage() {
   const user = await requireUser();

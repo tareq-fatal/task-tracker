@@ -3,9 +3,9 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
+import { taskCardSelect } from "@/lib/task-select";
 import { KanbanBoard } from "@/components/kanban-board";
 import { ProjectFilter } from "@/components/project-filter";
-import type { Locale } from "@/lib/enums";
 
 export default async function BoardPage({
   searchParams,
@@ -25,16 +25,7 @@ export default async function BoardPage({
   const [tasks, projects] = await Promise.all([
     prisma.task.findMany({
       where,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        priority: true,
-        dueDate: true,
-        assignedTo: { select: { name: true } },
-        project: { select: { name: true, color: true } },
-        _count: { select: { comments: true, attachments: true } },
-      },
+      select: taskCardSelect,
       orderBy: { priority: "asc" },
     }),
     prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),

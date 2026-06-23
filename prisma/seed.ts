@@ -101,7 +101,21 @@ async function main() {
     },
   });
 
-  const tasks = [
+  type SeedTask = {
+    title: string;
+    description?: string;
+    status: string;
+    priority: string;
+    assignee: string;
+    project: string | null;
+    due: Date;
+    est?: number; // estimated hours
+    spent?: number; // spent hours
+    progress?: number; // used when no subtasks
+    subtasks?: { title: string; done: boolean }[];
+  };
+
+  const tasks: SeedTask[] = [
     {
       title: "إعادة تصميم الصفحة الرئيسية",
       description: "تحديث قسم البطل وزر الحث على الإجراء.",
@@ -110,6 +124,13 @@ async function main() {
       assignee: "alice",
       project: marketing.id,
       due: daysFromNow(3),
+      est: 8,
+      spent: 3,
+      subtasks: [
+        { title: "تحديث لوحة الألوان", done: true },
+        { title: "تصميم قسم البطل", done: true },
+        { title: "زر الحث على الإجراء", done: false },
+      ],
     },
     {
       title: "إرسال نشرة الربع الأول",
@@ -119,6 +140,8 @@ async function main() {
       assignee: "bob",
       project: marketing.id,
       due: daysFromNow(7),
+      est: 4,
+      progress: 0,
     },
     {
       title: "تقويم وسائل التواصل الاجتماعي",
@@ -128,6 +151,8 @@ async function main() {
       assignee: "charlie",
       project: marketing.id,
       due: daysFromNow(14),
+      est: 16,
+      progress: 10,
     },
     {
       title: "إنشاء نسخ الشعار",
@@ -136,6 +161,8 @@ async function main() {
       assignee: "alice",
       project: marketing.id,
       due: daysFromNow(-2),
+      est: 4,
+      spent: 5,
     },
     {
       title: "مصادقة واجهة برمجة التطبيقات",
@@ -145,6 +172,13 @@ async function main() {
       assignee: "bob",
       project: roadmap.id,
       due: daysFromNow(1),
+      est: 16,
+      spent: 10,
+      subtasks: [
+        { title: "تصميم المخطط", done: true },
+        { title: "نقاط النهاية", done: false },
+        { title: "الاختبارات", done: false },
+      ],
     },
     {
       title: "السحب والإفلات في اللوحة",
@@ -154,6 +188,8 @@ async function main() {
       assignee: "alice",
       project: roadmap.id,
       due: daysFromNow(-5),
+      est: 8,
+      spent: 9,
     },
     {
       title: "دعم العمل دون اتصال (PWA)",
@@ -163,6 +199,8 @@ async function main() {
       assignee: "charlie",
       project: roadmap.id,
       due: daysFromNow(10),
+      est: 6,
+      progress: 0,
     },
     {
       title: "تحضير ترحيل قاعدة البيانات",
@@ -172,6 +210,8 @@ async function main() {
       assignee: "bob",
       project: roadmap.id,
       due: daysFromNow(5),
+      est: 4,
+      progress: 25,
     },
     {
       title: "توثيق الإعداد",
@@ -181,6 +221,9 @@ async function main() {
       assignee: "charlie",
       project: roadmap.id,
       due: daysFromNow(8),
+      est: 3,
+      spent: 1,
+      progress: 50,
     },
     {
       title: "مهمة تجريبية متأخرة",
@@ -190,11 +233,20 @@ async function main() {
       assignee: "alice",
       project: null,
       due: daysFromNow(-1),
+      est: 2,
+      progress: 0,
     },
   ];
 
   for (const tk of tasks) {
-    await prisma.task.create({
+    const isDone = tk.status === "Done";
+    let progress = tk.progress ?? (isDone ? 100 : 0);
+    if (tk.subtasks && tk.subtasks.length > 0) {
+      const done = tk.subtasks.filter((s) => s.done).length;
+      progress = Math.round((done / tk.subtasks.length) * 100);
+    }
+
+    const created = await prisma.task.create({
       data: {
         title: tk.title,
         description: tk.description ?? null,
@@ -204,8 +256,23 @@ async function main() {
         createdByUserId: admin.id,
         projectId: tk.project,
         dueDate: tk.due,
+        estimatedHours: tk.est ?? null,
+        spentHours: tk.spent ?? 0,
+        progress,
+        completedAt: isDone ? tk.due : null,
       },
     });
+
+    if (tk.subtasks && tk.subtasks.length > 0) {
+      await prisma.subtask.createMany({
+        data: tk.subtasks.map((s, i) => ({
+          taskId: created.id,
+          title: s.title,
+          done: s.done,
+          order: i,
+        })),
+      });
+    }
   }
 
   // A couple of comments

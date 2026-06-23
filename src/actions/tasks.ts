@@ -10,11 +10,32 @@ import { requireUser } from "@/lib/auth";
 import {
   taskSchema,
   commentSchema,
+  subtaskSchema,
+  progressSchema,
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
 } from "@/lib/validation";
 import { isTaskStatus } from "@/lib/enums";
+import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notifyUser } from "@/lib/push";
+
+function revalidateTaskViews(taskId?: string) {
+  revalidatePath("/");
+  revalidatePath("/board");
+  revalidatePath("/admin/tasks");
+  if (taskId) revalidatePath(`/tasks/${taskId}`);
+}
+
+/** Recompute a task's progress from its subtasks (no-op when none exist). */
+async function recomputeTaskProgress(taskId: string): Promise<void> {
+  const subs = await prisma.subtask.findMany({ where: { taskId } });
+  if (subs.length === 0) return;
+  const done = subs.filter((s) => s.done).length;
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { progress: progressFromSubtasks(done, subs.length) },
+  });
+}
 
 async function assertCanEdit(taskId: string, user: { id: string; role: string }) {
   const task = await prisma.task.findUnique({ where: { id: taskId } });
@@ -38,6 +59,8 @@ function parseForm(formData: FormData) {
     assignedToUserId: formData.get("assignedToUserId") ?? "",
     projectId: formData.get("projectId") ?? "",
     dueDate: formData.get("dueDate") ?? "",
+    estimatedHours: formData.get("estimatedHours") ?? "",
+    spentHours: formData.get("spentHours") ?? "",
   });
 }
 
@@ -61,6 +84,10 @@ export async function createTaskAction(
       assignedToUserId: d.assignedToUserId,
       projectId: d.projectId,
       dueDate: d.dueDate,
+      estimatedHours: d.estimatedHours,
+      spentHours: d.spentHours,
+      progress: d.status === "Done" ? 100 : 0,
+      completedAt: d.status === "Done" ? new Date() : null,
       createdByUserId: user.id,
     },
   });
@@ -91,6 +118,10 @@ export async function updateTaskAction(
   }
   const d = parsed.data;
 
+  const becameDone = d.status === "Done" && existing.status !== "Done";
+  const leftDone = d.status !== "Done" && existing.status === "Done";
+  const subtaskCount = await prisma.subtask.count({ where: { taskId } });
+
   await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -101,6 +132,12 @@ export async function updateTaskAction(
       assignedToUserId: d.assignedToUserId,
       projectId: d.projectId,
       dueDate: d.dueDate,
+      estimatedHours: d.estimatedHours,
+      spentHours: d.spentHours,
+      ...(becameDone ? { completedAt: new Date() } : {}),
+      ...(leftDone ? { completedAt: null } : {}),
+      // Mark fully complete when manually set to Done (only when no subtasks drive it)
+      ...(becameDone && subtaskCount === 0 ? { progress: 100 } : {}),
     },
   });
 
@@ -128,17 +165,24 @@ export async function updateTaskStatusAction(
   status: string
 ): Promise<{ ok: boolean }> {
   const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const existing = await assertCanEdit(taskId, user);
   if (!isTaskStatus(status)) return { ok: false };
+
+  const becameDone = status === "Done" && existing.status !== "Done";
+  const leftDone = status !== "Done" && existing.status === "Done";
+  const subtaskCount = await prisma.subtask.count({ where: { taskId } });
 
   await prisma.task.update({
     where: { id: taskId },
-    data: { status },
+    data: {
+      status,
+      ...(becameDone ? { completedAt: new Date() } : {}),
+      ...(leftDone ? { completedAt: null } : {}),
+      ...(becameDone && subtaskCount === 0 ? { progress: 100 } : {}),
+    },
   });
 
-  revalidatePath("/");
-  revalidatePath("/board");
-  revalidatePath(`/tasks/${taskId}`);
+  revalidateTaskViews(taskId);
   return { ok: true };
 }
 
@@ -206,4 +250,135 @@ export async function uploadAttachmentAction(
 
   revalidatePath(`/tasks/${taskId}`);
   return {};
+}
+
+/* ------------------------------------------------------------------ */
+/* Progress                                                            */
+/* ------------------------------------------------------------------ */
+
+/** Manual progress update (ignored when the task has subtasks). */
+export async function updateTaskProgressAction(
+  taskId: string,
+  progress: number
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  await assertCanEdit(taskId, user);
+
+  const parsed = progressSchema.safeParse({ progress });
+  if (!parsed.success) return { ok: false };
+
+  const subtaskCount = await prisma.subtask.count({ where: { taskId } });
+  if (subtaskCount > 0) return { ok: false }; // subtasks drive progress
+
+  const value = clampProgress(parsed.data.progress);
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { progress: value },
+  });
+
+  revalidateTaskViews(taskId);
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Subtasks                                                           */
+/* ------------------------------------------------------------------ */
+
+export async function addSubtaskAction(
+  taskId: string,
+  _prev: { error?: string },
+  formData: FormData
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  await assertCanEdit(taskId, user);
+
+  const parsed = subtaskSchema.safeParse({ title: formData.get("title") });
+  if (!parsed.success) return { error: "INVALID" };
+
+  const max = await prisma.subtask.aggregate({
+    where: { taskId },
+    _max: { order: true },
+  });
+
+  await prisma.subtask.create({
+    data: {
+      taskId,
+      title: parsed.data.title,
+      order: (max._max.order ?? -1) + 1,
+    },
+  });
+
+  await recomputeTaskProgress(taskId);
+  revalidateTaskViews(taskId);
+  return {};
+}
+
+export async function toggleSubtaskAction(
+  subtaskId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
+  if (!sub) return { ok: false };
+  await assertCanEdit(sub.taskId, user);
+
+  await prisma.subtask.update({
+    where: { id: subtaskId },
+    data: { done: !sub.done },
+  });
+
+  await recomputeTaskProgress(sub.taskId);
+  revalidateTaskViews(sub.taskId);
+  return { ok: true };
+}
+
+export async function deleteSubtaskAction(
+  subtaskId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
+  if (!sub) return { ok: false };
+  await assertCanEdit(sub.taskId, user);
+
+  await prisma.subtask.delete({ where: { id: subtaskId } });
+  await recomputeTaskProgress(sub.taskId);
+  revalidateTaskViews(sub.taskId);
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Time tracking — start / stop timer                                 */
+/* ------------------------------------------------------------------ */
+
+export async function startTimerAction(
+  taskId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const task = await assertCanEdit(taskId, user);
+  if (task.timerStartedAt) return { ok: true }; // already running
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { timerStartedAt: new Date() },
+  });
+  revalidateTaskViews(taskId);
+  return { ok: true };
+}
+
+export async function stopTimerAction(
+  taskId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const task = await assertCanEdit(taskId, user);
+  if (!task.timerStartedAt) return { ok: true };
+
+  const elapsed = runningHours(task.timerStartedAt);
+  await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      spentHours: Math.round((task.spentHours + elapsed) * 100) / 100,
+      timerStartedAt: null,
+    },
+  });
+  revalidateTaskViews(taskId);
+  return { ok: true };
 }
