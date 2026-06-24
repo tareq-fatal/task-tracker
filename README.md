@@ -53,7 +53,9 @@ see tasks they created or that are assigned to them.
 
 ## Features
 
-- 🔐 **Cookie-session auth** (httpOnly, argon2 password hashing), 2 roles
+- 🔐 **Cookie-session auth** (httpOnly, argon2 password hashing), 2 roles with **server-side permission checks** — regular users see only their own tasks, can't reach `/admin/*` or reassign tasks; admins see everything
+- 🔗 **Task links / dependencies** — Depends-on / Blocks / Related-to / Subtask-of, with a "⚠️ waiting on N" card badge that clears automatically when blockers complete
+- 🔔 **Toasts** for action feedback, **skeleton loaders** on navigation
 - 📋 **Task CRUD** — title, description, status, priority, assignee, due date, project
 - 🗂️ **Kanban board** with drag & drop (`@dnd-kit`) — status updates on drop, optimistic UI
 - 📊 **Progress** per task (0–100) — manual slider + quick buttons, or **auto-derived from subtasks**

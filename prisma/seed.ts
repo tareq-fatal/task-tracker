@@ -269,6 +269,7 @@ async function main() {
     },
   ];
 
+  const taskIds: Record<string, string> = {};
   for (const tk of tasks) {
     const isDone = tk.status === "Done";
     let progress = tk.progress ?? (isDone ? 100 : 0);
@@ -295,6 +296,8 @@ async function main() {
       },
     });
 
+    taskIds[tk.title] = created.id;
+
     if (tk.subtasks && tk.subtasks.length > 0) {
       await prisma.subtask.createMany({
         data: tk.subtasks.map((s, i) => ({
@@ -306,6 +309,20 @@ async function main() {
       });
     }
   }
+
+  // Demo task dependencies (links)
+  async function link(fromTitle: string, toTitle: string, type: string) {
+    const a = taskIds[fromTitle];
+    const b = taskIds[toTitle];
+    if (a && b) {
+      await prisma.taskLink
+        .create({ data: { taskId: a, linkedTaskId: b, type } })
+        .catch(() => {});
+    }
+  }
+  await link("إرسال نشرة الربع الأول", "إعادة تصميم الصفحة الرئيسية", "DependsOn");
+  await link("تحضير ترحيل قاعدة البيانات", "مصادقة واجهة برمجة التطبيقات", "DependsOn");
+  await link("توثيق الإعداد", "دعم العمل دون اتصال (PWA)", "RelatedTo");
 
   // A couple of comments
   const firstTask = await prisma.task.findFirst({

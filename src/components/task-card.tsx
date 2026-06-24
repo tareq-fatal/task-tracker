@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Paperclip, ListChecks } from "lucide-react";
+import { MessageSquare, Paperclip, ListChecks, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials, PRIORITY_ACCENT } from "@/lib/tasks";
 import type { TaskPriority } from "@/lib/enums";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { TimeBadge } from "@/components/time-badge";
+import { useT } from "@/components/i18n-provider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export type TaskCardData = {
@@ -24,6 +25,7 @@ export type TaskCardData = {
   assignedTo: { name: string } | null;
   project: { name: string; color: string } | null;
   _count?: { comments: number; attachments: number; subtasks: number };
+  linksFrom?: { linkedTask: { status: string } }[];
 };
 
 export function TaskCard({
@@ -33,9 +35,16 @@ export function TaskCard({
   task: TaskCardData;
   showStatus?: boolean;
 }) {
+  const { t } = useT();
   const done = task.status === "Done" || task.status === "Archived";
   const subtaskCount = task._count?.subtasks ?? 0;
   const showBar = task.progress > 0 || subtaskCount > 0;
+  const waitingOn = done
+    ? 0
+    : (task.linksFrom ?? []).filter(
+        (l) =>
+          l.linkedTask.status !== "Done" && l.linkedTask.status !== "Archived"
+      ).length;
 
   return (
     <Link href={`/tasks/${task.id}`} className="block">
@@ -72,6 +81,12 @@ export function TaskCard({
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={task.priority} />
           {showStatus && <StatusBadge status={task.status} />}
+          {waitingOn > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+              <AlertTriangle className="h-3 w-3" />
+              {t("links.waiting", { n: waitingOn })}
+            </span>
+          )}
         </div>
 
         {showBar && (

@@ -118,11 +118,27 @@ model Task {
   comments    TaskComment[]
   attachments TaskAttachment[]
   subtasks    Subtask[]
+  linksFrom   TaskLink[]       @relation("LinksFrom")
+  linksTo     TaskLink[]       @relation("LinksTo")
 
   @@index([status])
   @@index([assignedToUserId])
   @@index([projectId])
   @@index([teamId])
+}
+
+model TaskLink {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation("LinksFrom", fields: [taskId], references: [id], onDelete: Cascade)
+  linkedTaskId String
+  linkedTask   Task     @relation("LinksTo", fields: [linkedTaskId], references: [id], onDelete: Cascade)
+  type         String // DependsOn | Blocks | RelatedTo | SubtaskOf
+  createdAt    DateTime @default(now())
+
+  @@unique([taskId, linkedTaskId, type])
+  @@index([taskId])
+  @@index([linkedTaskId])
 }
 
 model Subtask {

@@ -37,6 +37,7 @@ export default async function NewTaskPage({
         users={users}
         projects={projects}
         teams={teams}
+        canAssign={user.role === "Admin"}
         defaults={{
           assignedToUserId: user.id,
           projectId: searchParams.project ?? null,
