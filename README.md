@@ -64,7 +64,7 @@ see tasks they created or that are assigned to them.
 - ⏰ **Due dates** with overdue / due-today highlighting
 - 💬 **Comments** per task
 - 📎 **File upload** (images + PDF, max 5 MB) stored under `public/uploads`
-- 🔎 **Filter + search** (admin task list)
+- 🔎 **Comprehensive filters** — reusable URL-synced FilterBar (project, team, multi-assignee, status group, priority, date range, search) on `/admin/tasks`, `/board`, user / team / project pages; combinable (ANDed), removable chips, result counter "X of Y", mobile filter modal
 - 🌍 **i18n** Arabic (default, RTL) / English / German — switch via the Globe icon or Settings
 - 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive
 - 👆 **Mobile board** — horizontal swipe between columns (scroll-snap) with quick-jump dots; long-press (450 ms) to drag a card, short swipe to scroll

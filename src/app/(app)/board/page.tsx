@@ -4,43 +4,51 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
 import { KanbanBoard } from "@/components/kanban-board";
-import { ProjectFilter } from "@/components/project-filter";
+import { FilterBar } from "@/components/filter-bar";
 
 export default async function BoardPage({
   searchParams,
 }: {
-  searchParams: { project?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const user = await requireUser();
   const t = getDictionary(getActiveLocale());
-  const projectId = searchParams.project;
 
-  const where: any = {
+  const filters = parseTaskFilters(searchParams);
+  const base = {
     ...taskVisibility(user),
     status: { in: ["Todo", "InProgress", "Done"] },
   };
-  if (projectId) where.projectId = projectId;
+  const where = { AND: [base, buildTaskWhere(filters)] };
 
-  const [tasks, projects] = await Promise.all([
+  const [options, total, tasks] = await Promise.all([
+    loadFilterOptions(),
+    prisma.task.count({ where: base }),
     prisma.task.findMany({
       where,
       select: taskCardSelect,
       orderBy: { priority: "asc" },
     }),
-    prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
     <div className="container py-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t["board.title"]}</h1>
-        <ProjectFilter
-          projects={projects}
-          current={projectId ?? "all"}
-          basePath="/board"
-        />
-      </div>
+      <h1 className="mb-4 text-2xl font-bold">{t["board.title"]}</h1>
+
+      <FilterBar
+        basePath="/board"
+        projects={options.projects}
+        teams={options.teams}
+        users={options.users}
+        current={filters}
+        hide={["status"]}
+        resultCount={tasks.length}
+        totalCount={total}
+      />
+
       <KanbanBoard initialTasks={tasks} />
     </div>
   );

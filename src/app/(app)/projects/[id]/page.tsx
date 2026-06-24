@@ -8,14 +8,19 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
 import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const user = await requireUser();
   const t = getDictionary(getActiveLocale());
@@ -25,10 +30,15 @@ export default async function ProjectDetailPage({
   });
   if (!project) notFound();
 
-  const tasks = await prisma.task.findMany({
-    where: { projectId: project.id, ...taskVisibility(user) },
-    select: taskCardSelect,
-  });
+  const filters = parseTaskFilters(searchParams);
+  const base = { projectId: project.id, ...taskVisibility(user) };
+  const where = { AND: [base, buildTaskWhere(filters)] };
+
+  const [options, total, tasks] = await Promise.all([
+    loadFilterOptions(),
+    prisma.task.count({ where: base }),
+    prisma.task.findMany({ where, select: taskCardSelect }),
+  ]);
   tasks.sort((a, b) => compareTasks(a, b));
 
   return (
@@ -71,6 +81,17 @@ export default async function ProjectDetailPage({
           </Button>
         </div>
       </div>
+
+      <FilterBar
+        basePath={`/projects/${project.id}`}
+        projects={options.projects}
+        teams={options.teams}
+        users={options.users}
+        current={filters}
+        hide={["project"]}
+        resultCount={tasks.length}
+        totalCount={total}
+      />
 
       {tasks.length === 0 ? (
         <EmptyState

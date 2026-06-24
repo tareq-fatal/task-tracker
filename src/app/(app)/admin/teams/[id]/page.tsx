@@ -8,18 +8,23 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { overdueCount } from "@/lib/performance";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
 import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { TeamMembers } from "@/components/team-members";
 import { DeleteTeamButton } from "@/components/delete-team-button";
+import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function TeamDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
@@ -36,22 +41,27 @@ export default async function TeamDetailPage({
   });
   if (!team) notFound();
 
-  const [tasks, allUsers] = await Promise.all([
-    prisma.task.findMany({ where: { teamId: team.id }, select: taskCardSelect }),
-    prisma.user.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
+  const filters = parseTaskFilters(searchParams);
+  const base = { teamId: team.id };
+  const where = { AND: [base, buildTaskWhere(filters)] };
+
+  const [options, statsTasks, tasks] = await Promise.all([
+    loadFilterOptions(),
+    prisma.task.findMany({
+      where: base,
+      select: { status: true, dueDate: true },
     }),
+    prisma.task.findMany({ where, select: taskCardSelect }),
   ]);
 
   tasks.sort((a, b) => compareTasks(a, b));
   const now = new Date();
-  const done = tasks.filter((x) => x.status === "Done").length;
-  const active = tasks.filter((x) => x.status === "InProgress").length;
-  const overdue = overdueCount(tasks as any, now);
+  const done = statsTasks.filter((x) => x.status === "Done").length;
+  const active = statsTasks.filter((x) => x.status === "InProgress").length;
+  const overdue = overdueCount(statsTasks as any, now);
 
   const memberIds = new Set(team.members.map((m) => m.userId));
-  const candidates = allUsers.filter((u) => !memberIds.has(u.id));
+  const candidates = options.users.filter((u) => !memberIds.has(u.id));
   const members = team.members.map((m) => ({
     userId: m.user.id,
     name: m.user.name,
@@ -101,7 +111,7 @@ export default async function TeamDetailPage({
 
       {/* Stats */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label={t["teams.stats.total"]} value={tasks.length} icon={ListChecks} accent="sky" />
+        <StatCard label={t["teams.stats.total"]} value={statsTasks.length} icon={ListChecks} accent="sky" />
         <StatCard label={t["teams.stats.done"]} value={done} icon={CheckCircle2} accent="emerald" />
         <StatCard label={t["teams.stats.active"]} value={active} icon={Loader2} accent="amber" />
         <StatCard label={t["teams.stats.overdue"]} value={overdue} icon={AlertTriangle} accent={overdue > 0 ? "rose" : "sky"} />
@@ -121,9 +131,16 @@ export default async function TeamDetailPage({
 
         {/* Tasks */}
         <div className="lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {t["projects.tasks"]} ({tasks.length})
-          </h2>
+          <FilterBar
+            basePath={`/admin/teams/${team.id}`}
+            projects={options.projects}
+            teams={options.teams}
+            users={options.users}
+            current={filters}
+            hide={["team"]}
+            resultCount={tasks.length}
+            totalCount={statsTasks.length}
+          />
           {tasks.length === 0 ? (
             <EmptyState title={t["dashboard.empty"]} />
           ) : (
