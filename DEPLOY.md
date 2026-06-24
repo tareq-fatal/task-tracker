@@ -1,5 +1,10 @@
 # Deployment
 
+> 🚀 **Deploying to the Coast-Shield VPS (`tasks.coastshield.net`)?**
+> Follow [`docs/PRODUCTION-DEPLOY.md`](docs/PRODUCTION-DEPLOY.md) — the
+> production setup uses **PostgreSQL + Docker (standalone) + Caddy**. The
+> options below are general background.
+
 The app is a **standard Node.js Next.js server** (it needs a server runtime for
 cookie auth, Prisma and file uploads — it is **not** a static export).
 
