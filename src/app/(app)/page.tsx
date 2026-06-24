@@ -7,6 +7,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { compareTasks, isOverdue } from "@/lib/tasks";
 import { taskCardSelect } from "@/lib/task-select";
 import { TaskCard } from "@/components/task-card";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 
 const cardSelect = taskCardSelect;
@@ -61,11 +62,19 @@ export default async function DashboardPage() {
           {t["dashboard.assignedToMe"]} ({assigned.length})
         </h2>
         {assigned.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-            {t["dashboard.empty"]}
-          </p>
+          <EmptyState
+            title={t["dashboard.empty"]}
+            action={
+              <Button asChild>
+                <Link href="/tasks/new">
+                  <Plus className="me-1 h-4 w-4" />
+                  {t["nav.newTask"]}
+                </Link>
+              </Button>
+            }
+          />
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {assigned.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -78,7 +87,7 @@ export default async function DashboardPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             {t["dashboard.createdByMe"]} ({created.length})
           </h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {created.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}

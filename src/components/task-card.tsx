@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { MessageSquare, Paperclip, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { initials } from "@/lib/tasks";
+import { initials, PRIORITY_ACCENT } from "@/lib/tasks";
+import type { TaskPriority } from "@/lib/enums";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { TimeBadge } from "@/components/time-badge";
@@ -40,9 +41,11 @@ export function TaskCard({
     <Link href={`/tasks/${task.id}`} className="block">
       <div
         className={cn(
-          "group rounded-xl border bg-card p-4 shadow-sm transition-all duration-200",
-          "hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md",
-          done && "opacity-65"
+          "group rounded-xl border border-s-4 bg-card p-4 shadow-sm transition-all duration-200",
+          PRIORITY_ACCENT[task.priority as TaskPriority] ?? "border-s-slate-300",
+          "hover:-translate-y-0.5 hover:shadow-lg",
+          "active:scale-[0.99]",
+          done && "opacity-60"
         )}
       >
         {task.project && (

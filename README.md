@@ -67,6 +67,7 @@ see tasks they created or that are assigned to them.
 - 🔎 **Filter + search** (admin task list)
 - 🌍 **i18n** Arabic (default, RTL) / English / German — switch via the Globe icon or Settings
 - 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive
+- 👆 **Mobile board** — horizontal swipe between columns (scroll-snap) with quick-jump dots; long-press (450 ms) to drag a card, short swipe to scroll
 - 🛡️ **Admin** screens: user management + global task list
 
 ---

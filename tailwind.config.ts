@@ -14,6 +14,9 @@ const config: Config = {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      screens: {
+        xs: "480px",
+      },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
         cairo: ["var(--font-cairo)", "var(--font-inter)", "sans-serif"],

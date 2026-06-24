@@ -23,6 +23,14 @@ export const PRIORITY_ORDER: Record<TaskPriority, number> = {
   Low: 3,
 };
 
+/** Start-border accent colour per priority (visual hierarchy on cards). */
+export const PRIORITY_ACCENT: Record<TaskPriority, string> = {
+  Critical: "border-s-rose-400",
+  High: "border-s-orange-400",
+  Medium: "border-s-amber-400",
+  Low: "border-s-slate-300",
+};
+
 /** True when a task with this due date and status is overdue (not done/archived). */
 export function isOverdue(
   dueDate: Date | string | null | undefined,
