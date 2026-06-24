@@ -45,3 +45,7 @@ npm-debug.log*
 
 # typescript incremental build cache
 *.tsbuildinfo
+
+# build/deploy artifacts
+task-tracker.tar.gz
+*.tar.gz
