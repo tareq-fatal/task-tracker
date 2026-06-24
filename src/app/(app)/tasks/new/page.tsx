@@ -11,14 +11,15 @@ import type { Locale } from "@/lib/enums";
 export default async function NewTaskPage({
   searchParams,
 }: {
-  searchParams: { project?: string };
+  searchParams: { project?: string; team?: string };
 }) {
   const user = await requireUser();
   const t = getDictionary(getActiveLocale());
 
-  const [users, projects] = await Promise.all([
+  const [users, projects, teams] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -35,9 +36,11 @@ export default async function NewTaskPage({
         action={createTaskAction}
         users={users}
         projects={projects}
+        teams={teams}
         defaults={{
           assignedToUserId: user.id,
           projectId: searchParams.project ?? null,
+          teamId: searchParams.team ?? null,
         }}
         submitLabel={t["task.create"]}
       />

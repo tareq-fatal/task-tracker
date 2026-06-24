@@ -43,6 +43,38 @@ await page.goto(`${base}/admin/tasks`);
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/05-admin-tasks.png` });
 
+// Teams list
+await page.goto(`${base}/admin/teams`);
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/10-teams.png`, fullPage: true });
+
+// Team detail
+const teamLink = await page
+  .locator('a[href^="/admin/teams/"]')
+  .first()
+  .getAttribute("href");
+if (teamLink) {
+  await page.goto(`${base}${teamLink}`);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${out}/11-team-detail.png`, fullPage: true });
+}
+
+// User detail + performance
+await page.goto(`${base}/admin/users`);
+await page.waitForTimeout(300);
+const userHref = await page
+  .locator('a[href^="/admin/users/"]')
+  .filter({ hasText: "@alice" })
+  .getAttribute("href");
+if (userHref) {
+  await page.goto(`${base}${userHref}`);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${out}/12-user-detail.png`, fullPage: true });
+  await page.goto(`${base}${userHref}/performance`);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${out}/13-user-performance.png`, fullPage: true });
+}
+
 // Mobile — Arabic (default, RTL)
 const mctx = await browser.newContext({
   viewport: { width: 390, height: 844 },

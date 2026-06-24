@@ -69,6 +69,9 @@ see tasks they created or that are assigned to them.
 - 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive
 - 👆 **Mobile board** — horizontal swipe between columns (scroll-snap) with quick-jump dots; long-press (450 ms) to drag a card, short swipe to scroll
 - 🛡️ **Admin** screens: user management + global task list
+- 👤 **User detail + performance** — per-user tasks (grouped, filterable) and a metrics dashboard (completed 7/30/90/total, on-time rate, avg completion, overdue, 30-day productivity chart, top projects)
+- 👥 **Teams** — Team entity with member management and per-team stats (total / done / active / overdue); tasks can belong to a team and a project
+- 🧭 **Sidebar navigation** (desktop) with active indicator + StatCards and inline-SVG charts
 
 ---
 

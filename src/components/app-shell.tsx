@@ -9,6 +9,7 @@ import {
   KanbanSquare,
   FolderKanban,
   Users,
+  Users2,
   ListChecks,
   Settings,
   LogOut,
@@ -27,19 +28,54 @@ import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/enums";
 
-type NavItem = { href: string; label: TKey; icon: React.ElementType; admin?: boolean };
+type NavItem = { href: string; label: TKey; icon: React.ElementType };
 
-const NAV: NavItem[] = [
+const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
   { href: "/board", label: "nav.board", icon: KanbanSquare },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
-  { href: "/admin/users", label: "nav.admin.users", icon: Users, admin: true },
-  { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks, admin: true },
+];
+
+const ADMIN: NavItem[] = [
+  { href: "/admin/users", label: "nav.admin.users", icon: Users },
+  { href: "/admin/teams", label: "nav.admin.teams", icon: Users2 },
+  { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
 ];
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(href + "/");
+}
+
+function NavLink({
+  item,
+  active,
+  onClick,
+}: {
+  item: NavItem;
+  active: boolean;
+  onClick?: () => void;
+}) {
+  const { t } = useT();
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={cn(
+        "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+        active
+          ? "bg-gradient-to-r from-sky-500/15 to-teal-500/10 text-sky-700"
+          : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
+      )}
+    >
+      {active && (
+        <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-sky-500 to-teal-500" />
+      )}
+      <Icon className={cn("h-5 w-5", active && "text-sky-600")} />
+      {t(item.label)}
+    </Link>
+  );
 }
 
 export function AppShell({
@@ -54,73 +90,59 @@ export function AppShell({
   const { t } = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const items = NAV.filter((n) => !n.admin || user.role === "Admin");
-  const activeItem = items.find((i) => isActive(pathname, i.href));
+  const isAdmin = user.role === "Admin";
+  const allItems = [...MAIN, ...(isAdmin ? ADMIN : [])];
+  const activeItem = allItems.find((i) => isActive(pathname, i.href));
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-        <div className="flex h-14 items-center gap-2 px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="Menu"
-          >
-            {open ? <X /> : <Menu />}
-          </Button>
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.svg" alt="" width={28} height={28} />
-            <span className="font-semibold">{t("app.name")}</span>
-          </Link>
+    <div className="min-h-screen">
+      {/* Desktop sidebar */}
+      <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e bg-card/60 backdrop-blur md:flex">
+        <Link href="/" className="flex items-center gap-2.5 px-5 py-4">
+          <Image src="/logo.svg" alt="" width={32} height={32} />
+          <span className="text-lg font-bold tracking-tight">{t("app.name")}</span>
+        </Link>
 
-          {/* Mobile: active section indicator */}
-          {activeItem && (
-            <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
-              <activeItem.icon className="h-3.5 w-3.5 text-sky-600" />
-              {t(activeItem.label)}
-            </span>
-          )}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+          {MAIN.map((item) => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={isActive(pathname, item.href)}
+            />
+          ))}
 
-          <nav className="ms-6 hidden items-center gap-1 md:flex">
-            {items.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(pathname, item.href);
-              return (
-                <Link
+          {isAdmin && (
+            <>
+              <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                Admin
+              </p>
+              {ADMIN.map((item) => (
+                <NavLink
                   key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                    active
-                      ? "bg-gradient-to-r from-sky-500/15 to-teal-500/15 text-sky-700"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4", active && "text-sky-600")} />
-                  {t(item.label)}
-                </Link>
-              );
-            })}
-          </nav>
+                  item={item}
+                  active={isActive(pathname, item.href)}
+                />
+              ))}
+            </>
+          )}
+        </nav>
 
-          <div className="ms-auto flex items-center gap-2">
-            <Button asChild size="sm" className="hidden sm:flex">
-              <Link href="/tasks/new">
-                <Plus className="me-1 h-4 w-4" />
-                {t("nav.newTask")}
-              </Link>
-            </Button>
-            <LocaleSwitcher current={locale} />
-            <Link href="/settings" aria-label={t("nav.settings")}>
+        <div className="border-t p-3">
+          <div className="flex items-center gap-3 rounded-xl px-2 py-2">
+            <Link href="/settings">
               <Avatar className="h-9 w-9 border">
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
             </Link>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{user.name}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user.role}
+              </p>
+            </div>
             <form action={logoutAction}>
               <Button variant="ghost" size="icon" aria-label={t("nav.logout")}>
                 <LogOut className="h-4 w-4" />
@@ -128,46 +150,98 @@ export function AppShell({
             </form>
           </div>
         </div>
+      </aside>
 
-        {/* Mobile dropdown nav */}
-        {open && (
-          <nav className="flex flex-col gap-1 border-t p-2 md:hidden">
-            {items.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium",
-                    isActive(pathname, item.href)
-                      ? "bg-secondary"
-                      : "text-muted-foreground"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {t(item.label)}
-                </Link>
-              );
-            })}
-            <Link
-              href="/settings"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground"
+      {/* Content column */}
+      <div className="flex min-h-screen flex-col md:ps-64">
+        {/* Top header */}
+        <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+          <div className="flex h-14 items-center gap-2 px-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setOpen((o) => !o)}
+              aria-label="Menu"
             >
-              <Settings className="h-4 w-4" />
-              {t("nav.settings")}
+              {open ? <X /> : <Menu />}
+            </Button>
+            <Link href="/" className="flex items-center gap-2 md:hidden">
+              <Image src="/logo.svg" alt="" width={26} height={26} />
+              <span className="font-semibold">{t("app.name")}</span>
             </Link>
-          </nav>
-        )}
-      </header>
 
-      <main className="flex-1 pb-20 md:pb-8">{children}</main>
+            {/* Desktop page-context title (not a heading — avoids duplicate H1) */}
+            {activeItem && (
+              <div className="hidden text-lg font-semibold md:block">
+                {t(activeItem.label)}
+              </div>
+            )}
+            {/* Mobile section chip */}
+            {activeItem && (
+              <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
+                <activeItem.icon className="h-3.5 w-3.5 text-sky-600" />
+                {t(activeItem.label)}
+              </span>
+            )}
+
+            <div className="ms-auto flex items-center gap-2">
+              <Button asChild size="sm" className="hidden sm:flex">
+                <Link href="/tasks/new">
+                  <Plus className="me-1 h-4 w-4" />
+                  {t("nav.newTask")}
+                </Link>
+              </Button>
+              <LocaleSwitcher current={locale} />
+              <Link
+                href="/settings"
+                aria-label={t("nav.settings")}
+                className="md:hidden"
+              >
+                <Avatar className="h-9 w-9 border">
+                  <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+                    {initials(user.name)}
+                  </AvatarFallback>
+                </Avatar>
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile drawer */}
+          {open && (
+            <nav className="flex flex-col gap-1 border-t p-2 md:hidden">
+              {allItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(pathname, item.href)}
+                  onClick={() => setOpen(false)}
+                />
+              ))}
+              <Link
+                href="/settings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground"
+              >
+                <Settings className="h-4 w-4" />
+                {t("nav.settings")}
+              </Link>
+              <form action={logoutAction} className="px-1 pt-1">
+                <Button variant="outline" size="sm" className="w-full">
+                  <LogOut className="me-1 h-4 w-4" />
+                  {t("nav.logout")}
+                </Button>
+              </form>
+            </nav>
+          )}
+        </header>
+
+        <main className="flex-1 pb-20 md:pb-8">{children}</main>
+      </div>
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t bg-background/90 py-1 backdrop-blur-md md:hidden">
-        {items.slice(0, 3).map((item) => {
+        {MAIN.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname, item.href);
           return (
