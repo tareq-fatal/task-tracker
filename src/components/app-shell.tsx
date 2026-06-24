@@ -28,17 +28,22 @@ import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/enums";
 
-type NavItem = { href: string; label: TKey; icon: React.ElementType };
+type NavItem = {
+  href: string;
+  label: TKey;
+  icon: React.ElementType;
+  tour?: string;
+};
 
 const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
-  { href: "/board", label: "nav.board", icon: KanbanSquare },
+  { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board" },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
 ];
 
 const ADMIN: NavItem[] = [
-  { href: "/admin/users", label: "nav.admin.users", icon: Users },
-  { href: "/admin/teams", label: "nav.admin.teams", icon: Users2 },
+  { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },
+  { href: "/admin/teams", label: "nav.admin.teams", icon: Users2, tour: "nav-teams" },
   { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
 ];
 
@@ -62,6 +67,7 @@ function NavLink({
     <Link
       href={item.href}
       onClick={onClick}
+      data-tour={item.tour}
       className={cn(
         "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
         active
@@ -97,7 +103,10 @@ export function AppShell({
   return (
     <div className="min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e bg-card/60 backdrop-blur md:flex">
+      <aside
+        data-tour="sidebar"
+        className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e bg-card/60 backdrop-blur md:flex"
+      >
         <Link href="/" className="flex items-center gap-2.5 px-5 py-4">
           <Image src="/logo.svg" alt="" width={32} height={32} />
           <span className="text-lg font-bold tracking-tight">{t("app.name")}</span>
@@ -185,8 +194,8 @@ export function AppShell({
               </span>
             )}
 
-            <div className="ms-auto flex items-center gap-2">
-              <Button asChild size="sm" className="hidden sm:flex">
+            <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
+              <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
                 <Link href="/tasks/new">
                   <Plus className="me-1 h-4 w-4" />
                   {t("nav.newTask")}

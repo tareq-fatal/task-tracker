@@ -59,6 +59,7 @@ export type SessionUser = {
   role: Role;
   avatar: string | null;
   locale: string;
+  hasSeenTour: boolean;
 };
 
 /** Returns the current user or null. Also refreshes lastActiveAt. */
@@ -92,6 +93,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     role: u.role as Role,
     avatar: u.avatar,
     locale: u.locale,
+    hasSeenTour: u.hasSeenTour,
   };
 }
 

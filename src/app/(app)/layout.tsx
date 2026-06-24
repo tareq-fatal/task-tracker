@@ -4,6 +4,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
+import { WelcomeTour } from "@/components/welcome-tour";
 
 export default async function AppLayout({
   children,
@@ -21,6 +22,7 @@ export default async function AppLayout({
         <AppShell user={user} locale={locale}>
           {children}
         </AppShell>
+        <WelcomeTour run={!user.hasSeenTour} role={user.role} />
       </ToastProvider>
     </I18nProvider>
   );

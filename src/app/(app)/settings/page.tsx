@@ -3,6 +3,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { SettingsForm } from "@/components/settings-form";
 import { PushToggle } from "@/components/push-toggle";
+import { RestartTourButton } from "@/components/restart-tour-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 
@@ -27,7 +28,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-base">
             {t["settings.notifications"]}
@@ -35,6 +36,15 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <PushToggle vapidPublicKey={vapid} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t["tour.restart"]}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RestartTourButton />
         </CardContent>
       </Card>
     </div>
