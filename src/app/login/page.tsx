@@ -23,18 +23,23 @@ export default async function LoginPage() {
 
   return (
     <I18nProvider locale={locale}>
-      <main className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-50 via-white to-teal-50 p-4">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-50 via-white to-teal-50 p-4">
+        {/* soft decorative glows */}
+        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-teal-300/30 blur-3xl" />
+
         <div className="absolute end-4 top-4">
           <LocaleSwitcher current={locale} />
         </div>
-        <Card className="w-full max-w-sm shadow-lg">
-          <CardHeader className="items-center text-center">
+        <Card className="w-full max-w-sm overflow-hidden shadow-xl">
+          <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 to-teal-500" />
+          <CardHeader className="items-center pt-6 text-center">
             <Image
               src="/logo.svg"
               alt=""
               width={56}
               height={56}
-              className="mb-2"
+              className="mb-2 drop-shadow-sm"
               priority
             />
             <CardTitle className="text-2xl">{t["app.name"]}</CardTitle>

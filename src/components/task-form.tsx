@@ -44,6 +44,7 @@ export function TaskForm({
   teams,
   defaults,
   submitLabel,
+  canAssign = true,
 }: {
   action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>;
   users: Option[];
@@ -51,6 +52,7 @@ export function TaskForm({
   teams: Option[];
   defaults?: TaskDefaults;
   submitLabel: string;
+  canAssign?: boolean;
 }) {
   const { t } = useT();
   const [state, formAction] = useFormState(action, {});
@@ -113,22 +115,24 @@ export function TaskForm({
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="assignedToUserId">{t("task.assignee")}</Label>
-          <select
-            id="assignedToUserId"
-            name="assignedToUserId"
-            defaultValue={d.assignedToUserId ?? ""}
-            className={selectClass}
-          >
-            <option value="">{t("task.unassigned")}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {canAssign && (
+          <div className="space-y-2">
+            <Label htmlFor="assignedToUserId">{t("task.assignee")}</Label>
+            <select
+              id="assignedToUserId"
+              name="assignedToUserId"
+              defaultValue={d.assignedToUserId ?? ""}
+              className={selectClass}
+            >
+              <option value="">{t("task.unassigned")}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="projectId">{t("task.project")}</Label>

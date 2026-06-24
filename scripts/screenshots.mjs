@@ -80,6 +80,28 @@ if (userHref) {
   await page.screenshot({ path: `${out}/13-user-performance.png`, fullPage: true });
 }
 
+// Task detail with dependency links (a task that "depends on" another)
+await page.goto(`${base}/admin/tasks`);
+await page.waitForTimeout(400);
+const depLink = page.getByRole("link", { name: "إرسال نشرة الربع الأول" });
+if (await depLink.count()) {
+  await depLink.first().click();
+  await page.waitForURL(/\/tasks\/[^/]+$/);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${out}/15-task-links.png`, fullPage: true });
+}
+
+// Regular-user view (limited sidebar — no Admin section)
+const userCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+const userPage = await userCtx.newPage();
+await userPage.goto(`${base}/login`);
+await userPage.locator('input[name="username"]').fill("alice");
+await userPage.locator('input[name="password"]').fill("Demo-2026!");
+await userPage.locator('button[type="submit"]').click();
+await userPage.waitForURL(base + "/");
+await userPage.waitForTimeout(500);
+await userPage.screenshot({ path: `${out}/16-user-view.png`, fullPage: true });
+
 // Mobile — Arabic (default, RTL)
 const mctx = await browser.newContext({
   viewport: { width: 390, height: 844 },

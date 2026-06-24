@@ -14,6 +14,7 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue } from "@/lib/tasks";
+import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { CommentForm } from "@/components/comment-form";
@@ -22,6 +23,8 @@ import { DeleteTaskButton } from "@/components/delete-task-button";
 import { ProgressControl } from "@/components/progress-control";
 import { SubtaskList } from "@/components/subtask-list";
 import { TimerControl } from "@/components/timer-control";
+import { TaskLinks } from "@/components/task-links";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { formatDuration } from "@/lib/tasks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,6 +57,18 @@ export default async function TaskDetailPage({
       },
       attachments: { orderBy: { uploadedAt: "desc" } },
       subtasks: { orderBy: { order: "asc" } },
+      linksFrom: {
+        include: {
+          linkedTask: { select: { id: true, title: true, status: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+      linksTo: {
+        include: {
+          task: { select: { id: true, title: true, status: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -67,6 +82,14 @@ export default async function TaskDetailPage({
 
   const overdue = isOverdue(task.dueDate, task.status as any);
 
+  // Candidate tasks to link (visible to the user, excluding this one)
+  const linkCandidates = await prisma.task.findMany({
+    where: { id: { not: task.id }, ...taskVisibility(user) },
+    select: { id: true, title: true },
+    orderBy: { updatedAt: "desc" },
+    take: 200,
+  });
+
   return (
     <div className="container max-w-3xl py-6">
       <Link
@@ -79,7 +102,8 @@ export default async function TaskDetailPage({
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold">{task.title}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <CopyLinkButton />
           <Button asChild variant="outline" size="sm">
             <Link href={`/tasks/${task.id}/edit`}>
               <Pencil className="me-1 h-4 w-4" />
@@ -186,6 +210,26 @@ export default async function TaskDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Links / dependencies */}
+      <Card className="mb-6">
+        <CardContent className="p-5">
+          <TaskLinks
+            taskId={task.id}
+            links={task.linksFrom.map((l) => ({
+              id: l.id,
+              type: l.type,
+              linkedTask: l.linkedTask,
+            }))}
+            incoming={task.linksTo.map((l) => ({
+              id: l.id,
+              type: l.type,
+              task: l.task,
+            }))}
+            candidates={linkCandidates}
+          />
+        </CardContent>
+      </Card>
 
       {/* Attachments */}
       <section className="mb-6">

@@ -15,7 +15,7 @@ import {
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
 } from "@/lib/validation";
-import { isTaskStatus } from "@/lib/enums";
+import { isTaskStatus, isTaskLinkType } from "@/lib/enums";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notifyUser } from "@/lib/push";
 
@@ -75,6 +75,8 @@ export async function createTaskAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
   const d = parsed.data;
+  // Non-admins may only create tasks assigned to themselves.
+  const assignee = user.role === "Admin" ? d.assignedToUserId : user.id;
 
   const task = await prisma.task.create({
     data: {
@@ -82,7 +84,7 @@ export async function createTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
-      assignedToUserId: d.assignedToUserId,
+      assignedToUserId: assignee,
       projectId: d.projectId,
       teamId: d.teamId,
       dueDate: d.dueDate,
@@ -94,8 +96,8 @@ export async function createTaskAction(
     },
   });
 
-  if (d.assignedToUserId && d.assignedToUserId !== user.id) {
-    await notifyUser(d.assignedToUserId, {
+  if (assignee && assignee !== user.id) {
+    await notifyUser(assignee, {
       title: "Neue Task zugewiesen",
       body: d.title,
       url: `/tasks/${task.id}`,
@@ -123,6 +125,11 @@ export async function updateTaskAction(
   const becameDone = d.status === "Done" && existing.status !== "Done";
   const leftDone = d.status !== "Done" && existing.status === "Done";
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
+  // Non-admins cannot reassign tasks — keep the existing assignee.
+  const assignee =
+    user.role === "Admin"
+      ? d.assignedToUserId
+      : (existing.assignedToUserId ?? user.id);
 
   await prisma.task.update({
     where: { id: taskId },
@@ -131,7 +138,7 @@ export async function updateTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
-      assignedToUserId: d.assignedToUserId,
+      assignedToUserId: assignee,
       projectId: d.projectId,
       teamId: d.teamId,
       dueDate: d.dueDate,
@@ -145,11 +152,11 @@ export async function updateTaskAction(
   });
 
   if (
-    d.assignedToUserId &&
-    d.assignedToUserId !== existing.assignedToUserId &&
-    d.assignedToUserId !== user.id
+    assignee &&
+    assignee !== existing.assignedToUserId &&
+    assignee !== user.id
   ) {
-    await notifyUser(d.assignedToUserId, {
+    await notifyUser(assignee, {
       title: "Task zugewiesen",
       body: d.title,
       url: `/tasks/${taskId}`,
@@ -383,5 +390,43 @@ export async function stopTimerAction(
     },
   });
   revalidateTaskViews(taskId);
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ */
+/* Task links / dependencies                                          */
+/* ------------------------------------------------------------------ */
+
+export async function addTaskLinkAction(
+  taskId: string,
+  linkedTaskId: string,
+  type: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  await assertCanEdit(taskId, user);
+  if (!isTaskLinkType(type)) return { ok: false, error: "TYPE" };
+  if (!linkedTaskId || linkedTaskId === taskId) {
+    return { ok: false, error: "SELF" };
+  }
+  const target = await prisma.task.findUnique({ where: { id: linkedTaskId } });
+  if (!target) return { ok: false, error: "NOT_FOUND" };
+
+  await prisma.taskLink
+    .create({ data: { taskId, linkedTaskId, type } })
+    .catch(() => {}); // ignore duplicate (unique constraint)
+
+  revalidateTaskViews(taskId);
+  return { ok: true };
+}
+
+export async function removeTaskLinkAction(
+  linkId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  const link = await prisma.taskLink.findUnique({ where: { id: linkId } });
+  if (!link) return { ok: false };
+  await assertCanEdit(link.taskId, user);
+  await prisma.taskLink.delete({ where: { id: linkId } });
+  revalidateTaskViews(link.taskId);
   return { ok: true };
 }
