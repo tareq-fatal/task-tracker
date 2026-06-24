@@ -338,9 +338,103 @@ async function main() {
     });
   }
 
+  // ---------------------------------------------------------------
+  // Coast Shield — real-world tasks (idempotent via the deleteMany above)
+  // ---------------------------------------------------------------
+  const coastShield = await prisma.project.create({
+    data: {
+      name: "Coast Shield / درع الساحل",
+      description: "Maritime Lagebild für syrische Marine",
+      color: "#1e3a8a", // naval blue
+      createdByUserId: admin.id,
+    },
+  });
+  const csTeam = await prisma.team.create({
+    data: {
+      name: "Coast Shield Customer",
+      description: "Pilot-Team für das maritime Lagebild.",
+      color: "#1e3a8a",
+      createdByUserId: admin.id,
+      members: {
+        create: [
+          { userId: users.alice },
+          { userId: users.bob },
+          { userId: users.charlie },
+        ],
+      },
+    },
+  });
+
+  type CsTask = {
+    title: string;
+    status: string;
+    priority: string;
+    assignee?: string; // username; omitted = unassigned (users can claim it)
+    inProject?: boolean; // belongs to the Coast Shield project + team
+    due?: number; // daysFromNow
+    completedAgo?: number; // for Done tasks
+  };
+
+  const csTasks: CsTask[] = [
+    // Group 1 — Test-Aufgaben
+    { title: "Lagebild Karten-Layer testen — alle Tiles laden", status: "InProgress", priority: "High", assignee: "alice", inProject: true, due: 2 },
+    { title: "Mission Dispatch via Drag&Drop testen", status: "Todo", priority: "Medium", assignee: "bob", inProject: true, due: 3 },
+    { title: "Reports CSV-Export prüfen", status: "Todo", priority: "Medium", assignee: "charlie", inProject: true, due: 4 },
+    { title: "PDF-Export mit arabischer Schrift testen", status: "Todo", priority: "High", assignee: "alice", inProject: true, due: 4 },
+    { title: "Mobile-PWA Login + Self-Marker testen", status: "InProgress", priority: "Medium", assignee: "bob", inProject: true, due: 5 },
+    { title: "Boarding-Flow: Boot abmelden → zurückmelden", status: "Todo", priority: "Medium", assignee: "charlie", inProject: true, due: 6 },
+    { title: "Units-Hierarchy /units/diagram laden", status: "Todo", priority: "Low", inProject: true, due: 7 },
+    { title: "AI-Assistant Mock-Antworten testen", status: "Todo", priority: "Low", assignee: "alice", inProject: true, due: 8 },
+    { title: "Inventory aller 10 Kategorien durchklicken", status: "Todo", priority: "Medium", assignee: "bob", inProject: true, due: 9 },
+    { title: "Taskforce-Panel + Mobile-Multi-Equipment-View", status: "Todo", priority: "Medium", assignee: "charlie", inProject: true, due: 10 },
+
+    // Group 2 — Features pending (High)
+    { title: "Reports Phase 2 — KPIs + Analytics-Dashboard bauen", status: "Todo", priority: "High", assignee: "alice", inProject: true, due: 14 },
+    { title: "Reports Phase 3 — Infographic-Generator", status: "Todo", priority: "High", assignee: "alice", inProject: true, due: 21 },
+    { title: "Furuno-Radar-Hardware bestellen (~300-450€)", status: "Todo", priority: "Critical", assignee: "admin", inProject: true, due: 5 },
+    { title: "NMEA-Integration nach Hardware-Lieferung", status: "Todo", priority: "High", assignee: "bob", inProject: true, due: 30 },
+    { title: "Customer-Feedback nach 2-Wochen-Pilot sammeln", status: "Todo", priority: "High", assignee: "admin", inProject: true, due: 14 },
+
+    // Group 3 — Andere Projekte (cross-project, kein CS-Projekt/Team)
+    { title: "Mawaddah Bundle-ID entscheiden (io vs com)", status: "Todo", priority: "Medium", assignee: "admin", due: 3 },
+    { title: "Mawaddah Backend live deployen (Supabase)", status: "Todo", priority: "High", assignee: "admin", due: 7 },
+    { title: "OBJEKTUS-IoT Foto-Upload live testen mit echtem FSM", status: "Todo", priority: "High", assignee: "bob", due: 6 },
+    { title: "OBJ-FSM Capacitor Mobile-Build", status: "Todo", priority: "Medium", assignee: "charlie", due: 9 },
+    { title: "OBJ-FSM auf Static-Host deployen", status: "Todo", priority: "Medium", assignee: "charlie", due: 12 },
+
+    // Group 4 — Bereits fertig (Done, als History)
+    { title: "Coast Shield Build BG deployed", status: "Done", priority: "High", assignee: "admin", inProject: true, completedAgo: 10 },
+    { title: "Training-Module M0-M5 implementiert", status: "Done", priority: "High", assignee: "alice", inProject: true, completedAgo: 20 },
+    { title: "Task-Tracker v5 Filter-Bar", status: "Done", priority: "Medium", assignee: "admin", completedAgo: 3 },
+    { title: "OBJ-FSM PWA fertig", status: "Done", priority: "Medium", assignee: "bob", completedAgo: 15 },
+  ];
+
+  for (const tk of csTasks) {
+    const isDone = tk.status === "Done";
+    await prisma.task.create({
+      data: {
+        title: tk.title,
+        status: tk.status,
+        priority: tk.priority,
+        assignedToUserId: tk.assignee ? users[tk.assignee] : null,
+        createdByUserId: admin.id,
+        projectId: tk.inProject ? coastShield.id : null,
+        teamId: tk.inProject ? csTeam.id : null,
+        dueDate: isDone
+          ? daysFromNow(-(tk.completedAgo ?? 1))
+          : tk.due != null
+            ? daysFromNow(tk.due)
+            : null,
+        progress: isDone ? 100 : 0,
+        completedAt: isDone ? daysFromNow(-(tk.completedAgo ?? 1)) : null,
+      },
+    });
+  }
+
   console.log("✅ Seed complete.");
   console.log(`   Admin:  ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
   console.log(`   Demo:   alice · bob · charlie / ${DEMO_PASSWORD}`);
+  console.log(`   + Coast Shield project, team & ${csTasks.length} tasks`);
 }
 
 main()
