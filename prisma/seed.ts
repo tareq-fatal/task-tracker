@@ -83,6 +83,7 @@ async function main() {
   // Reset demo data so re-seeding is idempotent
   await prisma.task.deleteMany({});
   await prisma.project.deleteMany({});
+  await prisma.team.deleteMany({});
 
   const marketing = await prisma.project.create({
     data: {
@@ -100,6 +101,36 @@ async function main() {
       createdByUserId: admin.id,
     },
   });
+
+  // Teams
+  const teamMarketing = await prisma.team.create({
+    data: {
+      name: "فريق التسويق",
+      description: "المسؤول عن الحملات والمحتوى.",
+      color: "#ec4899",
+      createdByUserId: admin.id,
+      members: {
+        create: [{ userId: users.alice }, { userId: users.bob }],
+      },
+    },
+  });
+  const teamProduct = await prisma.team.create({
+    data: {
+      name: "فريق المنتج",
+      description: "تطوير الميزات والإصدارات.",
+      color: "#0ea5e9",
+      createdByUserId: admin.id,
+      members: {
+        create: [{ userId: users.charlie }, { userId: users.alice }],
+      },
+    },
+  });
+
+  // Map a project to its owning team for demo task assignment
+  const projectTeam: Record<string, string> = {
+    [marketing.id]: teamMarketing.id,
+    [roadmap.id]: teamProduct.id,
+  };
 
   type SeedTask = {
     title: string;
@@ -255,6 +286,7 @@ async function main() {
         assignedToUserId: users[tk.assignee],
         createdByUserId: admin.id,
         projectId: tk.project,
+        teamId: tk.project ? (projectTeam[tk.project] ?? null) : null,
         dueDate: tk.due,
         estimatedHours: tk.est ?? null,
         spentHours: tk.spent ?? 0,

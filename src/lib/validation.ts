@@ -25,6 +25,7 @@ export const taskSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).default("Medium"),
   assignedToUserId: optionalId,
   projectId: optionalId,
+  teamId: optionalId,
   dueDate: z
     .string()
     .trim()
@@ -57,6 +58,16 @@ export const projectSchema = z.object({
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color")
     .default("#6366f1"),
+});
+
+export const teamSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  description: z.string().trim().max(2000).optional().default(""),
+  color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color")
+    .default("#0ea5e9"),
 });
 
 export const userSchema = z.object({

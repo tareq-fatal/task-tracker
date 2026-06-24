@@ -19,6 +19,7 @@ export type TaskDefaults = {
   priority?: string;
   assignedToUserId?: string | null;
   projectId?: string | null;
+  teamId?: string | null;
   dueDate?: string | null; // yyyy-MM-dd
   estimatedHours?: string; // shorthand e.g. "4h" / "1d"
   spentHours?: string;
@@ -40,12 +41,14 @@ export function TaskForm({
   action,
   users,
   projects,
+  teams,
   defaults,
   submitLabel,
 }: {
   action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>;
   users: Option[];
   projects: Option[];
+  teams: Option[];
   defaults?: TaskDefaults;
   submitLabel: string;
 }) {
@@ -139,6 +142,23 @@ export function TaskForm({
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="teamId">{t("task.team")}</Label>
+          <select
+            id="teamId"
+            name="teamId"
+            defaultValue={d.teamId ?? ""}
+            className={selectClass}
+          >
+            <option value="">{t("task.noTeam")}</option>
+            {teams.map((tm) => (
+              <option key={tm.id} value={tm.id}>
+                {tm.name}
               </option>
             ))}
           </select>

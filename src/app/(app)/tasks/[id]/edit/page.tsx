@@ -27,9 +27,10 @@ export default async function EditTaskPage({
     task.assignedToUserId === user.id;
   if (!canEdit) notFound();
 
-  const [users, projects] = await Promise.all([
+  const [users, projects, teams] = await Promise.all([
     prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const action = updateTaskAction.bind(null, task.id);
@@ -48,6 +49,7 @@ export default async function EditTaskPage({
         action={action}
         users={users}
         projects={projects}
+        teams={teams}
         defaults={{
           title: task.title,
           description: task.description ?? "",
@@ -55,6 +57,7 @@ export default async function EditTaskPage({
           priority: task.priority,
           assignedToUserId: task.assignedToUserId,
           projectId: task.projectId,
+          teamId: task.teamId,
           dueDate: task.dueDate ? format(task.dueDate, "yyyy-MM-dd") : null,
           estimatedHours:
             task.estimatedHours != null ? formatDuration(task.estimatedHours) : "",

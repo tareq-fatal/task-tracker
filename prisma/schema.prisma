@@ -31,6 +31,33 @@ model User {
   createdProjects   Project[]          @relation("ProjectCreatedBy")
   comments          TaskComment[]
   pushSubscriptions PushSubscription[]
+  teamMemberships   TeamMember[]
+  createdTeams      Team[]             @relation("TeamCreatedBy")
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  color           String   @default("#0ea5e9")
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdBy       User     @relation("TeamCreatedBy", fields: [createdByUserId], references: [id])
+
+  members TeamMember[]
+  tasks   Task[]
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([userId])
 }
 
 model Session {
@@ -85,6 +112,9 @@ model Task {
   projectId String?
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
   comments    TaskComment[]
   attachments TaskAttachment[]
   subtasks    Subtask[]
@@ -92,6 +122,7 @@ model Task {
   @@index([status])
   @@index([assignedToUserId])
   @@index([projectId])
+  @@index([teamId])
 }
 
 model Subtask {
