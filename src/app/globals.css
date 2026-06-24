@@ -50,10 +50,57 @@
   body {
     @apply bg-background text-foreground;
     -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    background-color: hsl(199 89% 48% / 0.18);
   }
 }
 
-/* Thin scrollbar for the horizontal board */
+/* Horizontal Kanban: thin scrollbar + mobile swipe snapping */
 .board-scroll {
   scrollbar-width: thin;
+  scrollbar-color: hsl(214 32% 85%) transparent;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.board-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.board-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(214 32% 85%);
+  border-radius: 9999px;
+}
+.board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.board-col {
+  scroll-snap-align: center;
+}
+@media (min-width: 640px) {
+  /* On desktop, don't force-snap — let the whole board scroll freely */
+  .board-scroll {
+    scroll-snap-type: none;
+  }
+}
+
+/* Soft entrance for lists/cards */
+@keyframes tt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tt-rise {
+  animation: tt-rise 0.28s ease-out both;
 }

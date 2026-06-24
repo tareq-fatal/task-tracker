@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { NewProjectDialog } from "@/components/new-project-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 
@@ -24,9 +25,10 @@ export default async function ProjectsPage() {
       </div>
 
       {projects.length === 0 ? (
-        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
-          {t["projects.empty"]}
-        </p>
+        <EmptyState
+          title={t["projects.empty"]}
+          action={<NewProjectDialog />}
+        />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
