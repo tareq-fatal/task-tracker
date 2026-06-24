@@ -7,75 +7,55 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 import { isOverdue } from "@/lib/tasks";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
-import { SearchBox } from "@/components/search-box";
+import { FilterBar } from "@/components/filter-bar";
 import { Card } from "@/components/ui/card";
-import { TASK_STATUSES, type Locale } from "@/lib/enums";
+import { type Locale } from "@/lib/enums";
 
 export default async function AdminTasksPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
   if (me.role !== "Admin") redirect("/");
-  const t = getDictionary(getActiveLocale());
+  const t = getDictionary(getActiveLocale() as Locale);
 
-  const q = searchParams.q?.trim();
-  const status = searchParams.status;
+  const filters = parseTaskFilters(searchParams);
+  const where = buildTaskWhere(filters);
 
-  const where: any = {};
-  if (q) where.title = { contains: q };
-  if (status && (TASK_STATUSES as readonly string[]).includes(status)) {
-    where.status = status;
-  }
-
-  const tasks = await prisma.task.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    include: {
-      assignedTo: { select: { name: true } },
-      project: { select: { name: true, color: true } },
-    },
-    take: 200,
-  });
-
-  const filters: { key: string; label: string }[] = [
-    { key: "", label: t["common.all"] },
-    ...TASK_STATUSES.map((s) => ({ key: s as string, label: t[`status.${s}`] })),
-  ];
+  const [options, total, resultCount, tasks] = await Promise.all([
+    loadFilterOptions(),
+    prisma.task.count(),
+    prisma.task.count({ where }),
+    prisma.task.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        assignedTo: { select: { name: true } },
+        project: { select: { name: true, color: true } },
+        team: { select: { name: true, color: true } },
+      },
+      take: 200,
+    }),
+  ]);
 
   return (
     <div className="container py-6">
       <h1 className="mb-4 text-2xl font-bold">{t["admin.tasks.title"]}</h1>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1">
-          {filters.map((f) => {
-            const active = (status ?? "") === f.key;
-            const href =
-              "/admin/tasks" +
-              (f.key ? `?status=${f.key}` : "") +
-              (q ? `${f.key ? "&" : "?"}q=${encodeURIComponent(q)}` : "");
-            return (
-              <Link
-                key={f.key || "all"}
-                href={href}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {f.label}
-              </Link>
-            );
-          })}
-        </div>
-        <SearchBox />
-      </div>
+      <FilterBar
+        basePath="/admin/tasks"
+        projects={options.projects}
+        teams={options.teams}
+        users={options.users}
+        current={filters}
+        resultCount={resultCount}
+        totalCount={total}
+      />
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -86,6 +66,7 @@ export default async function AdminTasksPage({
               <th className="p-3">{t["task.priority"]}</th>
               <th className="hidden p-3 md:table-cell">{t["task.assignee"]}</th>
               <th className="hidden p-3 lg:table-cell">{t["task.project"]}</th>
+              <th className="hidden p-3 xl:table-cell">{t["task.team"]}</th>
               <th className="hidden p-3 sm:table-cell">{t["task.dueDate"]}</th>
             </tr>
           </thead>
@@ -122,6 +103,19 @@ export default async function AdminTasksPage({
                     t["common.none"]
                   )}
                 </td>
+                <td className="hidden p-3 xl:table-cell">
+                  {task.team ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span
+                        className="h-2 w-2 rounded-full"
+                        style={{ backgroundColor: task.team.color }}
+                      />
+                      {task.team.name}
+                    </span>
+                  ) : (
+                    t["common.none"]
+                  )}
+                </td>
                 <td
                   className={cn(
                     "hidden p-3 sm:table-cell",
@@ -135,7 +129,7 @@ export default async function AdminTasksPage({
             ))}
             {tasks.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
                   {t["dashboard.empty"]}
                 </td>
               </tr>

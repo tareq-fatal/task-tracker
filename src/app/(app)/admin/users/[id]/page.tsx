@@ -5,11 +5,13 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
-import { TASK_STATUSES, isTaskPriority, type Locale } from "@/lib/enums";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
+import { TASK_STATUSES, type Locale } from "@/lib/enums";
 import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { UserDetailHeader } from "@/components/user-detail-header";
-import { UserTaskFilters } from "@/components/user-task-filters";
+import { FilterBar } from "@/components/filter-bar";
 
 const STATUS_DOT: Record<string, string> = {
   Todo: "bg-sky-500",
@@ -23,7 +25,7 @@ export default async function UserDetailPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { project?: string; priority?: string; due?: string };
+  searchParams: Record<string, string | string[] | undefined>;
 }) {
   const me = await getCurrentUser();
   if (!me) redirect("/login");
@@ -33,22 +35,14 @@ export default async function UserDetailPage({
   const user = await prisma.user.findUnique({ where: { id: params.id } });
   if (!user) notFound();
 
-  const where: any = { assignedToUserId: user.id };
-  if (searchParams.project) where.projectId = searchParams.project;
-  if (searchParams.priority && isTaskPriority(searchParams.priority)) {
-    where.priority = searchParams.priority;
-  }
-  if (searchParams.due) {
-    const d = new Date(searchParams.due);
-    if (!Number.isNaN(d.getTime())) where.dueDate = { lte: d };
-  }
+  const filters = parseTaskFilters(searchParams);
+  const base = { assignedToUserId: user.id };
+  const where = { AND: [base, buildTaskWhere(filters)] };
 
-  const [tasks, projects] = await Promise.all([
+  const [options, total, tasks] = await Promise.all([
+    loadFilterOptions(),
+    prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
-    prisma.project.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
   ]);
 
   tasks.sort((a, b) => compareTasks(a, b));
@@ -68,13 +62,16 @@ export default async function UserDetailPage({
         }}
       />
 
-      <div className="mb-5">
-        <UserTaskFilters
-          basePath={`/admin/users/${user.id}`}
-          projects={projects}
-          current={searchParams}
-        />
-      </div>
+      <FilterBar
+        basePath={`/admin/users/${user.id}`}
+        projects={options.projects}
+        teams={options.teams}
+        users={options.users}
+        current={filters}
+        hide={["assignee"]}
+        resultCount={tasks.length}
+        totalCount={total}
+      />
 
       {tasks.length === 0 ? (
         <EmptyState title={t["dashboard.empty"]} />

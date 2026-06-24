@@ -43,6 +43,11 @@ await page.goto(`${base}/admin/tasks`);
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/05-admin-tasks.png` });
 
+// Filters active (chips + result counter)
+await page.goto(`${base}/admin/tasks?status=open&priority=High`);
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${out}/14-filters-active.png` });
+
 // Teams list
 await page.goto(`${base}/admin/teams`);
 await page.waitForTimeout(400);
