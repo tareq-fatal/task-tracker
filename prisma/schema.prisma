@@ -1,15 +1,18 @@
 // Task Tracker — Prisma schema
-// SQLite for local dev. Enums are stored as strings (SQLite has no native enum);
+// PostgreSQL (production + dev). Enums are stored as strings;
 // allowed values are validated in the app layer (src/lib/enums.ts + zod schemas).
-// To move to Postgres: change provider to "postgresql" and DATABASE_URL, then
-// you may optionally convert the string fields to real Prisma enums.
+//
+// binaryTargets: "native" covers local dev; "debian-openssl-3.0.x" covers the
+// production container (node:20-bookworm-slim → OpenSSL 3.0). If you ever build
+// on an Alpine/musl base instead, add "linux-musl-openssl-3.0.x".
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -22,6 +25,7 @@ model User {
   role         String   @default("User") // "Admin" | "User"
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
+  hasSeenTour  Boolean  @default(false)
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 

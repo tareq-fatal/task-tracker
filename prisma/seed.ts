@@ -45,7 +45,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { username: ADMIN_USERNAME },
-    update: {},
+    update: { hasSeenTour: true },
     create: {
       name: "المسؤول",
       username: ADMIN_USERNAME,
@@ -53,6 +53,7 @@ async function main() {
       passwordHash: adminHash,
       role: "Admin",
       locale: "ar",
+      hasSeenTour: true,
     },
   });
 
@@ -67,7 +68,7 @@ async function main() {
   for (const u of demoUsers) {
     const created = await prisma.user.upsert({
       where: { username: u.username },
-      update: {},
+      update: { hasSeenTour: false },
       create: {
         name: u.name,
         username: u.username,
@@ -75,6 +76,7 @@ async function main() {
         passwordHash: demoHash,
         role: "User",
         locale: "ar",
+        hasSeenTour: false,
       },
     });
     users[u.username] = created.id;

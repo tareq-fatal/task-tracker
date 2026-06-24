@@ -14,6 +14,12 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Self-contained build for Docker: emits .next/standalone with a minimal
+  // server.js + only the traced node_modules. Keeps the runtime image small.
+  output: "standalone",
+  // Behind Caddy (reverse proxy) — trust the X-Forwarded-* headers it sets.
+  poweredByHeader: false,
+  compress: true,
   experimental: {
     // Native (.node) and Prisma packages must not be bundled by webpack.
     serverComponentsExternalPackages: ["@node-rs/argon2", "@prisma/client"],
