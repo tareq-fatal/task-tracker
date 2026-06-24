@@ -1,7 +1,12 @@
-# Production-Deploy — Task Tracker auf Coast-Shield-VPS
+# Production-Deploy — Coast-Shield-VPS
 
-Schritt-für-Schritt-Anleitung, um den Task-Tracker auf
-**`tasks.coastshield.net`** (Coast-Shield-VPS, `13.140.146.101`) zu deployen.
+Schritt-für-Schritt-Anleitung für **zwei** Apps auf dem Coast-Shield-VPS
+(`13.140.146.101`):
+
+- **Task-Tracker** → `tasks.coastshield.net` (Next.js + PostgreSQL, Docker) — Abschnitte 0–6
+- **OBJ-FSM** → `fsm.coastshield.net` (statische Vite-PWA, von Caddy ausgeliefert) — Abschnitt 7
+
+Beide laufen hinter **Caddy** (Auto-SSL). Du setzt **2 DNS-Einträge** (Abschnitt 0).
 
 | | |
 |---|---|
@@ -29,21 +34,23 @@ Was sich gegenüber Local geändert hat:
 
 ## 0. DNS einstellen (zuerst — Cloudflare braucht Vorlauf)
 
-In **Cloudflare** (oder dem DNS-Anbieter der Zone `coastshield.net`) einen Record anlegen:
+In **Cloudflare** (Zone `coastshield.net`) **zwei** Records anlegen:
 
-| Type | Name    | Content          | Proxy-Status               | TTL  |
-|------|---------|------------------|----------------------------|------|
-| `A`  | `tasks` | `13.140.146.101` | **DNS only** (graue Wolke) | Auto |
+| Type | Name    | Content          | Proxy-Status               | TTL  | Für              |
+|------|---------|------------------|----------------------------|------|------------------|
+| `A`  | `tasks` | `13.140.146.101` | **DNS only** (graue Wolke) | Auto | Task-Tracker     |
+| `A`  | `fsm`   | `13.140.146.101` | **DNS only** (graue Wolke) | Auto | OBJ-FSM (static) |
 
-> ⚠️ **Wichtig: NICHT „Proxied" (orange Wolke).** Caddy holt das Let's-Encrypt-
-> Zertifikat selbst per HTTP-01-Challenge. Hinter dem Cloudflare-Proxy würde das
-> beim ersten Mal scheitern. „DNS only" wählen. (Optional später auf Proxied +
-> Cloudflare-Origin-Cert umstellen — nicht nötig.)
+> ⚠️ **Wichtig: NICHT „Proxied" (orange Wolke).** Caddy holt die Let's-Encrypt-
+> Zertifikate selbst per HTTP-01-Challenge. Hinter dem Cloudflare-Proxy würde das
+> beim ersten Mal scheitern. Bei beiden „DNS only" wählen. (Optional später auf
+> Proxied + Cloudflare-Origin-Cert umstellen — nicht nötig.)
 
-Prüfen, dass es aufgelöst wird:
+Prüfen, dass beide aufgelöst werden:
 
 ```bash
 dig +short tasks.coastshield.net    # muss 13.140.146.101 zeigen
+dig +short fsm.coastshield.net      # muss 13.140.146.101 zeigen
 ```
 
 ---
@@ -171,6 +178,53 @@ einfach mit committen — `migrate deploy` zieht sie automatisch.
 
 ---
 
+## 7. OBJ-FSM (static PWA) → `fsm.coastshield.net`
+
+OBJ-FSM (Repo `C:\Users\sapb1\source\OBJ-FSM`) ist eine **rein statische** Vite-PWA
+(React, kein Server, `base = /`). Caddy liefert die gebauten `dist/`-Dateien aus
+einem Host-Verzeichnis `/srv/obj-fsm` aus — **kein eigener Container**.
+
+**Einmalig einrichten (auf dem VPS):**
+
+```bash
+ssh root@13.140.146.101
+mkdir -p /srv/obj-fsm
+```
+
+1. **Caddy-Block** aus `infra/Caddyfile.obj-fsm` an den Coast-Shield-`Caddyfile`
+   anhängen (gleiche Datei wie der tasks-Block).
+2. **Bind-Mount** zum Caddy-Container hinzufügen — `/srv/obj-fsm:/srv/obj-fsm:ro`
+   am `caddy`-Service in `docker-compose.prod.yml`
+   (siehe `infra/docker-compose.obj-fsm.override.yml`), dann Caddy neu erstellen:
+   ```bash
+   docker compose -f docker-compose.prod.yml up -d caddy
+   docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+   ```
+
+**Deploy / Updates (lokal auf deinem Rechner — Git Bash):**
+
+```bash
+# baut OBJ-FSM und synct dist/ → VPS:/srv/obj-fsm (rsync, sonst tar-over-ssh)
+bash /c/Users/sapb1/source/Sy/task-tracker/infra/deploy-fsm.sh
+```
+
+> Das Skript baut lokal (Vite backt Env beim Build) und braucht denselben
+> SSH-Zugang wie `ssh root@13.140.146.101`. `SKIP_BUILD=1` synct nur das
+> vorhandene `dist/`. Für spätere Updates einfach erneut ausführen.
+
+**Verifizieren:**
+
+```bash
+curl -sI https://fsm.coastshield.net/ | head -n 5          # → HTTP/2 200 + gültiges Cert
+curl -s -o /dev/null -w "sw: %{http_code}\n" https://fsm.coastshield.net/sw.js   # → 200
+```
+
+Im Browser `https://fsm.coastshield.net` öffnen → FSM-PWA lädt, installierbar
+(gültiges TLS, Service-Worker aktiv). Deep-Links / Reloads funktionieren dank
+`try_files … /index.html` (SPA-Routing).
+
+---
+
 ## Persistenz / Backup
 
 - **Uploads**: Docker-Volume `task_tracker_uploads` (gemountet auf
@@ -190,3 +244,5 @@ einfach mit committen — `migrate deploy` zieht sie automatisch.
 | Caddy „host not found upstream" | `task-tracker` nicht im selben `proxy`-Netz wie Caddy |
 | Login schlägt fehl | Seed gelaufen? `... exec -T task-tracker npx prisma db seed` |
 | `502` direkt nach Deploy | Container bootet noch (migrate). Logs prüfen, ~20–40 s warten |
+| FSM: `404` / leere Seite | Bind-Mount `/srv/obj-fsm` am Caddy-Container fehlt, oder `dist/` nicht hochgeladen |
+| FSM: alte Version trotz Deploy | Service-Worker-Cache → Hard-Reload; `sw.js`/`index.html` werden mit `no-cache` ausgeliefert |

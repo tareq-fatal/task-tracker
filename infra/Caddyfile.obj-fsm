@@ -1,0 +1,38 @@
+# =============================================================================
+# OBJ-FSM (static Vite PWA) — Caddy site block for fsm.coastshield.net
+#
+# Pure static site: no app container. Caddy serves the built `dist/` from a
+# bind-mounted host dir (/srv/obj-fsm). Append this block to the Coast-Shield
+# Caddyfile (same file as the tasks.coastshield.net block):
+#     /home/marisight/marisight/infra/prod/Caddyfile
+#
+# The Caddy container must be able to SEE /srv/obj-fsm — add the bind mount to
+# the caddy service (see infra/docker-compose.obj-fsm.override.yml).
+#
+# Reload after editing:  docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+# =============================================================================
+
+fsm.coastshield.net {
+	root * /srv/obj-fsm
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Hashed build assets are immutable → cache hard.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# PWA control files must NOT be cached, so updates roll out immediately.
+	@pwa path /sw.js /index.html /manifest.webmanifest
+	header @pwa Cache-Control "no-cache"
+
+	# SPA routing: serve the file if it exists, otherwise fall back to index.html
+	# (existing files like /sw.js, /assets/* are served directly).
+	try_files {path} /index.html
+	file_server
+}
