@@ -5,8 +5,8 @@ import { hash, verify } from "@node-rs/argon2";
 import { prisma } from "./prisma";
 import type { Role } from "./enums";
 
-const SESSION_COOKIE = "tt_session";
-const SESSION_DAYS = 30;
+export const SESSION_COOKIE = "tt_session";
+export const SESSION_DAYS = 30;
 
 export async function hashPassword(password: string): Promise<string> {
   return hash(password);
@@ -27,13 +27,20 @@ function newToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-/** Create a DB session row and set the httpOnly cookie. */
-export async function createSession(userId: string): Promise<void> {
+/** Create a DB session row and return the token + expiry (no cookie side-effect).
+ *  Used by OAuth callback route handlers that set the cookie on a NextResponse. */
+export async function createSessionToken(
+  userId: string
+): Promise<{ token: string; expiresAt: Date }> {
   const token = newToken();
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-
   await prisma.session.create({ data: { token, userId, expiresAt } });
+  return { token, expiresAt };
+}
 
+/** Create a DB session row and set the httpOnly cookie. */
+export async function createSession(userId: string): Promise<void> {
+  const { token, expiresAt } = await createSessionToken(userId);
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

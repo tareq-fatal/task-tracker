@@ -13,13 +13,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
+import { SsoButtons } from "@/components/sso-buttons";
+import { configuredProviders } from "@/lib/sso";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { sso?: string };
+}) {
   const user = await getCurrentUser();
   if (user) redirect("/");
 
   const locale = getActiveLocale();
   const t = getDictionary(locale);
+  const providers = configuredProviders();
+  const ssoError = Boolean(searchParams?.sso);
 
   return (
     <I18nProvider locale={locale}>
@@ -46,7 +54,13 @@ export default async function LoginPage() {
             <CardDescription>{t["login.subtitle"]}</CardDescription>
           </CardHeader>
           <CardContent>
+            {ssoError && (
+              <p className="mb-3 rounded-md bg-destructive/10 p-2 text-center text-sm font-medium text-destructive">
+                {t["login.sso.error"]}
+              </p>
+            )}
             <LoginForm />
+            <SsoButtons providers={providers} />
             <div className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
               <p className="mb-1 font-semibold text-foreground">
                 {t["login.demo"]}
