@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "seed": "tsx prisma/seed.ts",
+    "bootstrap": "tsx prisma/bootstrap.ts",
     "db:reset": "prisma migrate reset --force",
     "test": "vitest run",
     "test:watch": "vitest",

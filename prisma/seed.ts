@@ -38,6 +38,16 @@ function daysFromNow(d: number): Date {
 }
 
 async function main() {
+  // SAFETY: this seed WIPES tasks/projects/teams. Never let it run against a
+  // production database by accident — use `npm run bootstrap` there instead.
+  if (process.env.NODE_ENV === "production" && process.env.SEED_RESET !== "1") {
+    console.error(
+      "✋ Refusing to run the destructive seed in production.\n" +
+        "   Use `npm run bootstrap` (non-destructive), or set SEED_RESET=1 to force a full reset."
+    );
+    process.exit(1);
+  }
+
   console.log("🌱 Seeding…");
 
   const adminHash = await hash(ADMIN_PASSWORD);
