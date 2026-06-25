@@ -30,6 +30,27 @@ model Tenant {
   teams         Team[]
   tasks         Task[]
   authProviders TenantAuthProvider[]
+  plannerSyncs  PlannerSync[]
+}
+
+model PlannerSync {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId    String    @unique // the local project mirrored to/from the plan
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  planId       String // MS Graph Planner plan id
+  groupId      String? // owning M365 group id (needed for some Graph calls)
+  direction    String    @default("pull") // "pull" | "push" | "two-way"
+  enabled      Boolean   @default(true)
+  intervalMin  Int       @default(5) // polling cadence for the scheduler
+  lastSyncedAt DateTime?
+  lastStatus   String? // last run summary (ok / error message)
+  deltaLink    String? // Graph delta query continuation token
+  createdAt    DateTime  @default(now())
+
+  @@unique([tenantId, planId])
+  @@index([tenantId])
 }
 
 model TenantAuthProvider {
@@ -140,7 +161,8 @@ model Project {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  tasks Task[]
+  tasks       Task[]
+  plannerSync PlannerSync?
 
   @@index([tenantId])
 }
