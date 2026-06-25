@@ -22,12 +22,38 @@ model Tenant {
   name         String
   logo         String?
   primaryColor String?
+  ssoDomains   String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
   createdAt    DateTime @default(now())
 
-  users    User[]
-  projects Project[]
-  teams    Team[]
-  tasks    Task[]
+  users         User[]
+  projects      Project[]
+  teams         Team[]
+  tasks         Task[]
+  authProviders TenantAuthProvider[]
+}
+
+model TenantAuthProvider {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider      String // "azure-ad" | "google" | "github" | "apple"
+  enabled       Boolean  @default(true)
+  autoProvision Boolean  @default(true) // auto-create a user on first SSO login
+  createdAt     DateTime @default(now())
+
+  @@unique([tenantId, provider])
+}
+
+model UserIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String // the provider's stable subject id
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model User {
@@ -54,6 +80,7 @@ model User {
   pushSubscriptions PushSubscription[]
   teamMemberships   TeamMember[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
+  identities        UserIdentity[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
