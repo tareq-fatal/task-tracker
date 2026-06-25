@@ -49,3 +49,6 @@ npm-debug.log*
 # build/deploy artifacts
 task-tracker.tar.gz
 *.tar.gz
+
+# internal data fixtures (kept local, not committed)
+e2e/fixtures/*.xlsx

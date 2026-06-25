@@ -67,6 +67,7 @@ see tasks they created or that are assigned to them.
 - ⏰ **Due dates** with overdue / due-today highlighting
 - 💬 **Comments** per task
 - 📎 **File upload** (images + PDF, max 5 MB) stored under `public/uploads`
+- 📥 **MS Planner / Excel import** (`/admin/import`) — upload the Planner `.xlsx`, preview (task/user/bucket counts + status & priority breakdown), then import; buckets map to statuses, users auto-created, **idempotent** (re-import updates instead of duplicating)
 - 🔎 **Comprehensive filters** — reusable URL-synced FilterBar (project, team, multi-assignee, status group, priority, date range, search) on `/admin/tasks`, `/board`, user / team / project pages; combinable (ANDed), removable chips, result counter "X of Y", mobile filter modal
 - 🌍 **i18n** Arabic (default, RTL) / English / German — switch via the Globe icon or Settings
 - 📱 **PWA** — installable manifest, service worker, offline shell, mobile-responsive

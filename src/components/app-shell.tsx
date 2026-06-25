@@ -11,6 +11,7 @@ import {
   Users,
   Users2,
   ListChecks,
+  FileUp,
   Settings,
   LogOut,
   Plus,
@@ -45,6 +46,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },
   { href: "/admin/teams", label: "nav.admin.teams", icon: Users2, tour: "nav-teams" },
   { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
+  { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 
 function isActive(pathname: string, href: string) {
