@@ -60,6 +60,8 @@ export type SessionUser = {
   avatar: string | null;
   locale: string;
   hasSeenTour: boolean;
+  tenantId: string;
+  tenantSlug: string;
 };
 
 /** Returns the current user or null. Also refreshes lastActiveAt. */
@@ -69,7 +71,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const session = await prisma.session.findUnique({
     where: { token },
-    include: { user: true },
+    include: { user: { include: { tenant: true } } },
   });
 
   if (!session || session.expiresAt < new Date()) {
@@ -94,6 +96,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     avatar: u.avatar,
     locale: u.locale,
     hasSeenTour: u.hasSeenTour,
+    tenantId: u.tenantId,
+    tenantSlug: u.tenant.slug,
   };
 }
 
@@ -105,6 +109,8 @@ export async function requireUser(): Promise<SessionUser> {
 
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== "Admin") throw new Error("FORBIDDEN");
+  if (user.role !== "Admin" && user.role !== "SuperAdmin") {
+    throw new Error("FORBIDDEN");
+  }
   return user;
 }

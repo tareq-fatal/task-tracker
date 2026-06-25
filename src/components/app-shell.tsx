@@ -23,6 +23,7 @@ import { initials } from "@/lib/tasks";
 import { useT } from "@/components/i18n-provider";
 import { logoutAction } from "@/actions/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -86,19 +87,25 @@ function NavLink({
   );
 }
 
+type TenantInfo = { slug: string; name: string; primaryColor: string | null };
+
 export function AppShell({
   user,
   locale,
+  tenant,
+  tenants,
   children,
 }: {
   user: SessionUser;
   locale: Locale;
+  tenant: TenantInfo;
+  tenants: TenantInfo[];
   children: React.ReactNode;
 }) {
   const { t } = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isAdmin = user.role === "Admin";
+  const isAdmin = user.role === "Admin" || user.role === "SuperAdmin";
   const allItems = [...MAIN, ...(isAdmin ? ADMIN : [])];
   const activeItem = allItems.find((i) => isActive(pathname, i.href));
 
@@ -113,6 +120,10 @@ export function AppShell({
           <Image src="/logo.svg" alt="" width={32} height={32} />
           <span className="text-lg font-bold tracking-tight">{t("app.name")}</span>
         </Link>
+
+        <div className="px-3 pb-2">
+          <TenantSwitcher current={tenant} tenants={tenants} />
+        </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
           {MAIN.map((item) => (
@@ -221,6 +232,9 @@ export function AppShell({
           {/* Mobile drawer */}
           {open && (
             <nav className="flex flex-col gap-1 border-t p-2 md:hidden">
+              <div className="pb-1">
+                <TenantSwitcher current={tenant} tenants={tenants} />
+              </div>
               {allItems.map((item) => (
                 <NavLink
                   key={item.href}

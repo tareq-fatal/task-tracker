@@ -16,18 +16,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Tenant {
+  id           String   @id @default(cuid())
+  slug         String   @unique // "objektus", "tarek", "marine"
+  name         String
+  logo         String?
+  primaryColor String?
+  createdAt    DateTime @default(now())
+
+  users    User[]
+  projects Project[]
+  teams    Team[]
+  tasks    Task[]
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
-  username     String   @unique
-  email        String   @unique
+  username     String   @unique // login id — globally unique (unambiguous login)
+  email        String // unique per tenant (see @@unique below)
   passwordHash String
-  role         String   @default("User") // "Admin" | "User"
+  role         String   @default("User") // "SuperAdmin" | "Admin" | "User"
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
   hasSeenTour  Boolean  @default(false)
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   sessions          Session[]
   assignedTasks     Task[]             @relation("AssignedTo")
@@ -37,6 +54,9 @@ model User {
   pushSubscriptions PushSubscription[]
   teamMemberships   TeamMember[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
 }
 
 model Team {
@@ -48,8 +68,13 @@ model Team {
   createdByUserId String
   createdBy       User     @relation("TeamCreatedBy", fields: [createdByUserId], references: [id])
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   members TeamMember[]
   tasks   Task[]
+
+  @@index([tenantId])
 }
 
 model TeamMember {
@@ -85,7 +110,12 @@ model Project {
   createdByUserId String
   createdBy     User     @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id])
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   tasks Task[]
+
+  @@index([tenantId])
 }
 
 model Task {
@@ -124,6 +154,9 @@ model Task {
   teamId String?
   team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
   comments    TaskComment[]
   attachments TaskAttachment[]
   subtasks    Subtask[]
@@ -134,6 +167,7 @@ model Task {
   @@index([assignedToUserId])
   @@index([projectId])
   @@index([teamId])
+  @@index([tenantId])
 }
 
 model TaskLink {

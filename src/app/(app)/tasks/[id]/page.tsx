@@ -10,10 +10,11 @@ import {
   ImageIcon,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue } from "@/lib/tasks";
+import { isAdminRole } from "@/lib/enums";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
@@ -42,7 +43,7 @@ export default async function TaskDetailPage({
 }: {
   params: { id: string };
 }) {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const task = await prisma.task.findUnique({
@@ -72,10 +73,10 @@ export default async function TaskDetailPage({
     },
   });
 
-  if (!task) notFound();
+  if (!task || task.tenantId !== tenant.id) notFound();
 
   const canEdit =
-    user.role === "Admin" ||
+    isAdminRole(user.role) ||
     task.createdByUserId === user.id ||
     task.assignedToUserId === user.id;
   if (!canEdit) notFound();
@@ -84,7 +85,7 @@ export default async function TaskDetailPage({
 
   // Candidate tasks to link (visible to the user, excluding this one)
   const linkCandidates = await prisma.task.findMany({
-    where: { id: { not: task.id }, ...taskVisibility(user) },
+    where: { id: { not: task.id }, ...taskVisibility(user, tenant.id) },
     select: { id: true, title: true },
     orderBy: { updatedAt: "desc" },
     take: 200,

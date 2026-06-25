@@ -77,7 +77,7 @@ export function NewUserDialog() {
             <div className="space-y-2">
               <Label htmlFor="role">{t("admin.users.role")}</Label>
               <select id="role" name="role" className={selectClass} defaultValue="User">
-                {ROLES.map((r) => (
+                {ROLES.filter((r) => r !== "SuperAdmin").map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>

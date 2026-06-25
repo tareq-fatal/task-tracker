@@ -1,5 +1,8 @@
 # Task Tracker · متعقب المهام
 
+> 🏢 **Multi-tenant**: data is isolated per tenant (e.g. `objektus`, `tarek`, `marine`). Every user belongs to a tenant and only sees that tenant's data; a **SuperAdmin** can switch tenants (sidebar switcher or `/t/{slug}`). Isolation is enforced server-side on every query — never trusted from the client.
+
+
 A lightweight, MS-Planner-style task tracker with **Admin / User roles**, a
 **Kanban board with drag & drop**, projects, comments, file attachments, search,
 web-push notifications and **PWA** install support.

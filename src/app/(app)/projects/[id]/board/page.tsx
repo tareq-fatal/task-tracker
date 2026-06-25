@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
@@ -14,16 +14,16 @@ export default async function ProjectBoardPage({
 }: {
   params: { id: string };
 }) {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const project = await prisma.project.findUnique({ where: { id: params.id } });
-  if (!project) notFound();
+  if (!project || project.tenantId !== tenant.id) notFound();
 
   const tasks = await prisma.task.findMany({
     where: {
       projectId: project.id,
-      ...taskVisibility(user),
+      ...taskVisibility(user, tenant.id),
       status: { in: ["Todo", "InProgress", "Done"] },
     },
     select: taskCardSelect,

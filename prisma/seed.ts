@@ -43,40 +43,61 @@ async function main() {
   const adminHash = await hash(ADMIN_PASSWORD);
   const demoHash = await hash(DEMO_PASSWORD);
 
+  // --- Tenants -----------------------------------------------------
+  const objektus = await prisma.tenant.upsert({
+    where: { slug: "objektus" },
+    update: {},
+    create: { slug: "objektus", name: "Objektus", primaryColor: "#0ea5e9" },
+  });
+  const tarekT = await prisma.tenant.upsert({
+    where: { slug: "tarek" },
+    update: {},
+    create: { slug: "tarek", name: "Tarek (privat)", primaryColor: "#8b5cf6" },
+  });
+  const marine = await prisma.tenant.upsert({
+    where: { slug: "marine" },
+    update: {},
+    create: { slug: "marine", name: "Marine (Coast Shield)", primaryColor: "#1e3a8a" },
+  });
+  const OBJ = objektus.id;
+
+  // Super-admin (Tarek) — home tenant Objektus, can switch to any tenant.
   const admin = await prisma.user.upsert({
     where: { username: ADMIN_USERNAME },
-    update: { hasSeenTour: true },
+    update: { hasSeenTour: true, role: "SuperAdmin", tenantId: OBJ },
     create: {
       name: "المسؤول",
       username: ADMIN_USERNAME,
       email: ADMIN_EMAIL.toLowerCase(),
       passwordHash: adminHash,
-      role: "Admin",
+      role: "SuperAdmin",
       locale: "ar",
       hasSeenTour: true,
+      tenantId: OBJ,
     },
   });
 
-  // Demo users with Arabic display names (login usernames stay ASCII)
+  // Demo users live in the Objektus tenant (regular members).
   const demoUsers = [
-    { name: "علي", username: "alice", email: "alice@demo.local" },
-    { name: "فاطمة", username: "bob", email: "bob@demo.local" },
-    { name: "محمد", username: "charlie", email: "charlie@demo.local" },
+    { name: "علي", username: "alice", email: "alice@demo.local", role: "User" },
+    { name: "فاطمة", username: "bob", email: "bob@demo.local", role: "User" },
+    { name: "محمد", username: "charlie", email: "charlie@demo.local", role: "User" },
   ];
 
   const users: Record<string, string> = { admin: admin.id };
   for (const u of demoUsers) {
     const created = await prisma.user.upsert({
       where: { username: u.username },
-      update: { hasSeenTour: false },
+      update: { hasSeenTour: false, role: u.role, tenantId: OBJ },
       create: {
         name: u.name,
         username: u.username,
         email: u.email,
         passwordHash: demoHash,
-        role: "User",
+        role: u.role,
         locale: "ar",
         hasSeenTour: false,
+        tenantId: OBJ,
       },
     });
     users[u.username] = created.id;
@@ -93,6 +114,7 @@ async function main() {
       description: "حملات ومحتوى ووسائل تواصل اجتماعي لعام ٢٠٢٦.",
       color: "#ec4899",
       createdByUserId: admin.id,
+      tenantId: OBJ,
     },
   });
   const roadmap = await prisma.project.create({
@@ -101,6 +123,7 @@ async function main() {
       description: "ميزات المنتج والإصدارات للربع الأول.",
       color: "#0ea5e9",
       createdByUserId: admin.id,
+      tenantId: OBJ,
     },
   });
 
@@ -111,6 +134,7 @@ async function main() {
       description: "المسؤول عن الحملات والمحتوى.",
       color: "#ec4899",
       createdByUserId: admin.id,
+      tenantId: OBJ,
       members: {
         create: [{ userId: users.alice }, { userId: users.bob }],
       },
@@ -122,6 +146,7 @@ async function main() {
       description: "تطوير الميزات والإصدارات.",
       color: "#0ea5e9",
       createdByUserId: admin.id,
+      tenantId: OBJ,
       members: {
         create: [{ userId: users.charlie }, { userId: users.alice }],
       },
@@ -288,6 +313,7 @@ async function main() {
         priority: tk.priority,
         assignedToUserId: users[tk.assignee],
         createdByUserId: admin.id,
+        tenantId: OBJ,
         projectId: tk.project,
         teamId: tk.project ? (projectTeam[tk.project] ?? null) : null,
         dueDate: tk.due,
@@ -349,6 +375,7 @@ async function main() {
       description: "Maritime Lagebild für syrische Marine",
       color: "#1e3a8a", // naval blue
       createdByUserId: admin.id,
+      tenantId: OBJ,
     },
   });
   const csTeam = await prisma.team.create({
@@ -357,6 +384,7 @@ async function main() {
       description: "Pilot-Team für das maritime Lagebild.",
       color: "#1e3a8a",
       createdByUserId: admin.id,
+      tenantId: OBJ,
       members: {
         create: [
           { userId: users.alice },
@@ -420,6 +448,7 @@ async function main() {
         priority: tk.priority,
         assignedToUserId: tk.assignee ? users[tk.assignee] : null,
         createdByUserId: admin.id,
+        tenantId: OBJ,
         projectId: tk.inProject ? coastShield.id : null,
         teamId: tk.inProject ? csTeam.id : null,
         dueDate: isDone
@@ -433,7 +462,58 @@ async function main() {
     });
   }
 
+  // --- Other tenants (isolation demo) ------------------------------
+  async function seedTenant(
+    tenantId: string,
+    username: string,
+    displayName: string,
+    items: { title: string; status: string; priority: string; due: number }[]
+  ) {
+    const u = await prisma.user.upsert({
+      where: { username },
+      update: { tenantId, role: "Admin", hasSeenTour: true },
+      create: {
+        name: displayName,
+        username,
+        email: `${username}@demo.local`,
+        passwordHash: demoHash,
+        role: "Admin",
+        locale: "de",
+        hasSeenTour: true,
+        tenantId,
+      },
+    });
+    for (const it of items) {
+      await prisma.task.create({
+        data: {
+          title: it.title,
+          status: it.status,
+          priority: it.priority,
+          progress: it.status === "Done" ? 100 : 0,
+          dueDate: daysFromNow(it.due),
+          completedAt: it.status === "Done" ? daysFromNow(it.due) : null,
+          assignedToUserId: u.id,
+          createdByUserId: u.id,
+          tenantId,
+        },
+      });
+    }
+  }
+
+  await seedTenant(tarekT.id, "tarek", "Tarek", [
+    { title: "Steuerunterlagen 2025 sortieren", status: "Todo", priority: "Medium", due: 5 },
+    { title: "Website-Domain verlängern", status: "InProgress", priority: "High", due: 2 },
+    { title: "Backup-Strategie aufsetzen", status: "Done", priority: "Low", due: -3 },
+  ]);
+  await seedTenant(marine.id, "marine", "Marine Ops", [
+    { title: "Radar-Kalibrierung Pier 3", status: "InProgress", priority: "Critical", due: 1 },
+    { title: "Wachplan KW 27 erstellen", status: "Todo", priority: "High", due: 4 },
+    { title: "AIS-Empfänger Wartung", status: "Done", priority: "Medium", due: -2 },
+  ]);
+
   console.log("✅ Seed complete.");
+  console.log(`   Super-Admin:  ${ADMIN_USERNAME} / ${ADMIN_PASSWORD} (Objektus, sieht alle Tenants)`);
+  console.log(`   Tenants: objektus · tarek · marine`);
   console.log(`   Admin:  ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
   console.log(`   Demo:   alice · bob · charlie / ${DEMO_PASSWORD}`);
   console.log(`   + Coast Shield project, team & ${csTasks.length} tasks`);

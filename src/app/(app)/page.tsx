@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { compareTasks, isOverdue } from "@/lib/tasks";
@@ -13,16 +13,21 @@ import { Button } from "@/components/ui/button";
 const cardSelect = taskCardSelect;
 
 export default async function DashboardPage() {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const [assigned, created] = await Promise.all([
     prisma.task.findMany({
-      where: { assignedToUserId: user.id, status: { not: "Archived" } },
+      where: {
+        tenantId: tenant.id,
+        assignedToUserId: user.id,
+        status: { not: "Archived" },
+      },
       select: cardSelect,
     }),
     prisma.task.findMany({
       where: {
+        tenantId: tenant.id,
         createdByUserId: user.id,
         assignedToUserId: { not: user.id },
         status: { not: "Archived" },

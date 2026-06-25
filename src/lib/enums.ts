@@ -1,5 +1,13 @@
-export const ROLES = ["Admin", "User"] as const;
+export const ROLES = ["SuperAdmin", "Admin", "User"] as const;
 export type Role = (typeof ROLES)[number];
+
+/** SuperAdmin spans all tenants; Admin manages its own tenant. */
+export function isAdminRole(role: string): boolean {
+  return role === "Admin" || role === "SuperAdmin";
+}
+export function isSuperAdmin(role: string): boolean {
+  return role === "SuperAdmin";
+}
 
 export const TASK_STATUSES = ["Todo", "InProgress", "Done", "Archived"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];

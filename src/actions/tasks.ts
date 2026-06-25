@@ -6,7 +6,7 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import {
   taskSchema,
   commentSchema,
@@ -15,7 +15,7 @@ import {
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
 } from "@/lib/validation";
-import { isTaskStatus, isTaskLinkType } from "@/lib/enums";
+import { isTaskStatus, isTaskLinkType, isAdminRole } from "@/lib/enums";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notifyUser } from "@/lib/push";
 
@@ -37,11 +37,17 @@ async function recomputeTaskProgress(taskId: string): Promise<void> {
   });
 }
 
-async function assertCanEdit(taskId: string, user: { id: string; role: string }) {
+async function assertCanEdit(
+  taskId: string,
+  user: { id: string; role: string },
+  tenantId: string
+) {
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task) throw new Error("NOT_FOUND");
+  // Hard tenant isolation: a task from another tenant is invisible.
+  if (task.tenantId !== tenantId) throw new Error("NOT_FOUND");
   const allowed =
-    user.role === "Admin" ||
+    isAdminRole(user.role) ||
     task.createdByUserId === user.id ||
     task.assignedToUserId === user.id;
   if (!allowed) throw new Error("FORBIDDEN");
@@ -69,14 +75,14 @@ export async function createTaskAction(
   _prev: TaskFormState,
   formData: FormData
 ): Promise<TaskFormState> {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const parsed = parseForm(formData);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
   const d = parsed.data;
   // Non-admins may only create tasks assigned to themselves.
-  const assignee = user.role === "Admin" ? d.assignedToUserId : user.id;
+  const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
 
   const task = await prisma.task.create({
     data: {
@@ -93,6 +99,7 @@ export async function createTaskAction(
       progress: d.status === "Done" ? 100 : 0,
       completedAt: d.status === "Done" ? new Date() : null,
       createdByUserId: user.id,
+      tenantId: tenant.id,
     },
   });
 
@@ -114,8 +121,8 @@ export async function updateTaskAction(
   _prev: TaskFormState,
   formData: FormData
 ): Promise<TaskFormState> {
-  const user = await requireUser();
-  const existing = await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  const existing = await assertCanEdit(taskId, user, tenant.id);
   const parsed = parseForm(formData);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
@@ -126,10 +133,9 @@ export async function updateTaskAction(
   const leftDone = d.status !== "Done" && existing.status === "Done";
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
   // Non-admins cannot reassign tasks — keep the existing assignee.
-  const assignee =
-    user.role === "Admin"
-      ? d.assignedToUserId
-      : (existing.assignedToUserId ?? user.id);
+  const assignee = isAdminRole(user.role)
+    ? d.assignedToUserId
+    : (existing.assignedToUserId ?? user.id);
 
   await prisma.task.update({
     where: { id: taskId },
@@ -174,8 +180,8 @@ export async function updateTaskStatusAction(
   taskId: string,
   status: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
-  const existing = await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  const existing = await assertCanEdit(taskId, user, tenant.id);
   if (!isTaskStatus(status)) return { ok: false };
 
   const becameDone = status === "Done" && existing.status !== "Done";
@@ -197,8 +203,8 @@ export async function updateTaskStatusAction(
 }
 
 export async function deleteTaskAction(taskId: string): Promise<void> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
   await prisma.task.delete({ where: { id: taskId } });
   revalidatePath("/");
   revalidatePath("/board");
@@ -210,8 +216,8 @@ export async function addCommentAction(
   _prev: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
   const parsed = commentSchema.safeParse({ content: formData.get("content") });
   if (!parsed.success) return { error: "INVALID" };
 
@@ -227,8 +233,8 @@ export async function uploadAttachmentAction(
   taskId: string,
   formData: FormData
 ): Promise<{ error?: string }> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -271,8 +277,8 @@ export async function updateTaskProgressAction(
   taskId: string,
   progress: number
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
 
   const parsed = progressSchema.safeParse({ progress });
   if (!parsed.success) return { ok: false };
@@ -299,8 +305,8 @@ export async function addSubtaskAction(
   _prev: { error?: string },
   formData: FormData
 ): Promise<{ error?: string }> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
 
   const parsed = subtaskSchema.safeParse({ title: formData.get("title") });
   if (!parsed.success) return { error: "INVALID" };
@@ -326,10 +332,10 @@ export async function addSubtaskAction(
 export async function toggleSubtaskAction(
   subtaskId: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEdit(sub.taskId, user);
+  await assertCanEdit(sub.taskId, user, tenant.id);
 
   await prisma.subtask.update({
     where: { id: subtaskId },
@@ -344,10 +350,10 @@ export async function toggleSubtaskAction(
 export async function deleteSubtaskAction(
   subtaskId: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEdit(sub.taskId, user);
+  await assertCanEdit(sub.taskId, user, tenant.id);
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   await recomputeTaskProgress(sub.taskId);
@@ -362,8 +368,8 @@ export async function deleteSubtaskAction(
 export async function startTimerAction(
   taskId: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
-  const task = await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  const task = await assertCanEdit(taskId, user, tenant.id);
   if (task.timerStartedAt) return { ok: true }; // already running
 
   await prisma.task.update({
@@ -377,8 +383,8 @@ export async function startTimerAction(
 export async function stopTimerAction(
   taskId: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
-  const task = await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  const task = await assertCanEdit(taskId, user, tenant.id);
   if (!task.timerStartedAt) return { ok: true };
 
   const elapsed = runningHours(task.timerStartedAt);
@@ -402,14 +408,16 @@ export async function addTaskLinkAction(
   linkedTaskId: string,
   type: string
 ): Promise<{ ok: boolean; error?: string }> {
-  const user = await requireUser();
-  await assertCanEdit(taskId, user);
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
   if (!isTaskLinkType(type)) return { ok: false, error: "TYPE" };
   if (!linkedTaskId || linkedTaskId === taskId) {
     return { ok: false, error: "SELF" };
   }
   const target = await prisma.task.findUnique({ where: { id: linkedTaskId } });
-  if (!target) return { ok: false, error: "NOT_FOUND" };
+  if (!target || target.tenantId !== tenant.id) {
+    return { ok: false, error: "NOT_FOUND" };
+  }
 
   await prisma.taskLink
     .create({ data: { taskId, linkedTaskId, type } })
@@ -422,10 +430,10 @@ export async function addTaskLinkAction(
 export async function removeTaskLinkAction(
   linkId: string
 ): Promise<{ ok: boolean }> {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const link = await prisma.taskLink.findUnique({ where: { id: linkId } });
   if (!link) return { ok: false };
-  await assertCanEdit(link.taskId, user);
+  await assertCanEdit(link.taskId, user, tenant.id);
   await prisma.taskLink.delete({ where: { id: linkId } });
   revalidateTaskViews(link.taskId);
   return { ok: true };

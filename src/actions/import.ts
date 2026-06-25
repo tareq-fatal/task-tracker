@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin, hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { parsePlannerWorkbook, type ParsedWorkbook } from "@/lib/planner-import";
-import { TASK_STATUSES, TASK_PRIORITIES } from "@/lib/enums";
+import { TASK_STATUSES, TASK_PRIORITIES, isAdminRole } from "@/lib/enums";
 
 const PROJECT_COLOR = "#1d4ed8"; // SAP blue
 
@@ -50,7 +51,8 @@ export async function previewImportAction(
   _prev: ImportPreview,
   formData: FormData
 ): Promise<ImportPreview> {
-  await requireAdmin();
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) return { ok: false, error: "FORBIDDEN" };
   let wb: ParsedWorkbook;
   try {
     wb = await readWorkbook(formData);
@@ -60,7 +62,7 @@ export async function previewImportAction(
 
   const externalIds = wb.tasks.map((t) => t.externalId);
   const alreadyImported = await prisma.task.count({
-    where: { externalId: { in: externalIds } },
+    where: { externalId: { in: externalIds }, tenantId: tenant.id },
   });
 
   return {
@@ -96,7 +98,8 @@ export async function runImportAction(
   _prev: ImportResult,
   formData: FormData
 ): Promise<ImportResult> {
-  const admin = await requireAdmin();
+  const { user: admin, tenant } = await requireTenant();
+  if (!isAdminRole(admin.role)) return { ok: false, error: "FORBIDDEN" };
   let wb: ParsedWorkbook;
   try {
     wb = await readWorkbook(formData);
@@ -104,7 +107,7 @@ export async function runImportAction(
     return { ok: false, error: e?.message ?? "PARSE_ERROR" };
   }
 
-  // 1) Project (idempotent by externalId = plan id)
+  // 1) Project (idempotent by externalId = plan id), scoped to active tenant
   const project = await prisma.project.upsert({
     where: { externalId: wb.planId },
     update: { name: wb.planName },
@@ -114,20 +117,26 @@ export async function runImportAction(
       color: PROJECT_COLOR,
       externalId: wb.planId,
       createdByUserId: admin.id,
+      tenantId: tenant.id,
     },
   });
 
-  // 2) Users (idempotent by email) → map plannerId → our user id
+  // 2) Users (idempotent by email within the tenant) → map plannerId → user id
   const userMap = new Map<string, string>();
   let usersCreated = 0;
   for (const u of wb.users) {
     const email = u.email.toLowerCase();
-    const existing = await prisma.user.findUnique({ where: { email } });
+    const existing = await prisma.user.findFirst({
+      where: { email, tenantId: tenant.id },
+    });
     if (existing) {
       userMap.set(u.plannerId, existing.id);
       continue;
     }
-    const username = email.split("@")[0].toLowerCase();
+    // username is globally unique — fall back to a tenant-suffixed handle on clash
+    const base = email.split("@")[0].toLowerCase();
+    const taken = await prisma.user.findUnique({ where: { username: base } });
+    const username = taken ? `${base}-${tenant.slug}` : base;
     const created = await prisma.user.create({
       data: {
         name: u.name,
@@ -137,17 +146,21 @@ export async function runImportAction(
         role: "User",
         locale: "de",
         hasSeenTour: true,
+        tenantId: tenant.id,
       },
     });
     userMap.set(u.plannerId, created.id);
     usersCreated++;
   }
 
-  // 3) Tasks (idempotent by externalId) — chunked to bound concurrency
+  // 3) Tasks (idempotent by externalId, scoped to tenant)
   const existingIds = new Set(
     (
       await prisma.task.findMany({
-        where: { externalId: { in: wb.tasks.map((t) => t.externalId) } },
+        where: {
+          externalId: { in: wb.tasks.map((t) => t.externalId) },
+          tenantId: tenant.id,
+        },
         select: { externalId: true },
       })
     ).map((t) => t.externalId)
@@ -181,6 +194,7 @@ export async function runImportAction(
         ...common,
         externalId: tk.externalId,
         createdByUserId: creator,
+        tenantId: tenant.id,
         ...(tk.createdAt ? { createdAt: tk.createdAt } : {}),
       },
     });

@@ -64,7 +64,8 @@ export function WelcomeTour({
     at('[data-tour="topbar-actions"]', "tour.user.5"),
   ];
 
-  const steps = role === "Admin" ? adminSteps : userSteps;
+  const steps =
+    role === "Admin" || role === "SuperAdmin" ? adminSteps : userSteps;
 
   function handle(data: CallBackProps) {
     const { status } = data;

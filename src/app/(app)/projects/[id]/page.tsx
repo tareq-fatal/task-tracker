@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, KanbanSquare, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
@@ -22,20 +22,20 @@ export default async function ProjectDetailPage({
   params: { id: string };
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const project = await prisma.project.findUnique({
     where: { id: params.id },
   });
-  if (!project) notFound();
+  if (!project || project.tenantId !== tenant.id) notFound();
 
   const filters = parseTaskFilters(searchParams);
-  const base = { projectId: project.id, ...taskVisibility(user) };
+  const base = { projectId: project.id, ...taskVisibility(user, tenant.id) };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
-    loadFilterOptions(),
+    loadFilterOptions(tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
   ]);

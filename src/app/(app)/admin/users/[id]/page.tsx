@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
 import { loadFilterOptions } from "@/lib/filter-data";
-import { TASK_STATUSES, type Locale } from "@/lib/enums";
+import { TASK_STATUSES, isAdminRole, type Locale } from "@/lib/enums";
 import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { UserDetailHeader } from "@/components/user-detail-header";
@@ -27,20 +27,19 @@ export default async function UserDetailPage({
   params: { id: string };
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale() as Locale);
 
   const user = await prisma.user.findUnique({ where: { id: params.id } });
-  if (!user) notFound();
+  if (!user || user.tenantId !== tenant.id) notFound();
 
   const filters = parseTaskFilters(searchParams);
-  const base = { assignedToUserId: user.id };
+  const base = { assignedToUserId: user.id, tenantId: tenant.id };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
-    loadFilterOptions(),
+    loadFilterOptions(tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
   ]);

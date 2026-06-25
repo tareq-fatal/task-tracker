@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Target, Timer, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { type Locale } from "@/lib/enums";
+import { isAdminRole, type Locale } from "@/lib/enums";
 import {
   completedInRange,
   totalCompleted,
@@ -25,16 +25,15 @@ export default async function UserPerformancePage({
 }: {
   params: { id: string };
 }) {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale() as Locale);
 
   const user = await prisma.user.findUnique({ where: { id: params.id } });
-  if (!user) notFound();
+  if (!user || user.tenantId !== tenant.id) notFound();
 
   const tasks = await prisma.task.findMany({
-    where: { assignedToUserId: user.id },
+    where: { assignedToUserId: user.id, tenantId: tenant.id },
     select: {
       createdAt: true,
       completedAt: true,

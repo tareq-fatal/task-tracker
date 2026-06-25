@@ -1,14 +1,14 @@
 import { redirect } from "next/navigation";
 import { FileUp } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { isAdminRole } from "@/lib/enums";
 import { ImportClient } from "@/components/import-client";
 
 export default async function AdminImportPage() {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
 
   return (
