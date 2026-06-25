@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials } from "@/lib/tasks";
+import { isAdminRole } from "@/lib/enums";
 import { NewUserDialog } from "@/components/new-user-dialog";
 import { DeleteUserButton } from "@/components/delete-user-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,12 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
 export default async function AdminUsersPage() {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
 
   const users = await prisma.user.findMany({
+    where: { tenantId: tenant.id },
     orderBy: { createdAt: "asc" },
     include: {
       _count: { select: { assignedTasks: true, createdTasks: true } },

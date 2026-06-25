@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { cn } from "@/lib/utils";
@@ -12,24 +12,23 @@ import { loadFilterOptions } from "@/lib/filter-data";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { FilterBar } from "@/components/filter-bar";
 import { Card } from "@/components/ui/card";
-import { type Locale } from "@/lib/enums";
+import { isAdminRole, type Locale } from "@/lib/enums";
 
 export default async function AdminTasksPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale() as Locale);
 
   const filters = parseTaskFilters(searchParams);
-  const where = buildTaskWhere(filters);
+  const where = { AND: [{ tenantId: tenant.id }, buildTaskWhere(filters)] };
 
   const [options, total, resultCount, tasks] = await Promise.all([
-    loadFilterOptions(),
-    prisma.task.count(),
+    loadFilterOptions(tenant.id),
+    prisma.task.count({ where: { tenantId: tenant.id } }),
     prisma.task.count({ where }),
     prisma.task.findMany({
       where,

@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { updateTaskAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
+import { isAdminRole } from "@/lib/enums";
 import { TaskForm } from "@/components/task-form";
 
 export default async function EditTaskPage({
@@ -15,22 +16,22 @@ export default async function EditTaskPage({
 }: {
   params: { id: string };
 }) {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
-  if (!task) notFound();
+  if (!task || task.tenantId !== tenant.id) notFound();
 
   const canEdit =
-    user.role === "Admin" ||
+    isAdminRole(user.role) ||
     task.createdByUserId === user.id ||
     task.assignedToUserId === user.id;
   if (!canEdit) notFound();
 
   const [users, projects, teams] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   const action = updateTaskAction.bind(null, task.id);
@@ -50,7 +51,7 @@ export default async function EditTaskPage({
         users={users}
         projects={projects}
         teams={teams}
-        canAssign={user.role === "Admin"}
+        canAssign={isAdminRole(user.role)}
         defaults={{
           title: task.title,
           description: task.description ?? "",

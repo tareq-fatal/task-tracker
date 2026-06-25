@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Plus, ListChecks, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { isAdminRole } from "@/lib/enums";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { overdueCount } from "@/lib/performance";
@@ -26,9 +27,8 @@ export default async function TeamDetailPage({
   params: { id: string };
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
 
   const team = await prisma.team.findUnique({
@@ -39,14 +39,14 @@ export default async function TeamDetailPage({
       },
     },
   });
-  if (!team) notFound();
+  if (!team || team.tenantId !== tenant.id) notFound();
 
   const filters = parseTaskFilters(searchParams);
-  const base = { teamId: team.id };
+  const base = { teamId: team.id, tenantId: tenant.id };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, statsTasks, tasks] = await Promise.all([
-    loadFilterOptions(),
+    loadFilterOptions(tenant.id),
     prisma.task.findMany({
       where: base,
       select: { status: true, dueDate: true },

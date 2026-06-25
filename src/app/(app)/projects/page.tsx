@@ -1,18 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Locale } from "@/lib/enums";
 
 export default async function ProjectsPage() {
-  const user = await requireUser();
+  const { tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const projects = await prisma.project.findMany({
+    where: { tenantId: tenant.id },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { tasks: true } } },
   });

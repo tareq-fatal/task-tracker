@@ -2,21 +2,22 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Users2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { isAdminRole } from "@/lib/enums";
 import { overdueCount } from "@/lib/performance";
 import { NewTeamDialog } from "@/components/new-team-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default async function AdminTeamsPage() {
-  const me = await getCurrentUser();
-  if (!me) redirect("/login");
-  if (me.role !== "Admin") redirect("/");
+  const { user: me, tenant } = await requireTenant();
+  if (!isAdminRole(me.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
 
   const teams = await prisma.team.findMany({
+    where: { tenantId: tenant.id },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { members: true } },

@@ -1,25 +1,25 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/auth";
+import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { createTaskAction } from "@/actions/tasks";
 import { TaskForm } from "@/components/task-form";
-import type { Locale } from "@/lib/enums";
+import { isAdminRole } from "@/lib/enums";
 
 export default async function NewTaskPage({
   searchParams,
 }: {
   searchParams: { project?: string; team?: string };
 }) {
-  const user = await requireUser();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const [users, projects, teams] = await Promise.all([
-    prisma.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -37,7 +37,7 @@ export default async function NewTaskPage({
         users={users}
         projects={projects}
         teams={teams}
-        canAssign={user.role === "Admin"}
+        canAssign={isAdminRole(user.role)}
         defaults={{
           assignedToUserId: user.id,
           projectId: searchParams.project ?? null,

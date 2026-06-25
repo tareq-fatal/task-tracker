@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getActiveTenant, listTenants } from "@/lib/tenant";
 import { getActiveLocale } from "@/lib/locale";
+import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
@@ -11,15 +12,22 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  const ctx = await getActiveTenant();
+  if (!ctx) redirect("/login");
+  const { user, tenant } = ctx;
 
   const locale = getActiveLocale();
+  const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
 
   return (
     <I18nProvider locale={locale}>
       <ToastProvider>
-        <AppShell user={user} locale={locale}>
+        <AppShell
+          user={user}
+          locale={locale}
+          tenant={tenant}
+          tenants={tenants}
+        >
           {children}
         </AppShell>
         <WelcomeTour run={!user.hasSeenTour} role={user.role} />
