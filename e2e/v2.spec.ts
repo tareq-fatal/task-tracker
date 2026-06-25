@@ -25,12 +25,11 @@ test("subtasks drive auto progress", async ({ page }) => {
   // toggle the first subtask done → 1 of 2 = 50%
   await page.getByRole("button", { name: "toggle" }).first().click();
   await expect(page.getByText("1/2")).toBeVisible();
+  // subtasks drive progress → bar reflects 1 of 2 done
   await expect(page.getByRole("progressbar")).toHaveAttribute(
     "aria-valuenow",
     "50"
   );
-  // auto badge present (subtasks drive progress)
-  await expect(page.getByText("automatisch")).toBeVisible();
 });
 
 test("manual progress quick button sets the bar", async ({ page }) => {

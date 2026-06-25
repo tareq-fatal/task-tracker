@@ -80,6 +80,7 @@ model Project {
   name          String
   description   String?
   color         String   @default("#6366f1") // indigo
+  externalId    String?  @unique // e.g. MS Planner plan id (import idempotency)
   createdAt     DateTime @default(now())
   createdByUserId String
   createdBy     User     @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id])
@@ -97,6 +98,10 @@ model Task {
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // External system linkage (MS Planner import idempotency)
+  externalId String? @unique
+  bucket     String? // original MS Planner bucket name, kept for reference
 
   // Progress (0-100). Auto-derived from subtasks when any exist, else manual.
   progress Int @default(0)
