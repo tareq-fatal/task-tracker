@@ -52,3 +52,11 @@ task-tracker.tar.gz
 
 # internal data fixtures (kept local, not committed)
 e2e/fixtures/*.xlsx
+
+# Capacitor / Android
+/android/.gradle
+/android/build
+/android/app/build
+/android/local.properties
+/android/app/release
+releases/*.apk

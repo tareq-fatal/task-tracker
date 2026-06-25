@@ -1,0 +1,46 @@
+name: Build Android APK
+
+# Builds the Capacitor APK and uploads it as an artifact. Run manually from the
+# Actions tab (or on a tag). Requires the repo to have a remote on GitHub.
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "Live server URL the app shell loads"
+        default: "https://tasks.coastshield.net"
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build APK
+        env:
+          CAP_SERVER_URL: ${{ github.event.inputs.server_url || 'https://tasks.coastshield.net' }}
+        run: |
+          chmod +x scripts/build-apk.sh
+          ./scripts/build-apk.sh debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: task-tracker-v8-apk
+          path: releases/task-tracker-v8.apk
