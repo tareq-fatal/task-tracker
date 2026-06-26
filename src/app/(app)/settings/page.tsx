@@ -71,6 +71,29 @@ export default async function SettingsPage() {
         </Card>
       )}
 
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t["settings.mobile.title"]}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-sm text-muted-foreground">
+            {t["settings.mobile.desc"]}
+          </p>
+          <a
+            href="/download/task-tracker-latest.apk"
+            className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-sky-500 to-teal-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
+          >
+            📱 {t["settings.mobile.download"]}
+          </a>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {t["settings.mobile.steps"]}
+          </p>
+          <p className="mt-1 text-xs italic text-amber-600">
+            {t["settings.mobile.beta"]}
+          </p>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{t["tour.restart"]}</CardTitle>
