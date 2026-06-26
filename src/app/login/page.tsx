@@ -72,6 +72,14 @@ export default async function LoginPage({
                 alice · bob · charlie / <code>Demo-2026!</code>
               </p>
             </div>
+            <div className="mt-4 text-center">
+              <a
+                href="/download/task-tracker-latest.apk"
+                className="text-xs font-medium text-sky-600 underline-offset-4 hover:underline"
+              >
+                {t["login.downloadApp"]}
+              </a>
+            </div>
           </CardContent>
         </Card>
       </main>
