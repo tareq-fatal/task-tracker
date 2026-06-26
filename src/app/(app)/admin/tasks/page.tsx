@@ -11,6 +11,7 @@ import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
 import { loadFilterOptions } from "@/lib/filter-data";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { FilterBar } from "@/components/filter-bar";
+import { SmartFilters } from "@/components/smart-filters";
 import { Card } from "@/components/ui/card";
 import { isAdminRole, type Locale } from "@/lib/enums";
 
@@ -45,6 +46,13 @@ export default async function AdminTasksPage({
   return (
     <div className="container py-6">
       <h1 className="mb-4 text-2xl font-bold">{t["admin.tasks.title"]}</h1>
+
+      <SmartFilters
+        presets={[
+          { label: t["filters.smart.myOpen"], href: `/admin/tasks?assignee=${me.id}&status=open` },
+          { label: t["filters.smart.thisWeek"], href: `/admin/tasks?date=week` },
+        ]}
+      />
 
       <FilterBar
         basePath="/admin/tasks"

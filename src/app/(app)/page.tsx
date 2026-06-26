@@ -6,9 +6,12 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { compareTasks, isOverdue } from "@/lib/tasks";
 import { taskCardSelect } from "@/lib/task-select";
+import { computeKpis, type ReportTask } from "@/lib/reports";
 import { TaskCard } from "@/components/task-card";
+import { KpiCards } from "@/components/kpi-cards";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
+import type { TaskStatus } from "@/lib/enums";
 
 const cardSelect = taskCardSelect;
 
@@ -43,6 +46,26 @@ export default async function DashboardPage() {
     isOverdue(x.dueDate, x.status as any)
   ).length;
 
+  // KPI snapshot over all of the user's assigned tasks (incl. completed).
+  const kpiRows = await prisma.task.findMany({
+    where: { tenantId: tenant.id, assignedToUserId: user.id },
+    select: {
+      status: true,
+      createdAt: true,
+      completedAt: true,
+      dueDate: true,
+      assignedToUserId: true,
+    },
+  });
+  const kpiTasks: ReportTask[] = kpiRows.map((r) => ({
+    status: r.status as TaskStatus,
+    createdAt: r.createdAt,
+    completedAt: r.completedAt,
+    dueDate: r.dueDate,
+    assignedToUserId: r.assignedToUserId,
+  }));
+  const kpis = computeKpis(kpiTasks, new Date());
+
   return (
     <div className="container py-6" data-tour="dashboard">
       <div className="mb-6 flex items-center justify-between">
@@ -60,6 +83,17 @@ export default async function DashboardPage() {
             {t["nav.newTask"]}
           </Link>
         </Button>
+      </div>
+
+      <div className="mb-8">
+        <KpiCards
+          items={[
+            { label: t["reports.kpi.total"], value: kpis.total, accent: "sky" },
+            { label: t["reports.kpi.doneWeek"], value: kpis.doneThisWeek, accent: "teal" },
+            { label: t["reports.kpi.avgDays"], value: kpis.avgCompletionDays ?? "—" },
+            { label: t["reports.kpi.overdue"], value: kpis.overdue, accent: "rose" },
+          ]}
+        />
       </div>
 
       <section className="mb-8">
