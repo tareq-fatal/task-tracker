@@ -56,7 +56,7 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
         <span
           className={cn(
             "inline-flex items-center gap-1 text-muted-foreground",
-            running && "font-medium text-sky-600"
+            running && "font-medium text-indigo-600"
           )}
         >
           <Clock className={cn("h-3 w-3", running && "animate-pulse")} />

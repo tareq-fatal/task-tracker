@@ -4,8 +4,8 @@ import { cn } from "@/lib/utils";
 type Trend = "up" | "down" | "flat";
 
 const ACCENTS = {
-  sky: "from-sky-500/10 to-sky-500/0 text-sky-600",
-  teal: "from-teal-500/10 to-teal-500/0 text-teal-600",
+  sky: "from-indigo-500/10 to-indigo-500/0 text-indigo-600",
+  teal: "from-emerald-500/10 to-emerald-500/0 text-emerald-600",
   emerald: "from-emerald-500/10 to-emerald-500/0 text-emerald-600",
   rose: "from-rose-500/10 to-rose-500/0 text-rose-600",
   amber: "from-amber-500/10 to-amber-500/0 text-amber-600",

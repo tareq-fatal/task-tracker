@@ -44,13 +44,13 @@ function Illustration({ className }: { className?: string }) {
         width="68"
         height="86"
         rx="12"
-        fill="hsl(199 89% 48% / 0.08)"
-        stroke="hsl(199 89% 48% / 0.35)"
+        fill="hsl(243 75% 59% / 0.08)"
+        stroke="hsl(243 75% 59% / 0.35)"
         strokeWidth="2"
       />
-      <rect x="48" y="12" width="24" height="14" rx="5" fill="hsl(199 89% 48%)" />
+      <rect x="48" y="12" width="24" height="14" rx="5" fill="hsl(243 75% 59%)" />
       {/* check rows */}
-      <circle cx="42" cy="46" r="5" fill="hsl(173 80% 40%)" />
+      <circle cx="42" cy="46" r="5" fill="hsl(160 84% 39%)" />
       <path
         d="M39.5 46l1.8 1.8 3-3.4"
         stroke="white"
@@ -59,7 +59,7 @@ function Illustration({ className }: { className?: string }) {
         strokeLinejoin="round"
       />
       <rect x="54" y="43" width="28" height="6" rx="3" fill="hsl(214 32% 88%)" />
-      <circle cx="42" cy="64" r="5" fill="hsl(199 89% 48%)" />
+      <circle cx="42" cy="64" r="5" fill="hsl(243 75% 59%)" />
       <path
         d="M39.5 64l1.8 1.8 3-3.4"
         stroke="white"
@@ -80,7 +80,7 @@ function Illustration({ className }: { className?: string }) {
       {/* sparkle */}
       <path
         d="M96 30c.8 3.2 1.6 4 4.8 4.8-3.2.8-4 1.6-4.8 4.8-.8-3.2-1.6-4-4.8-4.8 3.2-.8 4-1.6 4.8-4.8z"
-        fill="hsl(173 80% 45%)"
+        fill="hsl(330 81% 60%)"
       />
     </svg>
   );

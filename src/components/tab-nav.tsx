@@ -20,7 +20,7 @@ export function TabNav({ tabs }: { tabs: Tab[] }) {
             className={cn(
               "flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition-all",
               active
-                ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-sm"
+                ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >

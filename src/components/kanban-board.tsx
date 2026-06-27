@@ -17,6 +17,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { BOARD_STATUSES, type TaskStatus } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
+import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
 import type { TKey } from "@/lib/i18n";
@@ -44,7 +45,7 @@ function DraggableCard({ task }: { task: BoardTask }) {
 }
 
 const COLUMN_TINT: Record<TaskStatus, string> = {
-  Todo: "bg-sky-500",
+  Todo: "bg-indigo-500",
   InProgress: "bg-amber-500",
   Done: "bg-emerald-500",
   Archived: "bg-slate-400",
@@ -82,7 +83,7 @@ function Column({
         className={cn(
           "flex min-h-[62vh] flex-col gap-2.5 rounded-2xl border bg-muted/30 p-2.5 transition-all duration-200",
           isOver
-            ? "border-sky-400 bg-sky-50 ring-2 ring-sky-300/60"
+            ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300/60"
             : "border-dashed"
         )}
       >
@@ -93,7 +94,7 @@ function Column({
           <div
             className={cn(
               "flex flex-1 items-center justify-center rounded-xl border border-dashed py-10 text-center text-xs text-muted-foreground transition-colors",
-              isOver && "border-sky-300 text-sky-600"
+              isOver && "border-indigo-300 text-indigo-600"
             )}
           >
             {isOver ? "⤵" : "—"}
@@ -143,6 +144,7 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
     );
     const res = await updateTaskStatusAction(taskId, overId);
     if (!res.ok) setTasks(prev);
+    else if (overId === "Done") celebrate();
   }
 
   // Track which column is centered (mobile swipe indicator)
@@ -191,7 +193,7 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
             className={cn(
               "h-2 rounded-full transition-all duration-200",
               i === activeCol
-                ? "w-6 bg-gradient-to-r from-sky-500 to-teal-500"
+                ? "w-6 bg-gradient-to-r from-indigo-500 to-pink-500"
                 : "w-2 bg-muted-foreground/30"
             )}
           />

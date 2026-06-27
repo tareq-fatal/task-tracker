@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
@@ -13,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
+import { Logo } from "@/components/logo";
 import { SsoButtons } from "@/components/sso-buttons";
 import { configuredProviders } from "@/lib/sso";
 
@@ -31,26 +31,25 @@ export default async function LoginPage({
 
   return (
     <I18nProvider locale={locale}>
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-50 via-white to-teal-50 p-4">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-pink-50 p-4">
         {/* soft decorative glows */}
-        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-sky-300/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-teal-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl" />
 
         <div className="absolute end-4 top-4">
           <LocaleSwitcher current={locale} />
         </div>
-        <Card className="w-full max-w-sm overflow-hidden shadow-xl">
-          <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 to-teal-500" />
-          <CardHeader className="items-center pt-6 text-center">
-            <Image
-              src="/logo.svg"
-              alt=""
-              width={56}
-              height={56}
-              className="mb-2 drop-shadow-sm"
-              priority
-            />
-            <CardTitle className="text-2xl">{t["app.name"]}</CardTitle>
+        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10">
+          <div className="h-1.5 w-full brand-gradient" />
+          <CardHeader className="items-center pt-8 text-center">
+            <div className="relative mb-3 grid h-20 w-20 place-items-center">
+              <span className="brand-gradient absolute inset-0 rounded-3xl opacity-25 blur-xl" />
+              <span className="tt-pulse-ring absolute inset-1 rounded-3xl border-2 border-indigo-400/40" />
+              <Logo size={64} animated />
+            </div>
+            <CardTitle className="text-2xl">
+              <span className="brand-text">{t["app.name"]}</span>
+            </CardTitle>
             <CardDescription>{t["login.subtitle"]}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -75,7 +74,7 @@ export default async function LoginPage({
             <div className="mt-4 text-center">
               <a
                 href="/download/task-tracker-latest.apk"
-                className="text-xs font-medium text-sky-600 underline-offset-4 hover:underline"
+                className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
               >
                 {t["login.downloadApp"]}
               </a>

@@ -62,7 +62,7 @@ export function ProgressControl({
             onChange={(e) => setProgress(Number(e.target.value))}
             onPointerUp={(e) => commit(Number((e.target as HTMLInputElement).value))}
             onKeyUp={(e) => commit(Number((e.target as HTMLInputElement).value))}
-            className="h-2 w-full cursor-pointer accent-sky-500"
+            className="h-2 w-full cursor-pointer accent-indigo-500"
             aria-label={t("task.progress")}
           />
           <div className="flex flex-wrap gap-2">

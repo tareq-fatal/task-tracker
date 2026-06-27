@@ -24,7 +24,7 @@ function MemberRow({ teamId, member }: { teamId: string; member: Member }) {
   return (
     <div className="flex items-center gap-3 py-2">
       <Avatar className="h-9 w-9">
-        <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
           {initials(member.name)}
         </AvatarFallback>
       </Avatar>

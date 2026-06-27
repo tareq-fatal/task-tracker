@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
@@ -25,6 +24,7 @@ import { useT } from "@/components/i18n-provider";
 import { logoutAction } from "@/actions/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
+import { Logo } from "@/components/logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -76,14 +76,14 @@ function NavLink({
       className={cn(
         "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-gradient-to-r from-sky-500/15 to-teal-500/10 text-sky-700"
+          ? "bg-gradient-to-r from-indigo-500/15 to-emerald-500/10 text-indigo-700"
           : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
       )}
     >
       {active && (
-        <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-sky-500 to-teal-500" />
+        <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-pink-500" />
       )}
-      <Icon className={cn("h-5 w-5", active && "text-sky-600")} />
+      <Icon className={cn("h-5 w-5", active && "text-indigo-600")} />
       {t(item.label)}
     </Link>
   );
@@ -118,9 +118,8 @@ export function AppShell({
         data-tour="sidebar"
         className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e bg-card/60 backdrop-blur md:flex"
       >
-        <Link href="/" className="flex items-center gap-2.5 px-5 py-4">
-          <Image src="/logo.svg" alt="" width={32} height={32} />
-          <span className="text-lg font-bold tracking-tight">{t("app.name")}</span>
+        <Link href="/" className="flex items-center px-5 py-4">
+          <Logo size={30} withWordmark wordmark={t("app.name")} />
         </Link>
 
         <div className="px-3 pb-2">
@@ -156,7 +155,7 @@ export function AppShell({
           <div className="flex items-center gap-3 rounded-xl px-2 py-2">
             <Link href="/settings">
               <Avatar className="h-9 w-9 border">
-                <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -191,7 +190,7 @@ export function AppShell({
               {open ? <X /> : <Menu />}
             </Button>
             <Link href="/" className="flex items-center gap-2 md:hidden">
-              <Image src="/logo.svg" alt="" width={26} height={26} />
+              <Logo size={24} />
               <span className="font-semibold">{t("app.name")}</span>
             </Link>
 
@@ -204,7 +203,7 @@ export function AppShell({
             {/* Mobile section chip */}
             {activeItem && (
               <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
-                <activeItem.icon className="h-3.5 w-3.5 text-sky-600" />
+                <activeItem.icon className="h-3.5 w-3.5 text-indigo-600" />
                 {t(activeItem.label)}
               </span>
             )}
@@ -223,7 +222,7 @@ export function AppShell({
                 className="md:hidden"
               >
                 <Avatar className="h-9 w-9 border">
-                  <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
                     {initials(user.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -277,13 +276,13 @@ export function AppShell({
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] transition-colors",
-                active ? "text-sky-600" : "text-muted-foreground"
+                active ? "text-indigo-600" : "text-muted-foreground"
               )}
             >
               <span
                 className={cn(
                   "flex h-7 items-center justify-center rounded-full px-3 transition-all",
-                  active && "bg-gradient-to-r from-sky-500/15 to-teal-500/15"
+                  active && "bg-gradient-to-r from-indigo-500/15 to-emerald-500/15"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -294,9 +293,9 @@ export function AppShell({
         })}
         <Link
           href="/tasks/new"
-          className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-sky-600"
+          className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-indigo-600"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-md">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-md">
             <Plus className="h-4 w-4" />
           </span>
         </Link>

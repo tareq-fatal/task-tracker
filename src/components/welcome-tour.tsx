@@ -47,7 +47,9 @@ export function WelcomeTour({
       : { target: sel, content: t(key), disableBeacon: true };
 
   const adminSteps: Step[] = [
-    at('[data-tour="dashboard"]', "tour.admin.1"),
+    // Centered welcome step — independent of the page-transition animation so it
+    // never gets skipped while [data-tour="dashboard"] is mid-fade.
+    center("tour.admin.1"),
     at('[data-tour="sidebar"]', "tour.admin.2"),
     at('[data-tour="nav-board"]', "tour.admin.3"),
     at('[data-tour="new-task"]', "tour.admin.4"),
@@ -57,7 +59,7 @@ export function WelcomeTour({
     at('[data-tour="topbar-actions"]', "tour.admin.8"),
   ];
   const userSteps: Step[] = [
-    at('[data-tour="dashboard"]', "tour.user.1"),
+    center("tour.user.1"),
     at('[data-tour="nav-board"]', "tour.user.2"),
     center("tour.user.3"),
     center("tour.user.4"),
@@ -94,7 +96,7 @@ export function WelcomeTour({
       }}
       styles={{
         options: {
-          primaryColor: "#0ea5e9",
+          primaryColor: "#4f46e5",
           textColor: "#1f2937",
           backgroundColor: "#ffffff",
           arrowColor: "#ffffff",
@@ -107,7 +109,7 @@ export function WelcomeTour({
         buttonNext: {
           borderRadius: 10,
           padding: "8px 14px",
-          backgroundColor: "#0ea5e9",
+          backgroundColor: "#4f46e5",
         },
         buttonBack: { color: "#6b7280" },
         buttonSkip: { color: "#94a3b8" },

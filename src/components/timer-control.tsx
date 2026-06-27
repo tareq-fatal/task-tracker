@@ -53,7 +53,7 @@ export function TimerControl({
         <Clock
           className={cn(
             "h-4 w-4 text-muted-foreground",
-            running && "animate-pulse text-sky-600"
+            running && "animate-pulse text-indigo-600"
           )}
         />
         <span className="font-medium tabular-nums">
@@ -66,7 +66,7 @@ export function TimerControl({
           )}
         </span>
         {running && (
-          <span className="rounded bg-sky-100 px-1.5 py-0.5 font-mono text-xs text-sky-700 tabular-nums">
+          <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-mono text-xs text-indigo-700 tabular-nums">
             {fmtClock(runningSeconds)}
           </span>
         )}
