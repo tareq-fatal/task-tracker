@@ -25,6 +25,7 @@ import { ProgressControl } from "@/components/progress-control";
 import { SubtaskList } from "@/components/subtask-list";
 import { TimerControl } from "@/components/timer-control";
 import { TaskLinks } from "@/components/task-links";
+import { ActivityFeed } from "@/components/activity-feed";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { formatDuration } from "@/lib/tasks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -69,6 +70,11 @@ export default async function TaskDetailPage({
           task: { select: { id: true, title: true, status: true } },
         },
         orderBy: { createdAt: "asc" },
+      },
+      activity: {
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 50,
       },
     },
   });
@@ -294,6 +300,22 @@ export default async function TaskDetailPage({
           ))}
         </div>
         <CommentForm taskId={task.id} />
+      </section>
+
+      {/* Activity */}
+      <section className="mt-8">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {t["activity.title"]}
+        </h2>
+        <ActivityFeed
+          items={task.activity.map((a) => ({
+            id: a.id,
+            type: a.type,
+            detail: a.detail,
+            createdAt: a.createdAt,
+            userName: a.user.name,
+          }))}
+        />
       </section>
     </div>
   );

@@ -102,6 +102,7 @@ model User {
   teamMemberships   TeamMember[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
+  activity          ActivityLog[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -182,6 +183,11 @@ model Task {
   externalId String? @unique
   bucket     String? // original MS Planner bucket name, kept for reference
 
+  // Recurrence (iCal RRULE subset, e.g. "FREQ=WEEKLY;BYDAY=MO,WE"). When set, a
+  // cron spawns the next instance at recurringNextAt.
+  recurringRule  String?
+  recurringNextAt DateTime?
+
   // Progress (0-100). Auto-derived from subtasks when any exist, else manual.
   progress Int @default(0)
 
@@ -211,6 +217,7 @@ model Task {
   subtasks    Subtask[]
   linksFrom   TaskLink[]       @relation("LinksFrom")
   linksTo     TaskLink[]       @relation("LinksTo")
+  activity    ActivityLog[]
 
   @@index([status])
   @@index([assignedToUserId])
@@ -240,6 +247,19 @@ model Subtask {
   title     String
   done      Boolean  @default(false)
   order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // created | status | assigned | priority | comment | due | reopened
+  detail    String? // human-readable detail (e.g. "Todo → Done")
   createdAt DateTime @default(now())
 
   @@index([taskId])

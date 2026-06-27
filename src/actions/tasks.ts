@@ -16,8 +16,55 @@ import {
   ALLOWED_MIME,
 } from "@/lib/validation";
 import { isTaskStatus, isTaskLinkType, isAdminRole } from "@/lib/enums";
+import type { TaskStatus, TaskLinkType } from "@/lib/enums";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notifyUser } from "@/lib/push";
+import { isBlockedByOpenDeps } from "@/lib/task-links";
+import {
+  presetToRule,
+  nextOccurrence,
+  type RecurrencePreset,
+} from "@/lib/recurrence";
+
+/** Append an activity-log entry (best-effort; never blocks the mutation). */
+async function logActivity(
+  taskId: string,
+  userId: string,
+  type: string,
+  detail?: string | null
+): Promise<void> {
+  await prisma.activityLog
+    .create({ data: { taskId, userId, type, detail: detail ?? null } })
+    .catch(() => {});
+}
+
+/** True when an open "DependsOn" blocker prevents completing this task. */
+async function isTaskBlocked(taskId: string): Promise<boolean> {
+  const deps = await prisma.taskLink.findMany({
+    where: { taskId, type: "DependsOn" },
+    include: { linkedTask: { select: { status: true } } },
+  });
+  return isBlockedByOpenDeps(
+    deps.map((d) => ({
+      type: d.type as TaskLinkType,
+      linkedStatus: d.linkedTask.status as TaskStatus,
+    }))
+  );
+}
+
+/** Resolve the recurrence rule + next spawn time from a form's preset field. */
+function recurrenceFromForm(
+  formData: FormData,
+  dueDate: Date | null
+): { recurringRule: string | null; recurringNextAt: Date | null } {
+  const preset = (formData.get("recurrence")?.toString() ??
+    "none") as RecurrencePreset;
+  const recurringRule = presetToRule(preset);
+  const recurringNextAt = recurringRule
+    ? nextOccurrence(recurringRule, dueDate ?? new Date())
+    : null;
+  return { recurringRule, recurringNextAt };
+}
 
 function revalidateTaskViews(taskId?: string) {
   revalidatePath("/");
@@ -83,6 +130,7 @@ export async function createTaskAction(
   const d = parsed.data;
   // Non-admins may only create tasks assigned to themselves.
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
+  const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
 
   const task = await prisma.task.create({
     data: {
@@ -96,12 +144,16 @@ export async function createTaskAction(
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
+      recurringRule,
+      recurringNextAt,
       progress: d.status === "Done" ? 100 : 0,
       completedAt: d.status === "Done" ? new Date() : null,
       createdByUserId: user.id,
       tenantId: tenant.id,
     },
   });
+
+  await logActivity(task.id, user.id, "created");
 
   if (assignee && assignee !== user.id) {
     await notifyUser(assignee, {
@@ -131,11 +183,18 @@ export async function updateTaskAction(
 
   const becameDone = d.status === "Done" && existing.status !== "Done";
   const leftDone = d.status !== "Done" && existing.status === "Done";
+
+  // Dependency guard: can't complete a task with open "DependsOn" blockers.
+  if (becameDone && (await isTaskBlocked(taskId))) {
+    return { error: "BLOCKED" };
+  }
+
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
   // Non-admins cannot reassign tasks — keep the existing assignee.
   const assignee = isAdminRole(user.role)
     ? d.assignedToUserId
     : (existing.assignedToUserId ?? user.id);
+  const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
 
   await prisma.task.update({
     where: { id: taskId },
@@ -150,12 +209,25 @@ export async function updateTaskAction(
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
+      recurringRule,
+      recurringNextAt,
       ...(becameDone ? { completedAt: new Date() } : {}),
       ...(leftDone ? { completedAt: null } : {}),
       // Mark fully complete when manually set to Done (only when no subtasks drive it)
       ...(becameDone && subtaskCount === 0 ? { progress: 100 } : {}),
     },
   });
+
+  // Activity log: record meaningful field changes.
+  if (existing.status !== d.status) {
+    await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${d.status}`);
+  }
+  if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) {
+    await logActivity(taskId, user.id, "assigned", assignee ? undefined : "unassigned");
+  }
+  if (existing.priority !== d.priority) {
+    await logActivity(taskId, user.id, "priority", `${existing.priority} → ${d.priority}`);
+  }
 
   if (
     assignee &&
@@ -179,13 +251,18 @@ export async function updateTaskAction(
 export async function updateTaskStatusAction(
   taskId: string,
   status: string
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
   const { user, tenant } = await requireTenant();
   const existing = await assertCanEdit(taskId, user, tenant.id);
   if (!isTaskStatus(status)) return { ok: false };
 
   const becameDone = status === "Done" && existing.status !== "Done";
   const leftDone = status !== "Done" && existing.status === "Done";
+
+  if (becameDone && (await isTaskBlocked(taskId))) {
+    return { ok: false, error: "BLOCKED" };
+  }
+
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
 
   await prisma.task.update({
@@ -198,6 +275,7 @@ export async function updateTaskStatusAction(
     },
   });
 
+  await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
   revalidateTaskViews(taskId);
   return { ok: true };
 }
@@ -224,6 +302,7 @@ export async function addCommentAction(
   await prisma.taskComment.create({
     data: { taskId, userId: user.id, content: parsed.data.content },
   });
+  await logActivity(taskId, user.id, "comment");
 
   revalidatePath(`/tasks/${taskId}`);
   return {};

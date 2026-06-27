@@ -10,6 +10,7 @@ import { updateTaskAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
 import { TaskForm } from "@/components/task-form";
+import { describeRule } from "@/lib/recurrence";
 
 export default async function EditTaskPage({
   params,
@@ -64,6 +65,7 @@ export default async function EditTaskPage({
           estimatedHours:
             task.estimatedHours != null ? formatDuration(task.estimatedHours) : "",
           spentHours: task.spentHours > 0 ? formatDuration(task.spentHours) : "",
+          recurrence: describeRule(task.recurringRule),
         }}
         submitLabel={t["task.save"]}
       />

@@ -23,7 +23,10 @@ export type TaskDefaults = {
   dueDate?: string | null; // yyyy-MM-dd
   estimatedHours?: string; // shorthand e.g. "4h" / "1d"
   spentHours?: string;
+  recurrence?: string; // none | daily | weekly | monthly
 };
+
+const RECURRENCE_PRESETS = ["none", "daily", "weekly", "monthly"] as const;
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
@@ -168,15 +171,30 @@ export function TaskForm({
           </select>
         </div>
 
-        <div className="space-y-2 sm:col-span-2">
+        <div className="space-y-2">
           <Label htmlFor="dueDate">{t("task.dueDate")}</Label>
           <Input
             id="dueDate"
             name="dueDate"
             type="date"
             defaultValue={d.dueDate ?? ""}
-            className="sm:w-56"
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="recurrence">{t("task.recurrence")}</Label>
+          <select
+            id="recurrence"
+            name="recurrence"
+            defaultValue={d.recurrence ?? "none"}
+            className={selectClass}
+          >
+            {RECURRENCE_PRESETS.map((r) => (
+              <option key={r} value={r}>
+                {t(`recurrence.${r}` as TKey)}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-2">
@@ -202,7 +220,9 @@ export function TaskForm({
       </div>
 
       {state.error && (
-        <p className="text-sm font-medium text-destructive">{state.error}</p>
+        <p className="text-sm font-medium text-destructive">
+          {state.error === "BLOCKED" ? t("task.blocked") : state.error}
+        </p>
       )}
 
       <div className="flex gap-2">
