@@ -28,7 +28,7 @@ export function TenantSwitcher({
   const dot = (color: string | null) => (
     <span
       className="h-2.5 w-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: color ?? "#0ea5e9" }}
+      style={{ backgroundColor: color ?? "#4f46e5" }}
     />
   );
 
@@ -72,7 +72,7 @@ export function TenantSwitcher({
             {dot(t.primaryColor)}
             <span className="flex-1 truncate">{t.name}</span>
             {t.slug === current.slug && (
-              <Check className="h-4 w-4 text-sky-600" />
+              <Check className="h-4 w-4 text-indigo-600" />
             )}
           </DropdownMenuItem>
         ))}

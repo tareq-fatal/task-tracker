@@ -94,7 +94,7 @@ export function WelcomeTour({
       }}
       styles={{
         options: {
-          primaryColor: "#0ea5e9",
+          primaryColor: "#4f46e5",
           textColor: "#1f2937",
           backgroundColor: "#ffffff",
           arrowColor: "#ffffff",
@@ -107,7 +107,7 @@ export function WelcomeTour({
         buttonNext: {
           borderRadius: 10,
           padding: "8px 14px",
-          backgroundColor: "#0ea5e9",
+          backgroundColor: "#4f46e5",
         },
         buttonBack: { color: "#6b7280" },
         buttonSkip: { color: "#94a3b8" },

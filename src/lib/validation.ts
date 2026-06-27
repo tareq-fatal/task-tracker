@@ -67,7 +67,7 @@ export const teamSchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color")
-    .default("#0ea5e9"),
+    .default("#4f46e5"),
 });
 
 export const userSchema = z.object({

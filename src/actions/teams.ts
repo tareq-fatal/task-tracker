@@ -23,7 +23,7 @@ export async function createTeamAction(
   const parsed = teamSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
-    color: formData.get("color") || "#0ea5e9",
+    color: formData.get("color") || "#4f46e5",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };

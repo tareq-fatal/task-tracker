@@ -79,7 +79,7 @@ export default async function DashboardPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {assigned.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             {t["dashboard.createdByMe"]} ({created.length})
           </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {created.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}

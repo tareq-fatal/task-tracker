@@ -77,7 +77,7 @@ export function TaskLinks({
             key={l.id}
             className="flex items-center gap-2 rounded-lg border bg-card p-2.5 text-sm"
           >
-            <span className="shrink-0 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
+            <span className="shrink-0 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
               {t(`links.type.${l.type}` as TKey)}
             </span>
             <Link

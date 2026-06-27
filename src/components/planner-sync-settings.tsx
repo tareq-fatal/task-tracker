@@ -50,7 +50,7 @@ export function PlannerSyncSettings({ view }: { view: PlannerSyncView }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">{t("settings.planner.desc")}</p>
-      {msg && <p className="text-sm text-sky-600">{msg}</p>}
+      {msg && <p className="text-sm text-indigo-600">{msg}</p>}
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
 
       <div className="divide-y rounded-md border">

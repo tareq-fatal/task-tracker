@@ -81,7 +81,7 @@ export default async function SettingsPage() {
           </p>
           <a
             href="/download/task-tracker-latest.apk"
-            className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-sky-500 to-teal-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
           >
             📱 {t["settings.mobile.download"]}
           </a>
