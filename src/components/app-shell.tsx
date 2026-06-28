@@ -12,6 +12,7 @@ import {
   ListChecks,
   FileUp,
   BarChart3,
+  Rocket,
   Settings,
   LogOut,
   Plus,
@@ -49,6 +50,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },
   { href: "/admin/teams", label: "nav.admin.teams", icon: Users2, tour: "nav-teams" },
   { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
+  { href: "/sprints", label: "nav.sprints", icon: Rocket },
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
