@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import { nextOccurrence } from "./recurrence";
+import { notify } from "./notifications";
 
 /**
  * Spawn the next instance of every recurring task whose recurringNextAt is due,
@@ -15,7 +16,7 @@ export async function runDueRecurring(now = new Date()): Promise<{ created: numb
   let created = 0;
   for (const t of due) {
     if (!t.recurringRule || !t.recurringNextAt) continue;
-    await prisma.task.create({
+    const instance = await prisma.task.create({
       data: {
         title: t.title,
         description: t.description,
@@ -32,6 +33,17 @@ export async function runDueRecurring(now = new Date()): Promise<{ created: numb
       },
     });
     created++;
+    if (t.assignedToUserId) {
+      await notify({
+        recipientUserId: t.assignedToUserId,
+        tenantId: t.tenantId,
+        type: "recurring",
+        title: "Wiederkehrende Aufgabe",
+        body: t.title,
+        url: `/tasks/${instance.id}`,
+        taskId: instance.id,
+      });
+    }
 
     // advance; if the rule can't produce a next date, stop recurring
     const next = nextOccurrence(t.recurringRule, t.recurringNextAt);

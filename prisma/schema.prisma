@@ -90,6 +90,11 @@ model User {
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
+  // Notification global settings
+  quietHoursStart Int? // 0-23 local hour; null = off
+  quietHoursEnd   Int?
+  notifyDigest    Boolean @default(false) // batch email instead of instant
+
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -103,9 +108,53 @@ model User {
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
+  notifications     Notification[]
+  notifyPrefs       NotificationPreference[]
+  notifyDevices     NotificationDevice[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  type      String // assigned | status | comment | mention | due_soon | overdue | blocker_resolved | recurring
+  title     String
+  body      String?
+  url       String?
+  taskId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType String
+  inApp     Boolean @default(true)
+  webPush   Boolean @default(true)
+  email     Boolean @default(false)
+  native    Boolean @default(true)
+
+  @@unique([userId, eventType])
+}
+
+model NotificationDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  String // "android" | "ios"
+  token     String   @unique // FCM / APNs token
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Team {

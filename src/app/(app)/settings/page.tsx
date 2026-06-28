@@ -9,6 +9,8 @@ import { SsoSettings } from "@/components/sso-settings";
 import { getTenantSsoConfig } from "@/actions/sso";
 import { PlannerSyncSettings } from "@/components/planner-sync-settings";
 import { getPlannerSyncView } from "@/actions/planner-sync";
+import { NotificationSettings } from "@/components/notification-settings";
+import { getNotificationPrefs } from "@/actions/notifications";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
   const isAdmin = isAdminRole(user.role);
   const ssoConfig = isAdmin ? await getTenantSsoConfig() : null;
   const plannerView = isAdmin ? await getPlannerSyncView() : null;
+  const notifyPrefs = await getNotificationPrefs();
 
   return (
     <div className="container max-w-xl py-6">
@@ -44,6 +47,15 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <PushToggle vapidPublicKey={vapid} />
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t["notif.prefsTitle"]}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <NotificationSettings view={notifyPrefs} />
         </CardContent>
       </Card>
 
