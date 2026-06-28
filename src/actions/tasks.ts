@@ -18,13 +18,36 @@ import {
 import { isTaskStatus, isTaskLinkType, isAdminRole } from "@/lib/enums";
 import type { TaskStatus, TaskLinkType } from "@/lib/enums";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
-import { notifyUser } from "@/lib/push";
+import { notify, notifyMany } from "@/lib/notifications";
+import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
 import { isBlockedByOpenDeps } from "@/lib/task-links";
 import {
   presetToRule,
   nextOccurrence,
   type RecurrencePreset,
 } from "@/lib/recurrence";
+
+/** Notify a task's watchers (assignee + creator), skipping the actor. */
+async function notifyWatchers(
+  task: { id: string; tenantId: string; assignedToUserId: string | null; createdByUserId: string; title: string },
+  actorUserId: string,
+  type: NotificationEvent,
+  title: string,
+  body?: string
+): Promise<void> {
+  const ids = [task.assignedToUserId, task.createdByUserId].filter(
+    (x): x is string => Boolean(x)
+  );
+  await notifyMany(ids, {
+    tenantId: task.tenantId,
+    type,
+    title,
+    body,
+    url: `/tasks/${task.id}`,
+    taskId: task.id,
+    actorUserId,
+  });
+}
 
 /** Append an activity-log entry (best-effort; never blocks the mutation). */
 async function logActivity(
@@ -156,10 +179,15 @@ export async function createTaskAction(
   await logActivity(task.id, user.id, "created");
 
   if (assignee && assignee !== user.id) {
-    await notifyUser(assignee, {
-      title: "Neue Task zugewiesen",
+    await notify({
+      recipientUserId: assignee,
+      tenantId: tenant.id,
+      type: "assigned",
+      title: "Neue Aufgabe zugewiesen",
       body: d.title,
       url: `/tasks/${task.id}`,
+      taskId: task.id,
+      actorUserId: user.id,
     });
   }
 
@@ -229,22 +257,63 @@ export async function updateTaskAction(
     await logActivity(taskId, user.id, "priority", `${existing.priority} → ${d.priority}`);
   }
 
-  if (
-    assignee &&
-    assignee !== existing.assignedToUserId &&
-    assignee !== user.id
-  ) {
-    await notifyUser(assignee, {
-      title: "Task zugewiesen",
+  // Notifications: newly-assigned person, status change to watchers, blockers freed.
+  if (assignee && assignee !== existing.assignedToUserId && assignee !== user.id) {
+    await notify({
+      recipientUserId: assignee,
+      tenantId: tenant.id,
+      type: "assigned",
+      title: "Aufgabe zugewiesen",
       body: d.title,
       url: `/tasks/${taskId}`,
+      taskId,
+      actorUserId: user.id,
     });
   }
+  if (existing.status !== d.status) {
+    await notifyWatchers(
+      { ...existing, assignedToUserId: assignee, title: d.title },
+      user.id,
+      "status",
+      `Status: ${d.title}`,
+      `${existing.status} → ${d.status}`
+    );
+  }
+  if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
 
   revalidatePath("/");
   revalidatePath("/board");
   revalidatePath(`/tasks/${taskId}`);
   redirect(`/tasks/${taskId}`);
+}
+
+/** When a task is completed, tell the assignees of tasks that DependOn it. */
+async function notifyBlockerResolved(
+  blockerTaskId: string,
+  tenantId: string,
+  actorUserId: string
+): Promise<void> {
+  // tasks whose "DependsOn" link points at the just-completed task
+  const dependents = await prisma.taskLink.findMany({
+    where: { linkedTaskId: blockerTaskId, type: "DependsOn" },
+    include: { task: { select: { id: true, title: true, assignedToUserId: true } } },
+  });
+  for (const link of dependents) {
+    const dep = link.task;
+    if (!dep.assignedToUserId) continue;
+    // only notify if the dependent now has no remaining open blockers
+    if (await isTaskBlocked(dep.id)) continue;
+    await notify({
+      recipientUserId: dep.assignedToUserId,
+      tenantId,
+      type: "blocker_resolved",
+      title: "Blocker erledigt",
+      body: dep.title,
+      url: `/tasks/${dep.id}`,
+      taskId: dep.id,
+      actorUserId,
+    });
+  }
 }
 
 /** Used by the Kanban board drag&drop. */
@@ -276,6 +345,8 @@ export async function updateTaskStatusAction(
   });
 
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
+  await notifyWatchers(existing, user.id, "status", `Status: ${existing.title}`, `${existing.status} → ${status}`);
+  if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   revalidateTaskViews(taskId);
   return { ok: true };
 }
@@ -303,6 +374,46 @@ export async function addCommentAction(
     data: { taskId, userId: user.id, content: parsed.data.content },
   });
   await logActivity(taskId, user.id, "comment");
+
+  // Notify: @mentions (within the tenant) get a mention; watchers get a comment.
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { id: true, tenantId: true, title: true, assignedToUserId: true, createdByUserId: true },
+  });
+  if (task) {
+    const mentionNames = parseMentions(parsed.data.content);
+    const mentioned = mentionNames.length
+      ? await prisma.user.findMany({
+          where: { username: { in: mentionNames }, tenantId: task.tenantId },
+          select: { id: true },
+        })
+      : [];
+    const mentionedIds = new Set(mentioned.map((u) => u.id));
+    if (mentionedIds.size) {
+      await notifyMany([...mentionedIds], {
+        tenantId: task.tenantId,
+        type: "mention",
+        title: "Du wurdest erwähnt",
+        body: parsed.data.content.slice(0, 140),
+        url: `/tasks/${taskId}`,
+        taskId,
+        actorUserId: user.id,
+      });
+    }
+    // comment to watchers who weren't already mentioned
+    const watchers = [task.assignedToUserId, task.createdByUserId].filter(
+      (x): x is string => Boolean(x) && !mentionedIds.has(x as string)
+    );
+    await notifyMany(watchers, {
+      tenantId: task.tenantId,
+      type: "comment",
+      title: "Neuer Kommentar",
+      body: `${task.title}: ${parsed.data.content.slice(0, 120)}`,
+      url: `/tasks/${taskId}`,
+      taskId,
+      actorUserId: user.id,
+    });
+  }
 
   revalidatePath(`/tasks/${taskId}`);
   return {};

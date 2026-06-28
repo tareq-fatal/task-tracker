@@ -25,6 +25,7 @@ import { logoutAction } from "@/actions/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
+import { NotificationBell } from "@/components/notification-bell";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -215,6 +216,7 @@ export function AppShell({
                   {t("nav.newTask")}
                 </Link>
               </Button>
+              <NotificationBell />
               <LocaleSwitcher current={locale} />
               <Link
                 href="/settings"
