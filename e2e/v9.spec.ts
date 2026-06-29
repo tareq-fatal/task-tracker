@@ -5,9 +5,10 @@ test("reports page renders KPI cards + charts for admin (de)", async ({ page }) 
   await login(page, "admin", "Admin-2026!", "de");
   await page.goto("/reports");
   await expect(page.getByRole("heading", { name: "Berichte & Auswertungen" })).toBeVisible();
-  await expect(page.getByText("Tasks gesamt")).toBeVisible();
-  await expect(page.getByText("Burndown (30 Tage)")).toBeVisible();
-  await expect(page.getByText("Auslastung pro Person")).toBeVisible();
+  // v11 infographic dashboard: capture container + heatmap + status donut
+  await expect(page.locator("#report-capture")).toBeVisible();
+  await expect(page.getByText("Aktivität (Heatmap)")).toBeVisible();
+  await expect(page.getByText("Status-Verteilung")).toBeVisible();
 });
 
 test("non-admin cannot reach /reports", async ({ page }) => {
