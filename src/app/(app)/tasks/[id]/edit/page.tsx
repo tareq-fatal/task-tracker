@@ -29,10 +29,11 @@ export default async function EditTaskPage({
     task.assignedToUserId === user.id;
   if (!canEdit) notFound();
 
-  const [users, projects, teams] = await Promise.all([
+  const [users, projects, teams, parents] = await Promise.all([
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.task.findMany({ where: { tenantId: tenant.id, type: { not: "Subtask" }, id: { not: task.id } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
 
   const action = updateTaskAction.bind(null, task.id);
@@ -52,12 +53,16 @@ export default async function EditTaskPage({
         users={users}
         projects={projects}
         teams={teams}
+        parents={parents}
         canAssign={isAdminRole(user.role)}
         defaults={{
           title: task.title,
           description: task.description ?? "",
           status: task.status,
           priority: task.priority,
+          type: task.type,
+          storyPoints: task.storyPoints != null ? String(task.storyPoints) : "",
+          parentId: task.parentId,
           assignedToUserId: task.assignedToUserId,
           projectId: task.projectId,
           teamId: task.teamId,

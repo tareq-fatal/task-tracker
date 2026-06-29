@@ -15,8 +15,9 @@ import {
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
 } from "@/lib/validation";
-import { isTaskStatus, isTaskLinkType, isAdminRole } from "@/lib/enums";
-import type { TaskStatus, TaskLinkType } from "@/lib/enums";
+import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
+import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
+import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
 import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
@@ -89,6 +90,34 @@ function recurrenceFromForm(
   return { recurringRule, recurringNextAt };
 }
 
+/** Resolve hierarchy fields from the form, validating parent type + no cycles. */
+async function hierarchyFromForm(
+  formData: FormData,
+  tenantId: string,
+  selfId?: string
+): Promise<{ type: string; parentId: string | null; storyPoints: number | null }> {
+  const typeRaw = formData.get("type")?.toString() ?? "Task";
+  const type = (isTaskType(typeRaw) ? typeRaw : "Task") as TaskType;
+  const spRaw = formData.get("storyPoints")?.toString() ?? "";
+  const storyPoints = spRaw ? Math.max(0, parseInt(spRaw, 10) || 0) : null;
+
+  let parentId = formData.get("parentId")?.toString() || null;
+  if (parentId) {
+    const parent = await prisma.task.findFirst({
+      where: { id: parentId, tenantId },
+      select: { id: true, type: true },
+    });
+    if (!parent || !parentTypeAllowed(type, parent.type as TaskType)) {
+      parentId = null;
+    } else if (selfId) {
+      const all = await prisma.task.findMany({ where: { tenantId }, select: { id: true, parentId: true } });
+      const map = new Map(all.map((t) => [t.id, t.parentId]));
+      if (wouldCreateCycle(selfId, parentId, map)) parentId = null;
+    }
+  }
+  return { type, parentId, storyPoints };
+}
+
 function revalidateTaskViews(taskId?: string) {
   revalidatePath("/");
   revalidatePath("/board");
@@ -154,6 +183,7 @@ export async function createTaskAction(
   // Non-admins may only create tasks assigned to themselves.
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
   const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
+  const hier = await hierarchyFromForm(formData, tenant.id);
 
   const task = await prisma.task.create({
     data: {
@@ -161,6 +191,9 @@ export async function createTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
+      type: hier.type,
+      parentId: hier.parentId,
+      storyPoints: hier.storyPoints,
       assignedToUserId: assignee,
       projectId: d.projectId,
       teamId: d.teamId,
@@ -223,6 +256,7 @@ export async function updateTaskAction(
     ? d.assignedToUserId
     : (existing.assignedToUserId ?? user.id);
   const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
+  const hier = await hierarchyFromForm(formData, tenant.id, taskId);
 
   await prisma.task.update({
     where: { id: taskId },
@@ -231,6 +265,9 @@ export async function updateTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
+      type: hier.type,
+      parentId: hier.parentId,
+      storyPoints: hier.storyPoints,
       assignedToUserId: assignee,
       projectId: d.projectId,
       teamId: d.teamId,

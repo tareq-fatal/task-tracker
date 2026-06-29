@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
-import { TASK_STATUSES, TASK_PRIORITIES } from "@/lib/enums";
+import { TASK_STATUSES, TASK_PRIORITIES, TASK_TYPES } from "@/lib/enums";
 import type { TaskFormState } from "@/actions/tasks";
 import type { TKey } from "@/lib/i18n";
 
@@ -24,7 +24,12 @@ export type TaskDefaults = {
   estimatedHours?: string; // shorthand e.g. "4h" / "1d"
   spentHours?: string;
   recurrence?: string; // none | daily | weekly | monthly
+  type?: string; // Epic | Story | Task | Subtask | Bug
+  storyPoints?: string;
+  parentId?: string | null;
 };
+
+type ParentOption = { id: string; title: string };
 
 const RECURRENCE_PRESETS = ["none", "daily", "weekly", "monthly"] as const;
 
@@ -45,6 +50,7 @@ export function TaskForm({
   users,
   projects,
   teams,
+  parents = [],
   defaults,
   submitLabel,
   canAssign = true,
@@ -53,6 +59,7 @@ export function TaskForm({
   users: Option[];
   projects: Option[];
   teams: Option[];
+  parents?: ParentOption[];
   defaults?: TaskDefaults;
   submitLabel: string;
   canAssign?: boolean;
@@ -113,6 +120,41 @@ export function TaskForm({
             {TASK_PRIORITIES.map((p) => (
               <option key={p} value={p}>
                 {t(`priority.${p}` as TKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="type">{t("task.type")}</Label>
+          <select id="type" name="type" defaultValue={d.type ?? "Task"} className={selectClass}>
+            {TASK_TYPES.map((ty) => (
+              <option key={ty} value={ty}>
+                {t(`type.${ty}` as TKey)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="storyPoints">{t("task.storyPoints")}</Label>
+          <Input
+            id="storyPoints"
+            name="storyPoints"
+            type="number"
+            min={0}
+            defaultValue={d.storyPoints ?? ""}
+            placeholder="—"
+          />
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="parentId">{t("task.parent")}</Label>
+          <select id="parentId" name="parentId" defaultValue={d.parentId ?? ""} className={selectClass}>
+            <option value="">{t("task.noParent")}</option>
+            {parents.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title}
               </option>
             ))}
           </select>

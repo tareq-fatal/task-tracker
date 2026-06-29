@@ -40,8 +40,12 @@ test("admin can link two tasks (dependency)", async ({ page }) => {
   const taskSelect = page.locator("select", {
     has: page.locator("option", { hasText: aTitle }),
   });
+  await taskSelect.waitFor();
+  await page.waitForTimeout(800); // let the controlled <select> hydrate
   await taskSelect.selectOption({ label: aTitle });
-  await page.getByRole("button", { name: /Verlinkung hinzufügen/ }).click();
+  const addBtn = page.getByRole("button", { name: /Verlinkung hinzufügen/ });
+  await expect(addBtn).toBeEnabled();
+  await addBtn.click();
 
   // the linked task appears in the Links section
   await expect(page.getByRole("link", { name: aTitle })).toBeVisible();
