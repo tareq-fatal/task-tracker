@@ -2,7 +2,8 @@
 
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   BarChart,
   Bar,
@@ -29,15 +30,21 @@ export function SprintBurndown({
     return <p className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</p>;
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: -18 }}>
+      <ComposedChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: -18 }}>
+        <defs>
+          <linearGradient id="sprint-burn" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={INDIGO} stopOpacity={0.45} />
+            <stop offset="100%" stopColor={INDIGO} stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => String(d).slice(5)} minTickGap={20} />
         <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
         <Tooltip />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Line type="monotone" dataKey="ideal" name={labels.ideal} stroke="#cbd5e1" strokeDasharray="5 4" dot={false} />
-        <Line type="monotone" dataKey="remaining" name={labels.remaining} stroke={INDIGO} strokeWidth={2} connectNulls={false} />
-      </LineChart>
+        <Area type="monotone" dataKey="remaining" name={labels.remaining} stroke={INDIGO} strokeWidth={2.5} fill="url(#sprint-burn)" connectNulls={false} />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
