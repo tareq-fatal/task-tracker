@@ -16,10 +16,11 @@ export default async function NewTaskPage({
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
-  const [users, projects, teams] = await Promise.all([
+  const [users, projects, teams, parents] = await Promise.all([
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.task.findMany({ where: { tenantId: tenant.id, type: { not: "Subtask" } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
 
   return (
@@ -37,6 +38,7 @@ export default async function NewTaskPage({
         users={users}
         projects={projects}
         teams={teams}
+        parents={parents}
         canAssign={isAdminRole(user.role)}
         defaults={{
           assignedToUserId: user.id,

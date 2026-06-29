@@ -17,7 +17,8 @@ import { initials, isOverdue } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
-import { StatusBadge, PriorityBadge } from "@/components/task-badges";
+import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
+import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
 import { DeleteTaskButton } from "@/components/delete-task-button";
@@ -53,6 +54,11 @@ export default async function TaskDetailPage({
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
       project: { select: { id: true, name: true, color: true } },
+      parent: { select: { id: true, title: true, type: true } },
+      children: {
+        select: { id: true, title: true, status: true, type: true, storyPoints: true, progress: true },
+        orderBy: { createdAt: "asc" },
+      },
       comments: {
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
@@ -107,6 +113,16 @@ export default async function TaskDetailPage({
         {t["common.back"]}
       </Link>
 
+      {task.parent && (
+        <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
+          <TypeBadge type={task.parent.type} />
+          <Link href={`/tasks/${task.parent.id}`} className="hover:underline">
+            {task.parent.title}
+          </Link>
+          <span className="px-1">/</span>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-2xl font-bold">{task.title}</h1>
         <div className="flex flex-wrap gap-2">
@@ -122,8 +138,14 @@ export default async function TaskDetailPage({
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        <TypeBadge type={task.type} />
         <StatusBadge status={task.status} />
         <PriorityBadge priority={task.priority} />
+        {task.storyPoints != null && (
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+            {task.storyPoints} SP
+          </span>
+        )}
         {task.project && (
           <Link
             href={`/projects/${task.project.id}`}
@@ -189,6 +211,41 @@ export default async function TaskDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Children (Epic/Story roll-up) */}
+      {task.children.length > 0 && (() => {
+        const r = rollup(task.children.map((c) => ({ status: c.status as never, progress: c.progress, storyPoints: c.storyPoints })));
+        return (
+          <Card className="mb-6">
+            <CardContent className="p-5">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t["hierarchy.children"]} ({r.done}/{r.total}
+                  {r.totalPoints > 0 ? ` · ${r.donePoints}/${r.totalPoints} SP` : ""})
+                </h2>
+                <span className="text-sm font-semibold text-indigo-600">{r.progress}%</span>
+              </div>
+              <div className="mb-3 h-2 overflow-hidden rounded-full bg-secondary">
+                <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500" style={{ width: `${r.progress}%` }} />
+              </div>
+              <ul className="divide-y">
+                {task.children.map((c) => (
+                  <li key={c.id} className="flex items-center gap-2 py-2 text-sm">
+                    <TypeBadge type={c.type} />
+                    <Link href={`/tasks/${c.id}`} className="flex-1 truncate hover:underline">
+                      {c.title}
+                    </Link>
+                    {c.storyPoints != null && (
+                      <span className="text-xs text-muted-foreground">{c.storyPoints} SP</span>
+                    )}
+                    <StatusBadge status={c.status} />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Timer */}
       <div className="mb-6">

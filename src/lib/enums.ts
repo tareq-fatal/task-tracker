@@ -18,6 +18,13 @@ export const BOARD_STATUSES = ["Todo", "InProgress", "Done"] as const;
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
+// Issue hierarchy types (Epic > Story > Task > Subtask; Bug sits with Task).
+export const TASK_TYPES = ["Epic", "Story", "Task", "Subtask", "Bug"] as const;
+export type TaskType = (typeof TASK_TYPES)[number];
+export function isTaskType(v: string): v is TaskType {
+  return (TASK_TYPES as readonly string[]).includes(v);
+}
+
 export const TASK_LINK_TYPES = [
   "DependsOn",
   "Blocks",

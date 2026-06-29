@@ -253,6 +253,13 @@ model Task {
   externalId String? @unique
   bucket     String? // original MS Planner bucket name, kept for reference
 
+  // Issue hierarchy: Epic > Story > Task > Subtask (Bug anywhere).
+  type        String  @default("Task") // Epic | Story | Task | Subtask | Bug
+  parentId    String?
+  parent      Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Task[]  @relation("TaskHierarchy")
+  storyPoints Int?
+
   // Recurrence (iCal RRULE subset, e.g. "FREQ=WEEKLY;BYDAY=MO,WE"). When set, a
   // cron spawns the next instance at recurringNextAt.
   recurringRule  String?
@@ -297,6 +304,7 @@ model Task {
   @@index([projectId])
   @@index([teamId])
   @@index([sprintId])
+  @@index([parentId])
   @@index([tenantId])
 }
 
