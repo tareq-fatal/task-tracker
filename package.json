@@ -20,7 +20,8 @@
     "cap:sync": "npx cap sync android",
     "cap:copy": "npx cap copy android",
     "apk:debug": "cd android && ./gradlew assembleDebug",
-    "apk:release": "cd android && ./gradlew assembleRelease"
+    "apk:release": "cd android && ./gradlew assembleRelease",
+    "audit:tenant": "node scripts/audit-tenant-scope.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
