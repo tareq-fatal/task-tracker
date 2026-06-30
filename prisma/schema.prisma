@@ -138,6 +138,7 @@ model User {
   notifications     Notification[]
   notifyPrefs       NotificationPreference[]
   notifyDevices     NotificationDevice[]
+  timeEntries       TaskTimeEntry[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -437,6 +438,7 @@ model Task {
   linksFrom   TaskLink[]       @relation("LinksFrom")
   linksTo     TaskLink[]       @relation("LinksTo")
   activity    ActivityLog[]
+  timeEntries TaskTimeEntry[]
 
   @@index([status])
   @@index([assignedToUserId])
@@ -516,6 +518,24 @@ model DbAuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model TaskTimeEntry {
+  id        String    @id @default(cuid())
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime? // null = running
+  minutes   Int       @default(0) // computed on stop / set manually
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@index([taskId])
+  @@index([userId, endedAt])
+  @@index([tenantId])
 }
 
 model ActivityLog {
