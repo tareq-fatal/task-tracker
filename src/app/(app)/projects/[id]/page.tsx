@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, KanbanSquare, Plus } from "lucide-react";
+import { ArrowLeft, KanbanSquare, Plus, Columns3 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
+import { isAdminRole } from "@/lib/enums";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
@@ -67,6 +68,14 @@ export default async function ProjectDetailPage({
           )}
         </div>
         <div className="flex gap-2">
+          {isAdminRole(user.role) && (
+            <Button asChild variant="outline">
+              <Link href={`/projects/${project.id}/workflow`}>
+                <Columns3 className="me-1 h-4 w-4" />
+                {t["workflow.edit"]}
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link href={`/projects/${project.id}/board`}>
               <KanbanSquare className="me-1 h-4 w-4" />

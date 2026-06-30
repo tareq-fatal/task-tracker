@@ -234,7 +234,28 @@ model Project {
   tasks       Task[]
   plannerSync PlannerSync?
   sprints     Sprint[]
+  columns     WorkflowColumn[]
 
+  @@index([tenantId])
+}
+
+model WorkflowColumn {
+  id        String   @id @default(cuid())
+  tenantId  String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#6366f1")
+  order     Int      @default(0)
+  wipLimit  Int? // max tasks allowed in this column (null = unlimited)
+  isInitial Boolean  @default(false) // new tasks land here
+  isFinal   Boolean  @default(false) // tasks here count as completed
+  status    String   @default("InProgress") // underlying base status: Todo | InProgress | Done
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+
+  @@index([projectId])
   @@index([tenantId])
 }
 
@@ -289,6 +310,11 @@ model Task {
   sprintId String?
   sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
 
+  // Optional per-project custom workflow column. When a project defines columns,
+  // its board groups by this instead of `status`. Null = fall back to status board.
+  workflowColumnId String?
+  workflowColumn   WorkflowColumn? @relation(fields: [workflowColumnId], references: [id], onDelete: SetNull)
+
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -306,6 +332,7 @@ model Task {
   @@index([sprintId])
   @@index([parentId])
   @@index([tenantId])
+  @@index([workflowColumnId])
 }
 
 model TaskLink {
