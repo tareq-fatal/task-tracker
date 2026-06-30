@@ -80,6 +80,22 @@ export async function getDbAudit(): Promise<AuditEntry[]> {
   return rows.map((r) => ({ id: r.id, userName: r.userName, sql: r.sql, mode: r.mode, rowCount: r.rowCount, error: r.error, createdAt: r.createdAt.toISOString() }));
 }
 
+export type TenantCounts = { slug: string; name: string; tasks: number; projects: number; teams: number; sprints: number } | null;
+
+/** Preview how much data a purge would remove, so the UI can warn precisely. */
+export async function countTenantDataAction(slug: string): Promise<TenantCounts> {
+  await requireSuper();
+  const tenant = await prisma.tenant.findUnique({ where: { slug } });
+  if (!tenant) return null;
+  const [tasks, projects, teams, sprints] = await Promise.all([
+    prisma.task.count({ where: { tenantId: tenant.id } }),
+    prisma.project.count({ where: { tenantId: tenant.id } }),
+    prisma.team.count({ where: { tenantId: tenant.id } }),
+    prisma.sprint.count({ where: { tenantId: tenant.id } }),
+  ]);
+  return { slug, name: tenant.name, tasks, projects, teams, sprints };
+}
+
 /** DANGER: empties a tenant's work data (tasks/projects/teams/sprints). Keeps the
  *  tenant + its users. Requires typing the tenant slug to confirm. SuperAdmin only. */
 export async function purgeTenantAction(slug: string, confirm: string): Promise<{ ok: boolean; error?: string; summary?: string }> {

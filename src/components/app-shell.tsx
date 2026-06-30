@@ -179,7 +179,7 @@ export function AppShell({
               </p>
             </div>
             <form action={logoutAction}>
-              <Button variant="ghost" size="icon" aria-label={t("nav.logout")}>
+              <Button variant="ghost" size="icon" aria-label={t("nav.logout")} title={t("nav.logout")}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </form>

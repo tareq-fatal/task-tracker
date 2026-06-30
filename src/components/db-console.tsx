@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { AlertTriangle, Play, Download, Trash2 } from "lucide-react";
-import { runQueryAction, purgeTenantAction, type QueryResult, type AuditEntry } from "@/actions/db-admin";
+import { runQueryAction, purgeTenantAction, countTenantDataAction, type QueryResult, type AuditEntry, type TenantCounts } from "@/actions/db-admin";
 import { classifyQuery } from "@/lib/sql-guard";
+import { formatNumber } from "@/lib/format";
+import { useT } from "@/components/i18n-provider";
+import type { TKey } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,7 @@ function csv(columns: string[], rows: unknown[][]): string {
 }
 
 export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
+  const { locale } = useT();
   const [sql, setSql] = useState('SELECT t.slug, count(*) AS tasks\nFROM "Task" k JOIN "Tenant" t ON t.id = k."tenantId"\nGROUP BY t.slug ORDER BY tasks DESC;');
   const [writeMode, setWriteMode] = useState(false);
   const [res, setRes] = useState<QueryResult | null>(null);
@@ -83,7 +87,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
             {res.error ? (
               <span className="font-medium text-destructive">Error: {res.error}</span>
             ) : (
-              <span>{res.mode === "read" ? `${res.rowCount} rows` : `${res.rowCount} affected`}{res.truncated ? " (showing first 1000)" : ""}</span>
+              <span>{res.mode === "read" ? `${formatNumber(res.rowCount, locale, 0)} rows` : `${formatNumber(res.rowCount, locale, 0)} affected`}{res.truncated ? " (showing first 1000)" : ""}</span>
             )}
             {res.rows.length > 0 && (
               <Button size="sm" variant="outline" className="ms-auto" onClick={exportCsv}>
@@ -134,35 +138,52 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
   );
 }
 
+const ERR: Record<string, TKey> = { CONFIRM_MISMATCH: "error.confirmMismatch", NOT_FOUND: "error.notFound", FORBIDDEN: "error.forbidden" };
+
 function PurgeTenant() {
+  const { t } = useT();
   const [slug, setSlug] = useState("");
   const [confirm, setConfirm] = useState("");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState("");
+  const [counts, setCounts] = useState<TenantCounts>(null);
+
+  // live preview of how much data the purge would remove
+  function preview(s: string) {
+    setSlug(s);
+    setCounts(null);
+    if (s) start(async () => setCounts(await countTenantDataAction(s)));
+  }
 
   return (
     <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-4">
       <h2 className="flex items-center gap-1.5 text-sm font-bold text-rose-700">
-        <Trash2 className="h-4 w-4" /> Danger zone — empty a tenant's work data
+        <Trash2 className="h-4 w-4" /> {t("db.danger.title")}
       </h2>
-      <p className="mt-1 text-xs text-rose-700/80">Deletes ALL tasks, projects, teams & sprints of the tenant (keeps the tenant + users). Type the tenant <b>slug</b> twice to confirm.</p>
+      <p className="mt-1 text-xs text-rose-700/80">{t("db.danger.desc")}</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
-        <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="tenant slug (e.g. tarek)" className="w-48" />
-        <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="re-type slug to confirm" className="w-48" />
+        <Input value={slug} onChange={(e) => preview(e.target.value)} placeholder={t("db.danger.slug")} className="w-48" title={t("db.danger.slug")} />
+        <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t("db.danger.reconfirm")} className="w-48" title={t("db.danger.reconfirm")} />
         <Button
           size="sm"
           variant="destructive"
+          title={t("db.danger.button")}
           disabled={pending || !slug || confirm !== slug}
           onClick={() => start(async () => {
             const r = await purgeTenantAction(slug, confirm);
-            setMsg(r.ok ? `✓ ${r.summary}` : `✗ ${r.error}`);
-            setSlug(""); setConfirm("");
+            setMsg(r.ok ? `✓ ${r.summary}` : `✗ ${t(ERR[r.error ?? ""] ?? "error.notFound")}`);
+            setSlug(""); setConfirm(""); setCounts(null);
           })}
         >
-          Empty tenant
+          {t("db.danger.button")}
         </Button>
-        {msg && <span className="text-xs font-medium">{msg}</span>}
       </div>
+      {counts && (counts.tasks + counts.projects + counts.teams + counts.sprints > 0) && (
+        <p className="mt-2 text-xs font-semibold text-rose-700">
+          ⚠ {t("db.danger.willRemove")} {counts.tasks} Tasks · {counts.projects} Projekte · {counts.teams} Teams · {counts.sprints} Sprints — <b>{counts.name}</b>
+        </p>
+      )}
+      {msg && <p className="mt-2 text-xs font-medium">{msg}</p>}
     </div>
   );
 }

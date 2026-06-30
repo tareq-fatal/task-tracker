@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { Building2, Check, ChevronsUpDown } from "lucide-react";
 import { switchTenantAction } from "@/actions/tenant";
+import { useT } from "@/components/i18n-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ export function TenantSwitcher({
   current: T;
   tenants: T[];
 }) {
+  const { t } = useT();
   const [pending, startTransition] = useTransition();
   const canSwitch = tenants.length > 1;
 
@@ -46,6 +48,7 @@ export function TenantSwitcher({
       <DropdownMenuTrigger asChild>
         <button
           disabled={pending}
+          title={t("tenant.switch")}
           className="flex w-full items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-medium transition-colors hover:bg-secondary/60"
         >
           {dot(current.primaryColor)}
@@ -56,7 +59,7 @@ export function TenantSwitcher({
       <DropdownMenuContent className="w-56">
         <DropdownMenuLabel className="flex items-center gap-1.5">
           <Building2 className="h-3.5 w-3.5" />
-          Tenant
+          {t("tenant.label")}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {tenants.map((t) => (
