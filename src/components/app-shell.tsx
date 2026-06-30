@@ -18,6 +18,7 @@ import {
   Tags,
   Zap,
   FileStack,
+  Map,
   Settings,
   LogOut,
   Plus,
@@ -49,6 +50,7 @@ const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
   { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board" },
   { href: "/views", label: "nav.views", icon: CalendarDays },
+  { href: "/roadmap", label: "nav.roadmap", icon: Map },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
 ];
 
