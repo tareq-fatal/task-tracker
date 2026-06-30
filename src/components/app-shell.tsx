@@ -16,6 +16,7 @@ import {
   Rocket,
   Database,
   Tags,
+  Zap,
   Settings,
   LogOut,
   Plus,
@@ -57,6 +58,7 @@ const ADMIN: NavItem[] = [
   { href: "/sprints", label: "nav.sprints", icon: Rocket },
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
+  { href: "/admin/automation", label: "nav.automation", icon: Zap },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 

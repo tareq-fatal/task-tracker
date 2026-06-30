@@ -16,6 +16,7 @@ import {
   ALLOWED_MIME,
 } from "@/lib/validation";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
+import { applyAutomations } from "@/lib/automation-run";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
@@ -210,6 +211,7 @@ export async function createTaskAction(
   });
 
   await logActivity(task.id, user.id, "created");
+  await applyAutomations(tenant.id, task.id, { type: "created", projectId: task.projectId });
 
   if (assignee && assignee !== user.id) {
     await notify({
@@ -398,6 +400,7 @@ export async function updateTaskStatusAction(
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
   await notifyWatchers(existing, user.id, "status", `Status: ${existing.title}`, `${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
+  await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
   revalidateTaskViews(taskId);
   return { ok: true };
 }

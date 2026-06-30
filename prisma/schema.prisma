@@ -236,8 +236,26 @@ model Project {
   sprints      Sprint[]
   columns      WorkflowColumn[]
   customFields CustomFieldDef[]
+  automations  AutomationRule[]
 
   @@index([tenantId])
+}
+
+model AutomationRule {
+  id           String   @id @default(cuid())
+  tenantId     String
+  projectId    String? // null = all projects in the tenant
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  enabled      Boolean  @default(true)
+  triggerType  String // status_to | priority_to | created
+  triggerValue String? // status/priority value (null for "created")
+  actionType   String // set_status | set_priority
+  actionValue  String
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([projectId])
 }
 
 model CustomFieldDef {
