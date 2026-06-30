@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   KanbanSquare,
+  CalendarDays,
   FolderKanban,
   Users,
   Users2,
@@ -43,6 +44,7 @@ type NavItem = {
 const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
   { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board" },
+  { href: "/views", label: "nav.views", icon: CalendarDays },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
 ];
 

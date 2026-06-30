@@ -353,6 +353,20 @@ async function notifyBlockerResolved(
   }
 }
 
+/** Used by the Calendar view (drag a task to another day). */
+export async function setTaskDueDateAction(
+  taskId: string,
+  dateStr: string | null
+): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
+  const dueDate = dateStr ? new Date(dateStr + "T00:00:00Z") : null;
+  await prisma.task.update({ where: { id: taskId }, data: { dueDate } });
+  revalidateTaskViews(taskId);
+  revalidatePath("/views");
+  return { ok: true };
+}
+
 /** Used by the Kanban board drag&drop. */
 export async function updateTaskStatusAction(
   taskId: string,
