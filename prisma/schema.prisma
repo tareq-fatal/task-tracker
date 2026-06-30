@@ -241,6 +241,21 @@ model Project {
   @@index([tenantId])
 }
 
+model TaskTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String // template label (e.g. "Bug Report")
+  title       String // task title to pre-fill
+  description String?
+  type        String   @default("Task")
+  priority    String   @default("Medium")
+  storyPoints Int?
+  subtasks    String? // JSON array of subtask titles
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+}
+
 model AutomationRule {
   id           String   @id @default(cuid())
   tenantId     String

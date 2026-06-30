@@ -17,6 +17,7 @@ import {
   Database,
   Tags,
   Zap,
+  FileStack,
   Settings,
   LogOut,
   Plus,
@@ -59,6 +60,7 @@ const ADMIN: NavItem[] = [
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
+  { href: "/admin/templates", label: "nav.templates", icon: FileStack },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 
