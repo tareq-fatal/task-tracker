@@ -281,6 +281,10 @@ model Task {
   children    Task[]  @relation("TaskHierarchy")
   storyPoints Int?
 
+  // Scrum-board column (to-do | in-progress | waiting | to-verify | done |
+  // ready-for-golive). Null → derived from status. Independent of `bucket`.
+  scrumColumn String?
+
   // Recurrence (iCal RRULE subset, e.g. "FREQ=WEEKLY;BYDAY=MO,WE"). When set, a
   // cron spawns the next instance at recurringNextAt.
   recurringRule  String?

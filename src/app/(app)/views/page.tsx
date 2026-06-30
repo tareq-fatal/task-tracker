@@ -7,6 +7,7 @@ import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { CalendarView } from "@/components/calendar-view";
 import { GanttChart } from "@/components/gantt-chart";
+import { ScrumBoard, type ScrumTask } from "@/components/scrum-board";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -17,8 +18,8 @@ export default async function ViewsPage({
 }) {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
-  const view = ["calendar", "gantt", "timeline"].includes(searchParams.view ?? "")
-    ? (searchParams.view as "calendar" | "gantt" | "timeline")
+  const view = ["scrum", "calendar", "gantt", "timeline"].includes(searchParams.view ?? "")
+    ? (searchParams.view as "scrum" | "calendar" | "gantt" | "timeline")
     : "calendar";
 
   const projects = await prisma.project.findMany({
@@ -34,9 +35,28 @@ export default async function ViewsPage({
       status: { not: "Archived" },
       ...(projectId ? { projectId } : {}),
     },
-    select: { id: true, title: true, status: true, type: true, dueDate: true, createdAt: true },
+    select: {
+      id: true, title: true, status: true, type: true, dueDate: true, createdAt: true,
+      scrumColumn: true, storyPoints: true, assignedTo: { select: { name: true } },
+    },
     take: 400,
   });
+
+  // Scrum-board data (sticky cards + active-sprint header + team)
+  const scrumTasks: ScrumTask[] = tasks.map((x) => ({
+    id: x.id, title: x.title, type: x.type, status: x.status,
+    scrumColumn: x.scrumColumn, storyPoints: x.storyPoints,
+    code: `TT-${x.id.slice(-4).toUpperCase()}`,
+    assignee: x.assignedTo?.name ?? null,
+  }));
+  const activeSprint = projectId
+    ? await prisma.sprint.findFirst({ where: { tenantId: tenant.id, projectId, status: "active" } })
+    : null;
+  const fmt = (d: Date | null) => (d ? d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" }) : "");
+  const sprintHeader = activeSprint
+    ? { name: activeSprint.name, range: activeSprint.startDate && activeSprint.endDate ? `${fmt(activeSprint.startDate)} – ${fmt(activeSprint.endDate)}` : "", goal: activeSprint.goal }
+    : null;
+  const teamUsers = await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { name: true }, orderBy: { name: "asc" }, take: 20 });
 
   const now = new Date();
   const calendarTasks = tasks.map((x) => ({
@@ -74,6 +94,7 @@ export default async function ViewsPage({
     <div className="container py-6">
       <h1 className="mb-4 text-2xl font-bold">{t["views.title"]}</h1>
       <div className="mb-4 flex flex-wrap items-center gap-2">
+        {tab("scrum", t["view.scrum"])}
         {tab("calendar", t["view.calendar"])}
         {tab("gantt", t["view.gantt"])}
         {tab("timeline", t["view.timeline"])}
@@ -94,6 +115,9 @@ export default async function ViewsPage({
         </form>
       </div>
 
+      {view === "scrum" && (
+        <ScrumBoard tasks={scrumTasks} sprint={sprintHeader} team={teamUsers.map((u) => u.name)} meName={user.name} />
+      )}
       {view === "calendar" && <CalendarView tasks={calendarTasks} />}
       {view === "gantt" && (
         ganttTasks.length ? <GanttChart tasks={ganttTasks} deps={deps} from={ganttWindow.from} to={ganttWindow.to} mode="gantt" />
