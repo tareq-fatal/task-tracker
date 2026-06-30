@@ -20,11 +20,11 @@ test("subtasks drive auto progress", async ({ page }) => {
   await input.fill("Zweites Item");
   await input.press("Enter");
   await expect(page.getByText("Zweites Item")).toBeVisible();
-  await expect(page.getByText("0/2")).toBeVisible();
+  await expect(page.getByText("0/2", { exact: true })).toBeVisible();
 
   // toggle the first subtask done → 1 of 2 = 50%
   await page.getByRole("button", { name: "toggle" }).first().click();
-  await expect(page.getByText("1/2")).toBeVisible();
+  await expect(page.getByText("1/2", { exact: true })).toBeVisible();
   // subtasks drive progress → bar reflects 1 of 2 done
   await expect(page.getByRole("progressbar")).toHaveAttribute(
     "aria-valuenow",

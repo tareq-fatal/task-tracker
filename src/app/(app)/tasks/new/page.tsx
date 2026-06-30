@@ -11,7 +11,7 @@ import { isAdminRole } from "@/lib/enums";
 export default async function NewTaskPage({
   searchParams,
 }: {
-  searchParams: { project?: string; team?: string };
+  searchParams: { project?: string; team?: string; due?: string };
 }) {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
@@ -44,6 +44,7 @@ export default async function NewTaskPage({
           assignedToUserId: user.id,
           projectId: searchParams.project ?? null,
           teamId: searchParams.team ?? null,
+          dueDate: searchParams.due ?? null,
         }}
         submitLabel={t["task.create"]}
       />
