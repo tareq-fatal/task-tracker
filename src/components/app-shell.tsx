@@ -15,6 +15,7 @@ import {
   BarChart3,
   Rocket,
   Database,
+  Tags,
   Settings,
   LogOut,
   Plus,
@@ -55,6 +56,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
   { href: "/sprints", label: "nav.sprints", icon: Rocket },
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
+  { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 

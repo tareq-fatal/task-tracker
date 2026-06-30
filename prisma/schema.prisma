@@ -231,12 +231,43 @@ model Project {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  tasks       Task[]
-  plannerSync PlannerSync?
-  sprints     Sprint[]
-  columns     WorkflowColumn[]
+  tasks        Task[]
+  plannerSync  PlannerSync?
+  sprints      Sprint[]
+  columns      WorkflowColumn[]
+  customFields CustomFieldDef[]
 
   @@index([tenantId])
+}
+
+model CustomFieldDef {
+  id        String   @id @default(cuid())
+  tenantId  String
+  projectId String? // null = applies to all projects in the tenant
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      String // text | number | select | date | checkbox
+  options   String? // JSON array of choices (select only)
+  order     Int      @default(0)
+  required  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  values CustomFieldValue[]
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model CustomFieldValue {
+  id      String         @id @default(cuid())
+  fieldId String
+  field   CustomFieldDef @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  taskId  String
+  task    Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  value   String // stringified; coerced per field type in the app layer
+
+  @@unique([fieldId, taskId])
+  @@index([taskId])
 }
 
 model WorkflowColumn {
@@ -322,9 +353,10 @@ model Task {
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  comments    TaskComment[]
-  attachments TaskAttachment[]
-  subtasks    Subtask[]
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+  subtasks     Subtask[]
+  customValues CustomFieldValue[]
   linksFrom   TaskLink[]       @relation("LinksFrom")
   linksTo     TaskLink[]       @relation("LinksTo")
   activity    ActivityLog[]

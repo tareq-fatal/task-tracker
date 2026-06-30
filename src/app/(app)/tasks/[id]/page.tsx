@@ -27,6 +27,8 @@ import { SubtaskList } from "@/components/subtask-list";
 import { TimerControl } from "@/components/timer-control";
 import { TaskLinks } from "@/components/task-links";
 import { ActivityFeed } from "@/components/activity-feed";
+import { TaskCustomFields } from "@/components/task-custom-fields";
+import { parseOptions, type FieldType } from "@/lib/custom-fields";
 import { CopyLinkButton } from "@/components/copy-link-button";
 import { formatDuration } from "@/lib/tasks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -65,6 +67,7 @@ export default async function TaskDetailPage({
       },
       attachments: { orderBy: { uploadedAt: "desc" } },
       subtasks: { orderBy: { order: "asc" } },
+      customValues: true,
       linksFrom: {
         include: {
           linkedTask: { select: { id: true, title: true, status: true } },
@@ -94,6 +97,17 @@ export default async function TaskDetailPage({
   if (!canEdit) notFound();
 
   const overdue = isOverdue(task.dueDate, task.status as any);
+
+  // Custom fields: tenant-wide definitions + this task's values
+  const fieldDefs = await prisma.customFieldDef.findMany({
+    where: { tenantId: tenant.id, projectId: null },
+    orderBy: { order: "asc" },
+  });
+  const valueMap = new Map(task.customValues.map((v) => [v.fieldId, v.value]));
+  const customFields = fieldDefs.map((d) => ({
+    id: d.id, name: d.name, type: d.type as FieldType, options: parseOptions(d.options), required: d.required,
+    value: valueMap.get(d.id) ?? "",
+  }));
 
   // Candidate tasks to link (visible to the user, excluding this one)
   const linkCandidates = await prisma.task.findMany({
@@ -294,6 +308,9 @@ export default async function TaskDetailPage({
           />
         </CardContent>
       </Card>
+
+      {/* Custom fields */}
+      <TaskCustomFields taskId={task.id} fields={customFields} canEdit={canEdit} />
 
       {/* Attachments */}
       <section className="mb-6">
