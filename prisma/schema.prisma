@@ -334,6 +334,19 @@ model Subtask {
   @@index([taskId])
 }
 
+model DbAuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  sql       String
+  mode      String // "read" | "write" | "purge"
+  rowCount  Int?
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   taskId    String

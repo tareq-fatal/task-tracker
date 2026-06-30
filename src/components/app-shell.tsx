@@ -14,6 +14,7 @@ import {
   FileUp,
   BarChart3,
   Rocket,
+  Database,
   Settings,
   LogOut,
   Plus,
@@ -55,6 +56,10 @@ const ADMIN: NavItem[] = [
   { href: "/sprints", label: "nav.sprints", icon: Rocket },
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
+];
+
+const SUPER: NavItem[] = [
+  { href: "/admin/db", label: "nav.db", icon: Database },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -113,7 +118,9 @@ export function AppShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isAdmin = user.role === "Admin" || user.role === "SuperAdmin";
-  const allItems = [...MAIN, ...(isAdmin ? ADMIN : [])];
+  const isSuper = user.role === "SuperAdmin";
+  const adminItems = [...ADMIN, ...(isSuper ? SUPER : [])];
+  const allItems = [...MAIN, ...(isAdmin ? adminItems : [])];
   const activeItem = allItems.find((i) => isActive(pathname, i.href));
 
   return (
@@ -145,7 +152,7 @@ export function AppShell({
               <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                 Admin
               </p>
-              {ADMIN.map((item) => (
+              {adminItems.map((item) => (
                 <NavLink
                   key={item.href}
                   item={item}
