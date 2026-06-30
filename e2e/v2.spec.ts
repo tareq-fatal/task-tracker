@@ -48,7 +48,7 @@ test("timer start shows the stop button", async ({ page }) => {
   await newTask(page, `Timer ${Date.now()}`);
 
   await page.getByRole("button", { name: /Timer starten/i }).click();
-  await expect(
-    page.getByRole("button", { name: /Timer stoppen/i })
-  ).toBeVisible();
+  // v11 time-tracking: start flips to a "Stopp" button + a running entry appears
+  await expect(page.getByRole("button", { name: /^Stopp$/ })).toBeVisible();
+  await expect(page.getByText(/läuft…/)).toBeVisible();
 });
