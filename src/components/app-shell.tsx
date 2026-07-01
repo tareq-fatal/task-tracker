@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
 import type { Locale } from "@/lib/enums";
+import { can, roleLabelKey } from "@/lib/roles";
 
 type NavItem = {
   href: string;
@@ -126,8 +127,7 @@ export function AppShell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isAdmin = user.role === "Admin" || user.role === "SuperAdmin";
-  const isSuper = user.role === "SuperAdmin";
-  const adminItems = [...ADMIN, ...(isSuper ? SUPER : [])];
+  const adminItems = [...ADMIN, ...(can(user.role, "useDbConsole") ? SUPER : [])];
   const allItems = [...MAIN, ...(isAdmin ? adminItems : [])];
   const activeItem = allItems.find((i) => isActive(pathname, i.href));
 
@@ -183,7 +183,7 @@ export function AppShell({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{user.name}</p>
               <p className="truncate text-xs text-muted-foreground">
-                {user.role}
+                {t(roleLabelKey(user.role))}
               </p>
             </div>
             <form action={logoutAction}>
