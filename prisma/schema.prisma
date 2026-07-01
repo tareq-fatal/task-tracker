@@ -18,11 +18,14 @@ datasource db {
 
 model Tenant {
   id           String   @id @default(cuid())
-  slug         String   @unique // "objektus", "tarek", "marine"
-  name         String
-  logo         String?
-  primaryColor String?
-  ssoDomains   String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
+  slug           String  @unique // "objektus", "tarek", "marine"
+  name           String
+  logo           String? // white-label logo URL (/uploads/tenants/{slug}/logo.*)
+  primaryColor   String?
+  secondaryColor String?
+  accentColor    String?
+  themeName      String  @default("ocean-pro") // ocean-pro | sage-modern | coral-energy | custom | dark-only | light-only
+  ssoDomains     String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
   createdAt    DateTime @default(now())
 
   users         User[]

@@ -21,6 +21,7 @@ import {
   FileStack,
   Map,
   Target,
+  Palette,
   Settings,
   LogOut,
   Plus,
@@ -67,6 +68,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
   { href: "/admin/templates", label: "nav.templates", icon: FileStack },
+  { href: "/settings/branding", label: "nav.branding", icon: Palette },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 
@@ -112,7 +114,7 @@ function NavLink({
   );
 }
 
-type TenantInfo = { slug: string; name: string; primaryColor: string | null };
+type TenantInfo = { slug: string; name: string; primaryColor: string | null; logo?: string | null };
 
 export function AppShell({
   user,
@@ -143,7 +145,12 @@ export function AppShell({
         className="fixed inset-y-0 start-0 z-30 hidden w-64 flex-col border-e bg-card/60 backdrop-blur md:flex"
       >
         <Link href="/" className="flex items-center px-5 py-4">
-          <Logo size={30} withWordmark wordmark={t("app.name")} />
+          {tenant.logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={tenant.logo} alt={tenant.name} className="h-8 max-w-[180px] object-contain" />
+          ) : (
+            <Logo size={30} withWordmark wordmark={t("app.name")} />
+          )}
         </Link>
 
         <div className="px-3 pb-2">

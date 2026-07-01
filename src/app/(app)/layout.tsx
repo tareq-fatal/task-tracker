@@ -6,6 +6,7 @@ import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
 import { WelcomeTour } from "@/components/welcome-tour";
+import { resolveBranding, brandStyle } from "@/lib/branding";
 
 export default async function AppLayout({
   children,
@@ -18,9 +19,12 @@ export default async function AppLayout({
 
   const locale = getActiveLocale();
   const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
+  const branding = resolveBranding(tenant);
 
   return (
     <I18nProvider locale={locale}>
+      {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
+      <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
         <AppShell
           user={user}
