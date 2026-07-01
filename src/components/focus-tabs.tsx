@@ -17,12 +17,26 @@ const TABS: { view: FocusView; key: string }[] = [
 ];
 
 export function FocusTabs({
-  view, id, users, teams, projects,
-}: { view: FocusView; id: string | null; users: Opt[]; teams: Opt[]; projects: Opt[] }) {
+  view, id, users, teams, projects, canInfographic,
+}: { view: FocusView; id: string | null; users: Opt[]; teams: Opt[]; projects: Opt[]; canInfographic: boolean }) {
   const { t } = useT();
   const router = useRouter();
 
   const picker = view === "person" ? users : view === "team" ? teams : view === "project" ? projects : null;
+
+  // Context-aware "generate infographic" deep-link into the (branded) generator.
+  const infoType = view === "person" ? "user" : view === "team" ? "team" : view === "project" ? "project" : null;
+  const entityName = picker?.find((o) => o.id === id)?.name;
+  let infographic: { href: string; label: string } | null = null;
+  if (canInfographic) {
+    if (infoType && id && entityName) {
+      infographic = { href: `/reports/infographics?type=${infoType}&id=${id}&range=last30`, label: t("focus.makeInfographic", { name: entityName }) };
+    } else if (view === "all") {
+      infographic = { href: `/reports/infographics`, label: t("focus.reportAll") };
+    } else if (view === "operations") {
+      infographic = { href: `/reports`, label: t("focus.reportOps") };
+    }
+  }
 
   return (
     <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -51,6 +65,16 @@ export function FocusTabs({
           <option value="">{t("focus.pick")}</option>
           {picker.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </select>
+      )}
+
+      {infographic && (
+        <Link
+          href={infographic.href}
+          data-testid="make-infographic"
+          className="ms-auto inline-flex items-center gap-1 rounded-lg brand-gradient px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+        >
+          {infographic.label}
+        </Link>
       )}
     </div>
   );

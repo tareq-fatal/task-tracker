@@ -33,10 +33,14 @@ export function InfographicView({
   data,
   labels: L,
   filename,
+  brandLogo,
+  brandName,
 }: {
   data: InfographicData;
   labels: Record<string, string>;
   filename: string;
+  brandLogo?: string | null;
+  brandName?: string;
 }) {
   return (
     <div>
@@ -44,9 +48,19 @@ export function InfographicView({
         <ExportButtons targetId="infographic-capture" filename={filename} />
       </div>
       <div id="infographic-capture" className="space-y-5 stagger">
-        {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-pink-500 p-6 text-white shadow-lg">
+        {/* Hero — tenant-branded (brand-gradient follows the tenant colours) */}
+        <section className="brand-gradient relative overflow-hidden rounded-3xl border p-6 text-white shadow-lg">
           <div className="pointer-events-none absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
+          {(brandLogo || brandName) && (
+            <div className="relative mb-4 flex items-center gap-2">
+              {brandLogo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={brandLogo} alt={brandName ?? ""} className="h-6 max-w-[140px] object-contain brightness-0 invert" />
+              ) : (
+                <span className="text-sm font-bold text-white/90">{brandName}</span>
+              )}
+            </div>
+          )}
           <div className="relative flex flex-wrap items-center gap-6">
             <div className="grid h-20 w-20 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl font-black">
               {initials(data.title)}

@@ -144,7 +144,7 @@ export default async function InfographicsPage({
       <h1 className="mb-6 text-2xl font-bold">{t["infographic.title"]}</h1>
       <InfographicSelector type={type} id={id} range={range} entities={entities} />
       {viewData ? (
-        <InfographicView data={viewData} labels={labels} filename={`infographic-${type}`} />
+        <InfographicView data={viewData} labels={labels} filename={`infographic-${type}`} brandLogo={tenant.logo} brandName={tenant.name} />
       ) : (
         <p className="text-sm text-muted-foreground">{t["infographic.empty"]}</p>
       )}

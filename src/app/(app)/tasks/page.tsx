@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
+import { isAdminRole } from "@/lib/enums";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { loadFilterOptions } from "@/lib/filter-data";
@@ -39,7 +40,7 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
   return (
     <div className="container py-6">
       <h1 className="mb-4 text-2xl font-bold">{t["focus.title"]}</h1>
-      <FocusTabs view={view} id={id} users={options.users} teams={options.teams} projects={options.projects} />
+      <FocusTabs view={view} id={id} users={options.users} teams={options.teams} projects={options.projects} canInfographic={isAdminRole(user.role)} />
       <SavedViews saved={savedViews} view={view} entityId={id} />
 
       {view === "operations" && (
