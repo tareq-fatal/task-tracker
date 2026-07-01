@@ -241,6 +241,18 @@ model Project {
   @@index([tenantId])
 }
 
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  name      String
+  view      String // all | person | team | project | operations
+  entityId  String? // selected user/team/project id (for person/team/project)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 model TaskTemplate {
   id          String   @id @default(cuid())
   tenantId    String

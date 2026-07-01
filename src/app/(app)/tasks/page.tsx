@@ -9,6 +9,8 @@ import { loadFilterOptions } from "@/lib/filter-data";
 import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { FocusTabs, type FocusView } from "@/components/focus-tabs";
+import { SavedViews } from "@/components/saved-views";
+import { getMySavedViews } from "@/actions/saved-views";
 
 const VIEWS: FocusView[] = ["all", "person", "team", "project", "operations"];
 
@@ -18,7 +20,7 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
   const view: FocusView = VIEWS.includes(searchParams.view as FocusView) ? (searchParams.view as FocusView) : "all";
   const id = searchParams.id ?? null;
 
-  const options = await loadFilterOptions(tenant.id);
+  const [options, savedViews] = await Promise.all([loadFilterOptions(tenant.id), getMySavedViews()]);
 
   // Every query stays tenant-scoped via taskVisibility; a crafted foreign id
   // simply matches nothing (tasks are tenant-scoped), so isolation holds.
@@ -38,6 +40,7 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
     <div className="container py-6">
       <h1 className="mb-4 text-2xl font-bold">{t["focus.title"]}</h1>
       <FocusTabs view={view} id={id} users={options.users} teams={options.teams} projects={options.projects} />
+      <SavedViews saved={savedViews} view={view} entityId={id} />
 
       {view === "operations" && (
         <p className="mb-3 text-sm font-medium text-muted-foreground">
