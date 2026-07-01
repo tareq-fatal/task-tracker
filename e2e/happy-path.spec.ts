@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 
 test("admin can log in and see the dashboard", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByText("Demo-Zugänge")).toBeVisible();
+  await expect(page.locator('button[type="submit"]')).toBeVisible();
 
   await page.locator('input[name="username"]').fill("admin");
   await page.locator('input[name="password"]').fill("Admin-2026!");

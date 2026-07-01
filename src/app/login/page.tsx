@@ -28,6 +28,9 @@ export default async function LoginPage({
   const t = getDictionary(locale);
   const providers = configuredProviders();
   const ssoError = Boolean(searchParams?.sso);
+  // Demo credentials are hidden by default and NEVER shown in production. Opt in
+  // for local/demo environments with NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS=true.
+  const showDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true";
 
   return (
     <I18nProvider locale={locale}>
@@ -60,17 +63,19 @@ export default async function LoginPage({
             )}
             <LoginForm />
             <SsoButtons providers={providers} />
-            <div className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
-              <p className="mb-1 font-semibold text-foreground">
-                {t["login.demo"]}
-              </p>
-              <p>
-                admin / <code>Admin-2026!</code>
-              </p>
-              <p>
-                alice · bob · charlie / <code>Demo-2026!</code>
-              </p>
-            </div>
+            {showDemo && (
+              <div className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
+                <p className="mb-1 font-semibold text-foreground">
+                  {t["login.demo"]}
+                </p>
+                <p>
+                  admin / <code>Admin-2026!</code>
+                </p>
+                <p>
+                  alice · bob · charlie / <code>Demo-2026!</code>
+                </p>
+              </div>
+            )}
             <div className="mt-4 text-center">
               <a
                 href="/download/task-tracker-latest.apk"

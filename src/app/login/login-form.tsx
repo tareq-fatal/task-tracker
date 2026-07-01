@@ -33,7 +33,6 @@ export function LoginForm() {
           autoComplete="username"
           autoFocus
           required
-          placeholder="admin"
         />
       </div>
       <div className="space-y-2">
