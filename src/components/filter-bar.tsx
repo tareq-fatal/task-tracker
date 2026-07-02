@@ -103,7 +103,7 @@ export function FilterBar({
     return (
       <>
         {show("project") && (
-          <select
+          <select aria-label={t("board.allProjects")}
             className={selectClass}
             value={current.project ?? ""}
             onChange={(e) => apply({ project: e.target.value || undefined })}
@@ -118,7 +118,7 @@ export function FilterBar({
         )}
 
         {show("team") && (
-          <select
+          <select aria-label={t("filter.allTeams")}
             className={selectClass}
             value={current.team ?? ""}
             onChange={(e) => apply({ team: e.target.value || undefined })}
@@ -177,7 +177,7 @@ export function FilterBar({
         )}
 
         {show("status") && (
-          <select
+          <select aria-label={t("task.status")}
             className={selectClass}
             value={current.status ?? ""}
             onChange={(e) => apply({ status: (e.target.value || undefined) as any })}
@@ -192,7 +192,7 @@ export function FilterBar({
         )}
 
         {show("priority") && (
-          <select
+          <select aria-label={t("task.priority")}
             className={selectClass}
             value={current.priority ?? ""}
             onChange={(e) => apply({ priority: e.target.value || undefined })}
@@ -207,7 +207,7 @@ export function FilterBar({
         )}
 
         {show("date") && (
-          <select
+          <select aria-label={t("task.dueDate")}
             className={selectClass}
             value={current.date ?? ""}
             onChange={(e) =>

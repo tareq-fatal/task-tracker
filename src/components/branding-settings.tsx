@@ -44,8 +44,8 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
     <div className="space-y-1">
       <Label>{label}</Label>
       <div className="flex items-center gap-2">
-        <input type="color" value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="h-9 w-10 cursor-pointer rounded border bg-transparent p-0.5 disabled:opacity-40" />
-        <Input value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="w-28 font-mono text-xs" />
+        <input type="color" aria-label={label} value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="h-9 w-10 cursor-pointer rounded border bg-transparent p-0.5 disabled:opacity-40" />
+        <Input aria-label={`${label} (hex)`} value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="w-28 font-mono text-xs" />
       </div>
     </div>
   );
@@ -56,7 +56,7 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
       <div className="space-y-5">
         <div className="space-y-1">
           <Label>{t("brand.theme")}</Label>
-          <select value={theme} onChange={(e) => setTheme(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
+          <select aria-label={t("brand.theme")} value={theme} onChange={(e) => setTheme(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
             {THEMES.map((th) => <option key={th.name} value={th.name}>{th.label}</option>)}
           </select>
         </div>

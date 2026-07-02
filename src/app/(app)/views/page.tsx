@@ -101,6 +101,7 @@ export default async function ViewsPage({
         <form className="ms-auto">
           <select
             name="project"
+            aria-label={t["views.allProjects"]}
             defaultValue={projectId ?? ""}
             className="h-9 rounded-md border border-input bg-background px-2 text-sm"
             // server-side: rely on links instead; simple GET form

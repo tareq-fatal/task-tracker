@@ -65,19 +65,19 @@ export function AutomationManager({ initial }: { initial: RuleLite[] }) {
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("auto.name")} className="w-full max-w-sm" />
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-semibold">{t("auto.when")}</span>
-          <select value={trigger} onChange={(e) => setTrigger(e.target.value)} className="h-9 rounded-md border bg-background px-2">
+          <select aria-label={t("auto.when")} value={trigger} onChange={(e) => setTrigger(e.target.value)} className="h-9 rounded-md border bg-background px-2">
             {TRIGGER_TYPES.map((tt) => <option key={tt} value={tt}>{t(`auto.trigger.${tt}` as never)}</option>)}
           </select>
           {triggerNeedsValue(trigger) && (
-            <select value={triggerValue} onChange={(e) => setTriggerValue(e.target.value)} className="h-9 rounded-md border bg-background px-2">
+            <select aria-label={t("auto.when")} value={triggerValue} onChange={(e) => setTriggerValue(e.target.value)} className="h-9 rounded-md border bg-background px-2">
               {(trigger === "priority_to" ? TASK_PRIORITIES : TASK_STATUSES).map((v) => <option key={v} value={v}>{v}</option>)}
             </select>
           )}
           <span className="font-semibold">{t("auto.then")}</span>
-          <select value={action} onChange={(e) => { setAction(e.target.value); setActionValue(valuesFor(e.target.value)[0]); }} className="h-9 rounded-md border bg-background px-2">
+          <select aria-label={t("auto.then")} value={action} onChange={(e) => { setAction(e.target.value); setActionValue(valuesFor(e.target.value)[0]); }} className="h-9 rounded-md border bg-background px-2">
             {ACTION_TYPES.map((a) => <option key={a} value={a}>{t(`auto.action.${a}` as never)}</option>)}
           </select>
-          <select value={actionValue} onChange={(e) => setActionValue(e.target.value)} className="h-9 rounded-md border bg-background px-2">
+          <select aria-label={t("auto.then")} value={actionValue} onChange={(e) => setActionValue(e.target.value)} className="h-9 rounded-md border bg-background px-2">
             {valuesFor(action).map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
           <Button onClick={add} disabled={pending || !name.trim()}><Plus className="me-1 h-4 w-4" /> {t("auto.add")}</Button>

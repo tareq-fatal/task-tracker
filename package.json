@@ -64,6 +64,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
     "@playwright/test": "^1.49.1",

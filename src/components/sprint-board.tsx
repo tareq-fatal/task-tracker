@@ -95,12 +95,12 @@ export function SprintBoard({ view }: { view: SprintsView }) {
           <form action={formAction} className="flex flex-wrap items-end gap-2 rounded-lg border p-3">
             <input type="hidden" name="projectId" value={view.projectId ?? ""} />
             <div className="flex-1">
-              <Input name="name" placeholder={t("sprint.name")} required />
+              <Input name="name" aria-label={t("sprint.name")} placeholder={t("sprint.name")} required />
             </div>
-            <Input name="startDate" type="date" className="w-36" />
-            <Input name="endDate" type="date" className="w-36" />
+            <Input name="startDate" type="date" aria-label={t("sprint.start")} className="w-36" />
+            <Input name="endDate" type="date" aria-label={t("sprint.end")} className="w-36" />
             <div className="w-full">
-              <Input name="goal" placeholder={t("sprint.goal")} />
+              <Input name="goal" aria-label={t("sprint.goal")} placeholder={t("sprint.goal")} />
             </div>
             <CreateBtn />
             {state.error && <span className="text-xs text-destructive">{state.error}</span>}

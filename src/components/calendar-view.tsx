@@ -112,11 +112,11 @@ export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
-        <button onClick={() => setYm((p) => ({ y: p.m === 0 ? p.y - 1 : p.y, m: (p.m + 11) % 12 }))} className="rounded-md border p-1.5 hover:bg-muted">
+        <button aria-label={t("cal.prevMonth")} onClick={() => setYm((p) => ({ y: p.m === 0 ? p.y - 1 : p.y, m: (p.m + 11) % 12 }))} className="rounded-md border p-1.5 hover:bg-muted">
           <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
         </button>
         <span className="min-w-44 text-center font-semibold">{monthLabel}</span>
-        <button onClick={() => setYm((p) => ({ y: p.m === 11 ? p.y + 1 : p.y, m: (p.m + 1) % 12 }))} className="rounded-md border p-1.5 hover:bg-muted">
+        <button aria-label={t("cal.nextMonth")} onClick={() => setYm((p) => ({ y: p.m === 11 ? p.y + 1 : p.y, m: (p.m + 1) % 12 }))} className="rounded-md border p-1.5 hover:bg-muted">
           <ChevronRight className="h-4 w-4 rtl:rotate-180" />
         </button>
         <button onClick={() => setYm({ y: now.getUTCFullYear(), m: now.getUTCMonth() })} className="ms-2 rounded-md border px-2 py-1 text-xs hover:bg-muted">

@@ -16,6 +16,7 @@ export function ProgressBar({
         className
       )}
       role="progressbar"
+      aria-label={`Progress ${v}%`}
       aria-valuenow={v}
       aria-valuemin={0}
       aria-valuemax={100}

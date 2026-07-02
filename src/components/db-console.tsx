@@ -54,7 +54,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
       {/* Editor */}
       <div className="rounded-xl border">
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <select onChange={(e) => e.target.value && setSql(e.target.value)} value="" className="h-8 rounded-md border bg-background px-2 text-xs">
+          <select aria-label="SQL templates" onChange={(e) => e.target.value && setSql(e.target.value)} value="" className="h-8 rounded-md border bg-background px-2 text-xs">
             <option value="">Templates…</option>
             {TEMPLATES.map((tpl) => <option key={tpl.label} value={tpl.sql}>{tpl.label}</option>)}
           </select>
@@ -71,6 +71,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
           onChange={(e) => setSql(e.target.value)}
           spellCheck={false}
           rows={6}
+          aria-label="SQL query"
           className="w-full resize-y bg-background p-3 font-mono text-sm outline-none"
         />
         {cls.dangerous && (
@@ -96,7 +97,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
             )}
           </div>
           {res.rows.length > 0 && (
-            <div className="max-h-96 overflow-auto">
+            <div className="max-h-96 overflow-auto" tabIndex={0} role="region" aria-label="Query results">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-secondary">
                   <tr>{res.columns.map((c) => <th key={c} className="border-b p-2 text-start font-semibold">{c}</th>)}</tr>
@@ -120,7 +121,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
       {/* Audit */}
       <div>
         <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Audit log (last 40)</h2>
-        <div className="max-h-60 overflow-auto rounded-lg border text-xs">
+        <div className="max-h-60 overflow-auto rounded-lg border text-xs" tabIndex={0} role="region" aria-label="Audit log">
           {audit.length === 0 ? <p className="p-3 text-muted-foreground">No queries yet.</p> : (
             <ul className="divide-y">
               {audit.map((a) => (
@@ -162,8 +163,8 @@ function PurgeTenant() {
       </h2>
       <p className="mt-1 text-xs text-rose-700/80">{t("db.danger.desc")}</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
-        <Input value={slug} onChange={(e) => preview(e.target.value)} placeholder={t("db.danger.slug")} className="w-48" title={t("db.danger.slug")} />
-        <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={t("db.danger.reconfirm")} className="w-48" title={t("db.danger.reconfirm")} />
+        <Input value={slug} onChange={(e) => preview(e.target.value)} aria-label={t("db.danger.slug")} placeholder={t("db.danger.slug")} className="w-48" title={t("db.danger.slug")} />
+        <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-label={t("db.danger.reconfirm")} placeholder={t("db.danger.reconfirm")} className="w-48" title={t("db.danger.reconfirm")} />
         <Button
           size="sm"
           variant="destructive"

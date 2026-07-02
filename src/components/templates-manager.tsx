@@ -58,10 +58,10 @@ export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
         <div className="flex flex-wrap gap-2">
           <Input value={form.name} onChange={set("name")} placeholder={t("tpl.name")} className="w-48" />
           <Input value={form.title} onChange={set("title")} placeholder={t("tpl.taskTitle")} className="w-56" />
-          <select value={form.type} onChange={set("type")} className="h-9 rounded-md border bg-background px-2 text-sm">
+          <select aria-label={t("tpl.taskTitle")} value={form.type} onChange={set("type")} className="h-9 rounded-md border bg-background px-2 text-sm">
             {TASK_TYPES.map((ty) => <option key={ty} value={ty}>{t(`type.${ty}` as never)}</option>)}
           </select>
-          <select value={form.priority} onChange={set("priority")} className="h-9 rounded-md border bg-background px-2 text-sm">
+          <select aria-label={t("task.priority")} value={form.priority} onChange={set("priority")} className="h-9 rounded-md border bg-background px-2 text-sm">
             {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{t(`priority.${p}` as never)}</option>)}
           </select>
           <Input type="number" min={0} value={form.storyPoints} onChange={set("storyPoints")} placeholder="SP" className="w-16" />

@@ -60,7 +60,7 @@ export function CustomFieldsManager({ initial }: { initial: FieldDefLite[] }) {
         </label>
         <label className="flex flex-col gap-1 text-xs">
           {t("cf.type")}
-          <select value={type} onChange={(e) => setType(e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">
+          <select aria-label={t("cf.type")} value={type} onChange={(e) => setType(e.target.value)} className="h-9 rounded-md border bg-background px-2 text-sm">
             {FIELD_TYPES.map((ft) => <option key={ft} value={ft}>{t(`cf.type.${ft}`)}</option>)}
           </select>
         </label>
