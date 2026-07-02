@@ -22,14 +22,12 @@ test("SuperAdmin onboards a tenant; its owner logs in as a restricted TenantAdmi
   const create = page.getByRole("button", { name: "Mandant anlegen" });
   await expect(create).toBeEnabled();
   await create.click();
-  await expect(page.getByText(`✓ /${slug}`)).toBeVisible();
 
-  // the new empty tenant now appears in the list with exactly its owner (1 user)
-  const row = page.getByTestId("tenant-row").filter({ hasText: `/${slug}` });
-  await expect(row).toBeVisible();
-  await expect(row).toContainText("1 Nutzer");
-  // (the owner is created with role Admin — see actions/tenants.ts + roles.test.ts;
-  //  mid-test re-login as the owner isn't possible in this CI chromium.)
+  // creation auto-switches the SuperAdmin into the new tenant (lands on dashboard,
+  // the switcher now shows the new tenant as active).
+  await expect(page).toHaveURL("/");
+  await expect(page.getByText("Acme Corp").first()).toBeVisible();
+  // (the owner is created with role Admin — see actions/tenants.ts + roles.test.ts.)
 });
 
 test("a TenantAdmin (non-super) cannot open the tenants manager", async ({ page }) => {

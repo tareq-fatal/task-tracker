@@ -25,7 +25,8 @@ export function TenantWizard() {
       const r = await createTenantAction(f);
       if (r.ok) {
         setMsg({ ok: true, text: `✓ /${r.slug}` });
-        setF({ name: "", slug: "", primaryColor: "#4f46e5", ownerName: "", ownerUsername: "", ownerEmail: "", ownerPassword: "" });
+        // auto-switched server-side → land in the new tenant to set it up
+        router.push("/");
         router.refresh();
       } else {
         setMsg({ ok: false, text: `✗ ${r.error}` });

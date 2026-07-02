@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
-import { requireTenant } from "@/lib/tenant";
+import { requireTenant, setTenantCookie } from "@/lib/tenant";
 import { can } from "@/lib/roles";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
@@ -64,6 +64,10 @@ export async function createTenantAction(input: {
     });
   });
 
-  revalidatePath("/admin/tenants");
+  // auto-switch the SuperAdmin into the freshly created tenant so they can set
+  // it up immediately (projects/users). The owner gets the welcome tour on their
+  // own first login (hasSeenTour=false).
+  setTenantCookie(slug);
+  revalidatePath("/", "layout");
   return { ok: true, slug };
 }
