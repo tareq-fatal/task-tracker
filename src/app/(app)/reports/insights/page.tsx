@@ -5,7 +5,9 @@ import { isAdminRole } from "@/lib/enums";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { trend, burnoutRisk, rankBottleneck, effortVsReality, velocityForecast, forecastDelta } from "@/lib/insights";
+import { bestWeekday, activeStreak, buildNarrative } from "@/lib/narrative";
 import { InsightsView, type InsightsData } from "@/components/insights-view";
+import { NarrativeInsights } from "@/components/narrative-insights";
 
 const DAY = 86400000;
 const isOpen = (s: string) => s !== "Done" && s !== "Archived";
@@ -19,7 +21,7 @@ export default async function InsightsPage() {
   const tasks = await prisma.task.findMany({
     where: { tenantId: tenant.id },
     select: {
-      status: true, storyPoints: true, spentHours: true, createdAt: true, completedAt: true, dueDate: true,
+      status: true, priority: true, storyPoints: true, spentHours: true, createdAt: true, completedAt: true, dueDate: true,
       assignedToUserId: true, assignedTo: { select: { name: true } },
     },
   });
@@ -70,10 +72,26 @@ export default async function InsightsPage() {
 
   const data: InsightsData = { trend: { current: tr.direction === "flat" && thisWeek === 0 ? 0 : thisWeek, deltaPct: tr.deltaPct, direction: tr.direction }, forecast, burnout, bottleneck: bn, effort, hasData: tasks.length > 0 };
 
+  // Algorithm-based "AI insights" narrative
+  const completions = tasks.map((x) => x.completedAt).filter((d): d is Date => !!d);
+  const PRIO = ["Critical", "High", "Medium", "Low"];
+  const overdueTasks = tasks.filter((x) => isOpen(x.status) && x.dueDate && x.dueDate < now);
+  const topOverduePriority = PRIO.find((p) => overdueTasks.some((x) => x.priority === p)) ?? "High";
+  const narrative = buildNarrative({
+    trendDeltaPct: tr.deltaPct,
+    trendUp: tr.direction !== "down",
+    bestWeekday: bestWeekday(completions),
+    streakDays: activeStreak([...new Set(completions.map((d) => d.toISOString().slice(0, 10)))], now.toISOString().slice(0, 10)),
+    forecastDeltaDays: forecast?.delta ?? null,
+    overdue: overdueTasks.length,
+    topOverduePriority,
+  });
+
   return (
     <div className="container py-6">
       <h1 className="text-2xl font-bold">{t["ins.title"]}</h1>
       <p className="mb-6 mt-1 text-sm text-muted-foreground">{t["ins.subtitle"]}</p>
+      {data.hasData && <NarrativeInsights items={narrative} />}
       <InsightsView data={data} />
     </div>
   );
