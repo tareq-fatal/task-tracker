@@ -1,13 +1,20 @@
-export const ROLES = ["SuperAdmin", "Admin", "User"] as const;
+// BackendAdmin (Tarek) spans all tenants + DB console + tenant creation.
+// "SuperAdmin" is the legacy name — still accepted everywhere so nothing breaks
+// before/if the data migration renames a row.
+export const ROLES = ["BackendAdmin", "Admin", "User"] as const;
 export type Role = (typeof ROLES)[number];
 
-/** SuperAdmin spans all tenants; Admin manages its own tenant. */
+const BACKEND = new Set(["BackendAdmin", "SuperAdmin"]);
+
 export function isAdminRole(role: string): boolean {
-  return role === "Admin" || role === "SuperAdmin";
+  return role === "Admin" || BACKEND.has(role);
 }
+/** True for the backend/system admin (new "BackendAdmin" or legacy "SuperAdmin"). */
 export function isSuperAdmin(role: string): boolean {
-  return role === "SuperAdmin";
+  return BACKEND.has(role);
 }
+/** Alias with the new name. */
+export const isBackendAdmin = isSuperAdmin;
 
 export const TASK_STATUSES = ["Todo", "InProgress", "Done", "Archived"] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];

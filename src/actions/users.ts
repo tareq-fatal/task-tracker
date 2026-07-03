@@ -39,8 +39,9 @@ export async function createUserAction(
   });
   if (clash) return { error: "Username or email already exists" };
 
-  // Tenant admins can only create Admin/User; SuperAdmin role isn't assignable here.
-  const role = d.role === "SuperAdmin" ? "User" : d.role;
+  // Tenant admins can only create Admin/User; the backend/system admin role
+  // (BackendAdmin / legacy SuperAdmin) is never assignable via this form.
+  const role = d.role === "BackendAdmin" ? "User" : d.role;
 
   await prisma.user.create({
     data: {

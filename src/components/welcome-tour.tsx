@@ -7,6 +7,7 @@ import Joyride, {
   type CallBackProps,
 } from "react-joyride";
 import { useT } from "@/components/i18n-provider";
+import { isAdminRole } from "@/lib/enums";
 import { completeTourAction } from "@/actions/tour";
 import type { TKey } from "@/lib/i18n";
 
@@ -66,8 +67,7 @@ export function WelcomeTour({
     at('[data-tour="topbar-actions"]', "tour.user.5"),
   ];
 
-  const steps =
-    role === "Admin" || role === "SuperAdmin" ? adminSteps : userSteps;
+  const steps = isAdminRole(role) ? adminSteps : userSteps;
 
   function handle(data: CallBackProps) {
     const { status } = data;

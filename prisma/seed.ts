@@ -74,13 +74,13 @@ async function main() {
   // Super-admin (Tarek) — home tenant Objektus, can switch to any tenant.
   const admin = await prisma.user.upsert({
     where: { username: ADMIN_USERNAME },
-    update: { hasSeenTour: true, role: "SuperAdmin", tenantId: OBJ },
+    update: { hasSeenTour: true, role: "BackendAdmin", tenantId: OBJ },
     create: {
       name: "المسؤول",
       username: ADMIN_USERNAME,
       email: ADMIN_EMAIL.toLowerCase(),
       passwordHash: adminHash,
-      role: "SuperAdmin",
+      role: "BackendAdmin",
       locale: "ar",
       hasSeenTour: true,
       tenantId: OBJ,

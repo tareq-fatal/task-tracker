@@ -4,6 +4,7 @@ import { randomBytes } from "crypto";
 import { hash, verify } from "@node-rs/argon2";
 import { prisma } from "./prisma";
 import type { Role } from "./enums";
+import { isAdminRole } from "./enums";
 
 export const SESSION_COOKIE = "tt_session";
 export const SESSION_DAYS = 30;
@@ -116,7 +117,7 @@ export async function requireUser(): Promise<SessionUser> {
 
 export async function requireAdmin(): Promise<SessionUser> {
   const user = await requireUser();
-  if (user.role !== "Admin" && user.role !== "SuperAdmin") {
+  if (!isAdminRole(user.role)) {
     throw new Error("FORBIDDEN");
   }
   return user;

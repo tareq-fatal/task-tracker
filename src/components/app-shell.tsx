@@ -23,6 +23,7 @@ import {
   Target,
   Table2,
   Palette,
+  Plug,
   Sparkles,
   Settings,
   LogOut,
@@ -42,6 +43,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
+import { isAdminRole } from "@/lib/enums";
 import type { Locale } from "@/lib/enums";
 import { can, roleLabelKey } from "@/lib/roles";
 
@@ -73,6 +75,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
   { href: "/admin/templates", label: "nav.templates", icon: FileStack },
   { href: "/settings/branding", label: "nav.branding", icon: Palette },
+  { href: "/settings/integrations", label: "nav.integrations", icon: Plug },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
 ];
 
@@ -136,9 +139,9 @@ export function AppShell({
   const { t } = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isAdmin = user.role === "Admin" || user.role === "SuperAdmin";
-  const adminItems = [...ADMIN, ...(can(user.role, "useDbConsole") ? SUPER : [])];
-  const allItems = [...MAIN, ...(isAdmin ? adminItems : [])];
+  const isAdmin = isAdminRole(user.role);
+  const isBackend = can(user.role, "useDbConsole"); // BackendAdmin (Tarek) only
+  const allItems = [...MAIN, ...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])];
   const activeItem = allItems.find((i) => isActive(pathname, i.href));
 
   return (
@@ -170,17 +173,24 @@ export function AppShell({
             />
           ))}
 
+          {isBackend && (
+            <>
+              <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-indigo-500/80">
+                🛠️ {t("nav.backendSection")}
+              </p>
+              {SUPER.map((item) => (
+                <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+              ))}
+            </>
+          )}
+
           {isAdmin && (
             <>
               <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                Admin
+                {t("nav.adminSection")}
               </p>
-              {adminItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(pathname, item.href)}
-                />
+              {ADMIN.map((item) => (
+                <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
               ))}
             </>
           )}
@@ -196,7 +206,10 @@ export function AppShell({
               </Avatar>
             </Link>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{user.name}</p>
+              <p className="flex items-center gap-1 truncate text-sm font-medium">
+                {isBackend ? <span title={t("role.backend")}>🛠️</span> : isAdmin ? <span title={t("role.admin")}>👑</span> : null}
+                <span className="truncate">{user.name}</span>
+              </p>
               <p className="truncate text-xs text-muted-foreground">
                 {t(roleLabelKey(user.role))}
               </p>

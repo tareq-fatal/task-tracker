@@ -26,20 +26,27 @@ const TENANT_ADMIN: Capability[] = [
 ];
 
 const MATRIX: Record<Role, Capability[]> = {
-  // SuperAdmin gets everything (tenant-admin caps + the god-mode ones)
-  SuperAdmin: [...TENANT_ADMIN, "manageTenants", "switchTenant", "useDbConsole"],
+  // BackendAdmin gets everything (tenant-admin caps + the god-mode ones)
+  BackendAdmin: [...TENANT_ADMIN, "manageTenants", "switchTenant", "useDbConsole"],
   Admin: TENANT_ADMIN,
   User: [],
 };
 
+/** Normalize the legacy "SuperAdmin" value to the new "BackendAdmin". */
+function norm(role: string): Role {
+  if (role === "SuperAdmin" || role === "BackendAdmin") return "BackendAdmin";
+  if (role === "Admin") return "Admin";
+  return "User";
+}
+
 export function can(role: string, cap: Capability): boolean {
-  const caps = MATRIX[role as Role];
-  return caps ? caps.includes(cap) : false;
+  return MATRIX[norm(role)].includes(cap);
 }
 
 /** i18n key for a role's display label. */
-export function roleLabelKey(role: string): "role.super" | "role.admin" | "role.user" {
-  if (role === "SuperAdmin") return "role.super";
-  if (role === "Admin") return "role.admin";
+export function roleLabelKey(role: string): "role.backend" | "role.admin" | "role.user" {
+  const r = norm(role);
+  if (r === "BackendAdmin") return "role.backend";
+  if (r === "Admin") return "role.admin";
   return "role.user";
 }

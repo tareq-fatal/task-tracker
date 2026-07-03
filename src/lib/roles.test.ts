@@ -2,9 +2,10 @@ import { describe, it, expect } from "vitest";
 import { can, roleLabelKey, type Capability } from "./roles";
 
 describe("can — capability matrix", () => {
-  it("SuperAdmin has the god-mode capabilities", () => {
+  it("BackendAdmin (+ legacy SuperAdmin) has the god-mode capabilities", () => {
     for (const c of ["manageTenants", "switchTenant", "useDbConsole"] as Capability[]) {
-      expect(can("SuperAdmin", c)).toBe(true);
+      expect(can("BackendAdmin", c)).toBe(true);
+      expect(can("SuperAdmin", c)).toBe(true); // legacy value still works
     }
   });
   it("TenantAdmin manages its own tenant but NOT god-mode", () => {
@@ -26,8 +27,9 @@ describe("can — capability matrix", () => {
 });
 
 describe("roleLabelKey", () => {
-  it("maps roles to i18n keys", () => {
-    expect(roleLabelKey("SuperAdmin")).toBe("role.super");
+  it("maps roles to i18n keys (legacy SuperAdmin → backend label)", () => {
+    expect(roleLabelKey("BackendAdmin")).toBe("role.backend");
+    expect(roleLabelKey("SuperAdmin")).toBe("role.backend");
     expect(roleLabelKey("Admin")).toBe("role.admin");
     expect(roleLabelKey("User")).toBe("role.user");
     expect(roleLabelKey("weird")).toBe("role.user");
