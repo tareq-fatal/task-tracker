@@ -53,3 +53,27 @@ export function laneRange(tasks: { createdAt: string; dueDate: string | null }[]
 export function pct(done: number, total: number): number {
   return total === 0 ? 0 : Math.round((done / total) * 100);
 }
+
+const DAY_MS = 86400000;
+export type Zoom = "3m" | "6m" | "1y" | "3y" | "auto";
+export const ZOOMS: Zoom[] = ["3m", "6m", "1y", "3y", "auto"];
+const ZOOM_DAYS: Record<Exclude<Zoom, "auto">, number> = { "3m": 90, "6m": 180, "1y": 365, "3y": 1095 };
+
+/**
+ * The visible time window. "auto" fits the lanes but CAPS the span at ~3 years —
+ * so a single stray old/far date (e.g. an imported 2020 task) can't stretch the
+ * axis to 8 years; instead it focuses ~6mo past → ~18mo ahead of today. Presets
+ * center on now, roadmap-biased (¼ past, ¾ future).
+ */
+export function roadmapWindow(lanes: { start: number; end: number }[], now: number, zoom: Zoom): { from: number; to: number } {
+  if (zoom !== "auto") {
+    const span = ZOOM_DAYS[zoom] * DAY_MS;
+    return { from: now - span * 0.25, to: now + span * 0.75 };
+  }
+  if (lanes.length === 0) return { from: now - 30 * DAY_MS, to: now + 90 * DAY_MS };
+  const dataFrom = Math.min(...lanes.map((l) => l.start));
+  const dataTo = Math.max(...lanes.map((l) => l.end));
+  const CAP = 3 * 365 * DAY_MS;
+  if (dataTo - dataFrom <= CAP) return { from: dataFrom - 14 * DAY_MS, to: dataTo + 14 * DAY_MS };
+  return { from: now - 180 * DAY_MS, to: now + 545 * DAY_MS };
+}
