@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { LoginForm } from "./login-form";
 import { Logo } from "@/components/logo";
+import { ApkDownloadLink } from "@/components/apk-download-link";
 import { SsoButtons } from "@/components/sso-buttons";
 import { configuredProviders } from "@/lib/sso";
 
@@ -76,14 +77,7 @@ export default async function LoginPage({
                 </p>
               </div>
             )}
-            <div className="mt-4 text-center">
-              <a
-                href="/download/task-tracker-latest.apk"
-                className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
-              >
-                {t["login.downloadApp"]}
-              </a>
-            </div>
+            <ApkDownloadLink />
           </CardContent>
         </Card>
       </main>

@@ -14,6 +14,9 @@ export async function createProjectAction(
   formData: FormData
 ): Promise<ProjectFormState> {
   const { user, tenant } = await requireTenant();
+  // #37 — only Mandant-/Backend-Admins may create projects. Users work inside
+  // projects they're a member of, but can't spin up new ones.
+  if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
   const parsed = projectSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
@@ -102,9 +105,8 @@ export async function deleteProjectAction(projectId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
-  if (!isAdminRole(user.role) && project.createdByUserId !== user.id) {
-    throw new Error("FORBIDDEN");
-  }
+  // #37 — deleting a project is admin-only (users can't create OR delete projects).
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
   await prisma.project.delete({ where: { id: projectId } });
   revalidatePath("/projects");
   redirect("/projects");

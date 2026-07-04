@@ -7,11 +7,13 @@ import { NewProjectDialog } from "@/components/new-project-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { visibleProjectIds } from "@/lib/task-access";
+import { isAdminRole } from "@/lib/enums";
 
 export default async function ProjectsPage() {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
+  const isAdmin = isAdminRole(user.role); // #37 — only admins may create projects
   // #26: non-admins see only projects they're a member of (or have a task in)
   const allowed = await visibleProjectIds(user, tenant.id);
   const projects = await prisma.project.findMany({
@@ -27,13 +29,13 @@ export default async function ProjectsPage() {
     <div className="container py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t["projects.title"]}</h1>
-        <NewProjectDialog />
+        {isAdmin && <NewProjectDialog />}
       </div>
 
       {projects.length === 0 ? (
         <EmptyState
           title={t["projects.empty"]}
-          action={<NewProjectDialog />}
+          action={isAdmin ? <NewProjectDialog /> : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
