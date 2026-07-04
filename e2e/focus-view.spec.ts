@@ -6,10 +6,9 @@ test("focus tabs switch views, filter by entity, and persist in the URL", async 
   await page.goto("/tasks");
   await expect(page.getByRole("heading", { name: "Fokus-Ansicht" })).toBeVisible();
 
-  // Operations tab → "in progress now"
-  await page.getByRole("link", { name: "Operationen" }).click();
-  await expect(page).toHaveURL(/view=operations/);
-  await expect(page.getByText("Läuft gerade")).toBeVisible();
+  // "Operationen" tab was removed — the 4 tabs are Alle/Person/Team/Projekt
+  await expect(page.getByRole("link", { name: "Operationen" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Alle", exact: true })).toBeVisible();
 
   // Person tab → an entity picker appears
   await page.getByRole("link", { name: "Person", exact: true }).click();

@@ -4,8 +4,8 @@ import { login } from "./helpers";
 test("scrum board shows the six sticky columns + tools", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");
   await page.goto("/views?view=scrum");
-  await expect(page.getByRole("heading", { name: "Ansichten" })).toBeVisible();
-  for (const col of ["To Do", "In Arbeit", "Wartend", "Zu prüfen", "Fertig / Live", "Bereit für Go-Live"]) {
+  await expect(page.getByRole("heading", { name: "Kalender" })).toBeVisible();
+  for (const col of ["To Do", "In Arbeit", "Wartend", "Bewertung", "Fertig / Live", "Bereit für Go-Live"]) {
     await expect(page.getByText(col).first()).toBeVisible();
   }
   // whiteboard toggle + live presence

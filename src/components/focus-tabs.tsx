@@ -6,14 +6,13 @@ import { useT } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 type Opt = { id: string; name: string };
-export type FocusView = "all" | "person" | "team" | "project" | "operations";
+export type FocusView = "all" | "person" | "team" | "project";
 
 const TABS: { view: FocusView; key: string }[] = [
   { view: "all", key: "focus.all" },
   { view: "person", key: "focus.person" },
   { view: "team", key: "focus.team" },
   { view: "project", key: "focus.project" },
-  { view: "operations", key: "focus.operations" },
 ];
 
 export function FocusTabs({
@@ -33,8 +32,6 @@ export function FocusTabs({
       infographic = { href: `/reports/infographics?type=${infoType}&id=${id}&range=last30`, label: t("focus.makeInfographic", { name: entityName }) };
     } else if (view === "all") {
       infographic = { href: `/reports/infographics`, label: t("focus.reportAll") };
-    } else if (view === "operations") {
-      infographic = { href: `/reports`, label: t("focus.reportOps") };
     }
   }
 

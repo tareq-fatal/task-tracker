@@ -218,9 +218,17 @@ export default async function TaskDetailPage({
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-2 text-muted-foreground">
-              {t["task.createdBy"]}: {task.createdBy.name} ·{" "}
-              {format(task.createdAt, "dd.MM.yyyy")}
+            <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
+              {task.createdByUserId === user.id ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                  👤 {t["task.origin.self"]}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
+                  🛡️ {t["task.origin.assigned"]} {task.createdBy.name}
+                </span>
+              )}
+              <span>· {format(task.createdAt, "dd.MM.yyyy")}</span>
             </div>
           </div>
         </CardContent>

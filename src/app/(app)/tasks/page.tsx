@@ -14,7 +14,7 @@ import { FocusTabs, type FocusView } from "@/components/focus-tabs";
 import { SavedViews } from "@/components/saved-views";
 import { getMySavedViews } from "@/actions/saved-views";
 
-const VIEWS: FocusView[] = ["all", "person", "team", "project", "operations"];
+const VIEWS: FocusView[] = ["all", "person", "team", "project"];
 
 export default async function FocusPage({ searchParams }: { searchParams: { view?: string; id?: string } }) {
   const { user, tenant } = await requireTenant();
@@ -32,10 +32,9 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
   if (view === "person" && id) where = { ...base, assignedToUserId: id };
   else if (view === "team" && id) where = { ...base, teamId: id };
   else if (view === "project" && id) where = { ...base, projectId: id };
-  else if (view === "operations") where = { ...base, status: "InProgress" };
 
   const tasks = await prisma.task.findMany({ where, select: taskCardSelect, take: 300 });
-  tasks.sort((a, b) => (view === "operations" ? 0 : compareTasks(a, b)));
+  tasks.sort((a, b) => compareTasks(a, b));
 
   const needsPick = (view === "person" || view === "team" || view === "project") && !id;
 
@@ -44,12 +43,6 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
       <h1 className="mb-4 text-2xl font-bold">{t["focus.title"]}</h1>
       <FocusTabs view={view} id={id} users={options.users} teams={options.teams} projects={options.projects} canInfographic={isAdminRole(user.role)} />
       <SavedViews saved={savedViews} view={view} entityId={id} />
-
-      {view === "operations" && (
-        <p className="mb-3 text-sm font-medium text-muted-foreground">
-          {t["focus.now"]} · <span className="font-bold text-foreground">{tasks.length}</span>
-        </p>
-      )}
 
       {needsPick ? (
         <EmptyState title={t["focus.pick"]} />

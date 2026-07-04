@@ -30,7 +30,7 @@ export const WORKFLOW_TEMPLATES: Record<TemplateKey, { label: string; columns: C
       { name: "New", color: "#ef4444", status: "Todo", isInitial: true },
       { name: "Triaged", color: "#f59e0b", status: "Todo" },
       { name: "In Progress", color: "#3b82f6", status: "InProgress", wipLimit: 5 },
-      { name: "Verify", color: "#a855f7", status: "InProgress" },
+      { name: "Bewertung", color: "#a855f7", status: "InProgress" },
       { name: "Closed", color: "#10b981", status: "Done", isFinal: true },
     ],
   },

@@ -2,9 +2,9 @@ import { test, expect } from "@playwright/test";
 import { login } from "./helpers";
 
 test("save a focus view, recall it, and it persists across reloads", async ({ page }) => {
-  const name = `Ops ${Date.now()}`; // unique — saved views persist per user across runs
+  const name = `All ${Date.now()}`; // unique — saved views persist per user across runs
   await login(page, "admin", "Admin-2026!", "de");
-  await page.goto("/tasks?view=operations");
+  await page.goto("/tasks?view=all");
   await page.waitForTimeout(700); // hydrate
 
   // open the save control, name it, save
@@ -21,5 +21,5 @@ test("save a focus view, recall it, and it persists across reloads", async ({ pa
 
   // recall navigates back to the saved view
   await page.getByRole("link", { name }).click();
-  await expect(page).toHaveURL(/view=operations/);
+  await expect(page).toHaveURL(/view=all/);
 });
