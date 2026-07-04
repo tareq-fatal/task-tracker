@@ -18,7 +18,7 @@ import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
 import { SupportTools } from "@/components/support-tools";
-import { ShieldAlert, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
@@ -174,14 +174,10 @@ export default async function TaskDetailPage({
         </div>
       </div>
 
-      {/* #36 — an admin-assigned task is read-only for the assignee: they may
-          change status, comment, run the timer and upload — but not rewrite it. */}
+      {/* #39 — for people who don't edit the content, we simply surface the one
+          thing they DO drive: the status. No banner, no lock, no "read-only". */}
       {!canEditContent && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm dark:border-amber-500/40 dark:bg-amber-500/10">
-          <span className="inline-flex items-center gap-2 font-medium text-amber-800 dark:text-amber-300">
-            <ShieldAlert className="h-4 w-4" />
-            {t["task.assignedReadOnly"]}
-          </span>
+        <div className="mb-4 inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2.5">
           <StatusControl taskId={task.id} status={task.status} />
         </div>
       )}
@@ -281,17 +277,15 @@ export default async function TaskDetailPage({
                 </span>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
-              {task.createdByUserId === user.id ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-                  👤 {t["task.origin.self"]}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-xs font-medium text-orange-700">
-                  🛡️ {t["task.origin.assigned"]} {task.createdBy.name}
-                </span>
-              )}
-              <span>· {format(task.createdAt, "dd.MM.yyyy")}</span>
+            {/* #39 — origin is a quiet footnote, not a badge. No colours, no shield. */}
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                {task.createdByUserId === user.id
+                  ? t["task.origin.self"]
+                  : `${t["task.origin.assigned"]} ${task.createdBy.name}`}
+                {" · "}
+                {format(task.createdAt, "dd.MM.yyyy")}
+              </span>
               {isAdminRole(user.role) && (
                 <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
               )}

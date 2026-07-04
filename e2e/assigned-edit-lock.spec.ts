@@ -1,9 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { login } from "./helpers";
 
-// #36 — a user working an admin-assigned task may change status/comment/timer/
-// upload, but the task content is read-only (no Edit button, no edit form).
-test("assigned task is read-only for the assignee (status still changeable)", async ({ page }) => {
+// #36 + #39 — a user working an admin-assigned task drives status/comment/timer/
+// upload. The content edit affordances are simply absent — NO "read-only" banner,
+// no shield, no "you're not allowed" messaging (dignified, not restrictive).
+test("assigned task quietly hides edit; status stays available (no read-only banner)", async ({ page }) => {
   await login(page, "alice", "Demo-2026!", "de");
   await page.goto("/");
   const taskLink = page.locator('a[href^="/tasks/"]:not([href$="/new"])').first();
@@ -11,12 +12,14 @@ test("assigned task is read-only for the assignee (status still changeable)", as
   await taskLink.click();
   await expect(page).toHaveURL(/\/tasks\/[^/]+$/);
 
-  // read-only banner is shown, the Edit link is gone
-  await expect(page.getByText(/nur der Ersteller/)).toBeVisible();
+  // the status control IS available (she drives the work)
+  await expect(page.getByLabel("Status")).toBeVisible();
+  // the edit affordance is simply not there — quietly, no lock/banner
   await expect(page.locator('a[href$="/edit"]')).toHaveCount(0);
 
-  // but the status control IS available (she may progress the work)
-  await expect(page.getByLabel("Status")).toBeVisible();
+  // #39 — no restrictive framing anywhere on the page
+  await expect(page.getByText(/nur der Ersteller/)).toHaveCount(0);
+  await expect(page.getByText(/read-only|Nur-Lesen/i)).toHaveCount(0);
 });
 
 test("assignee cannot open the edit form directly (404)", async ({ page }) => {
