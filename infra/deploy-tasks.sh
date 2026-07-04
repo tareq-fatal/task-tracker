@@ -19,7 +19,7 @@ APP_DIR="${APP_DIR:-/home/marisight/apps/task-tracker}"            # cloned repo
 COMPOSE_DIR="${COMPOSE_DIR:-/home/marisight/marisight/infra/prod}"  # holds the compose file
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"             # or docker-compose.task-tracker.yml
 SERVICE="task-tracker"
-REPO_URL="${REPO_URL:-https://github.com/<your-org>/task-tracker.git}" # CONFIRM
+REPO_URL="${REPO_URL:-https://github.com/tareq-fatal/task-tracker.git}"
 BRANCH="${BRANCH:-main}"
 
 SEED=0

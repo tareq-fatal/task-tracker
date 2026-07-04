@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto-Deploy der SANDBOX/TEST-Umgebung des Task-Trackers.
+#
+# Trigger: Push auf `sandbox` ODER manueller Start (workflow_dispatch).
+# Wirkung: SSH zum Sandbox-Server → infra/deploy-tasks.sh (pull + build + up).
+#          Die PROD-Umgebung (tasks.coastshield.net über `main`) bleibt
+#          unberührt und wird weiterhin bewusst separat deployt.
+#
+# Voraussetzung — diese GitHub Secrets im Repo anlegen
+# (Settings → Secrets and variables → Actions):
+#   SANDBOX_HOST        z.B. 13.140.146.101  (dein Sandbox-Server)
+#   SANDBOX_USER        z.B. marisight
+#   SANDBOX_SSH_KEY     privater SSH-Key (PEM) mit Zugriff als SANDBOX_USER
+# Optionale Secrets/Variablen (haben sinnvolle Defaults im Skript):
+#   SANDBOX_APP_DIR      Repo-Pfad auf dem Server   (Default: /home/marisight/apps/task-tracker)
+#   SANDBOX_COMPOSE_DIR  Verzeichnis mit der Compose-Datei
+#   SANDBOX_COMPOSE_FILE Compose-Datei              (z.B. docker-compose.task-tracker.yml)
+#
+# Ohne die Pflicht-Secrets wird der Job übersprungen (kein roter CI-Lauf).
+# ─────────────────────────────────────────────────────────────────────────────
+name: deploy-sandbox
+
+on:
+  push:
+    branches: [sandbox]
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "DB seed ausführen (ACHTUNG: löscht bestehende Tasks!)"
+        type: boolean
+        default: false
+
+concurrency:
+  # Nie zwei Sandbox-Deploys parallel — der neueste gewinnt.
+  group: deploy-sandbox
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard — nur laufen, wenn Deploy-Secrets gesetzt sind
+        id: guard
+        env:
+          SANDBOX_HOST: ${{ secrets.SANDBOX_HOST }}
+        run: |
+          if [ -z "$SANDBOX_HOST" ]; then
+            echo "SANDBOX_HOST-Secret fehlt — Deploy übersprungen."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: SSH-Deploy auf den Sandbox-Server
+        if: steps.guard.outputs.ok == 'true'
+        env:
+          SANDBOX_HOST: ${{ secrets.SANDBOX_HOST }}
+          SANDBOX_USER: ${{ secrets.SANDBOX_USER }}
+          SANDBOX_SSH_KEY: ${{ secrets.SANDBOX_SSH_KEY }}
+          SANDBOX_APP_DIR: ${{ secrets.SANDBOX_APP_DIR || vars.SANDBOX_APP_DIR || '/home/marisight/apps/task-tracker' }}
+          SANDBOX_COMPOSE_DIR: ${{ secrets.SANDBOX_COMPOSE_DIR || vars.SANDBOX_COMPOSE_DIR || '/home/marisight/apps/task-tracker/infra' }}
+          SANDBOX_COMPOSE_FILE: ${{ secrets.SANDBOX_COMPOSE_FILE || vars.SANDBOX_COMPOSE_FILE || 'docker-compose.task-tracker.yml' }}
+          SEED_FLAG: ${{ (github.event_name == 'workflow_dispatch' && inputs.seed) && '--seed' || '' }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SANDBOX_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "$SANDBOX_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/id_deploy "${SANDBOX_USER}@${SANDBOX_HOST}" \
+            "cd '${SANDBOX_APP_DIR}' && git fetch --all --prune && git checkout sandbox && git pull --ff-only && \
+             APP_DIR='${SANDBOX_APP_DIR}' COMPOSE_DIR='${SANDBOX_COMPOSE_DIR}' COMPOSE_FILE='${SANDBOX_COMPOSE_FILE}' \
+             BRANCH='sandbox' REPO_URL='https://github.com/tareq-fatal/task-tracker.git' \
+             bash infra/deploy-tasks.sh ${SEED_FLAG}"
