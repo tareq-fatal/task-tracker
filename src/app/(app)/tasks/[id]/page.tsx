@@ -15,7 +15,9 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
-import { taskVisibility } from "@/lib/task-access";
+import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
+import { StatusControl } from "@/components/status-control";
+import { ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
@@ -54,7 +56,8 @@ export default async function TaskDetailPage({
   const task = await prisma.task.findUnique({
     where: { id: params.id },
     include: {
-      assignedTo: { select: { name: true } },
+      assignedTo: { select: { id: true, name: true } },
+      assignees: { include: { user: { select: { id: true, name: true } } } },
       createdBy: { select: { name: true } },
       project: { select: { id: true, name: true, color: true } },
       parent: { select: { id: true, title: true, type: true } },
@@ -91,13 +94,19 @@ export default async function TaskDetailPage({
 
   if (!task || task.tenantId !== tenant.id) notFound();
 
-  const canEdit =
-    isAdminRole(user.role) ||
-    task.createdByUserId === user.id ||
-    task.assignedToUserId === user.id;
-  if (!canEdit) notFound();
+  const isAssignee = task.assignees.some((a) => a.userId === user.id);
+  const canView =
+    isAdminRole(user.role) || task.createdByUserId === user.id || isAssignee;
+  if (!canView) notFound();
 
+  // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
+  const canEditContent = canEditTaskContent(user, task);
   const overdue = isOverdue(task.dueDate, task.status as any);
+
+  // #13 — co-assignees are everyone assigned except the Hauptkopf (primary)
+  const coAssignees = task.assignees
+    .filter((a) => a.userId !== task.assignedToUserId)
+    .map((a) => a.user);
 
   // Admin-only: users of this tenant, for the "change creator" control
   const tenantUsers = isAdminRole(user.role)
@@ -147,15 +156,29 @@ export default async function TaskDetailPage({
         <h1 className="text-2xl font-bold">{task.title}</h1>
         <div className="flex flex-wrap gap-2">
           <CopyLinkButton />
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/tasks/${task.id}/edit`}>
-              <Pencil className="me-1 h-4 w-4" />
-              {t["common.edit"]}
-            </Link>
-          </Button>
+          {canEditContent && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/tasks/${task.id}/edit`}>
+                <Pencil className="me-1 h-4 w-4" />
+                {t["common.edit"]}
+              </Link>
+            </Button>
+          )}
           {(isAdminRole(user.role) || task.createdByUserId === user.id) && <DeleteTaskButton taskId={task.id} />}
         </div>
       </div>
+
+      {/* #36 — an admin-assigned task is read-only for the assignee: they may
+          change status, comment, run the timer and upload — but not rewrite it. */}
+      {!canEditContent && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm dark:border-amber-500/40 dark:bg-amber-500/10">
+          <span className="inline-flex items-center gap-2 font-medium text-amber-800 dark:text-amber-300">
+            <ShieldAlert className="h-4 w-4" />
+            {t["task.assignedReadOnly"]}
+          </span>
+          <StatusControl taskId={task.id} status={task.status} />
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <TypeBadge type={task.type} />
@@ -189,12 +212,25 @@ export default async function TaskDetailPage({
           )}
 
           <div className="grid grid-cols-1 gap-3 border-t pt-4 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
               <UserIcon className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">{t["task.assignee"]}:</span>
-              <span className="font-medium">
-                {task.assignedTo?.name ?? t["task.unassigned"]}
-              </span>
+              {task.assignedTo ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+                  🎖️ {task.assignedTo.name}
+                  <span className="opacity-70">· {t["task.hauptkopf"]}</span>
+                </span>
+              ) : (
+                <span className="font-medium">{t["task.unassigned"]}</span>
+              )}
+              {coAssignees.map((u) => (
+                <span
+                  key={u.id}
+                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
+                >
+                  {u.name}
+                </span>
+              ))}
             </div>
             <div className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-muted-foreground" />
@@ -288,46 +324,48 @@ export default async function TaskDetailPage({
         />
       </div>
 
-      {/* Progress + Subtasks */}
-      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card>
-          <CardContent className="p-5">
-            <ProgressControl
-              taskId={task.id}
-              value={task.progress}
-              hasSubtasks={task.subtasks.length > 0}
-            />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <SubtaskList taskId={task.id} subtasks={task.subtasks} />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Progress + Subtasks + Links — content, so creator/admin only (#36) */}
+      {canEditContent && (
+        <>
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Card>
+              <CardContent className="p-5">
+                <ProgressControl
+                  taskId={task.id}
+                  value={task.progress}
+                  hasSubtasks={task.subtasks.length > 0}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <SubtaskList taskId={task.id} subtasks={task.subtasks} />
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Links / dependencies */}
-      <Card className="mb-6">
-        <CardContent className="p-5">
-          <TaskLinks
-            taskId={task.id}
-            links={task.linksFrom.map((l) => ({
-              id: l.id,
-              type: l.type,
-              linkedTask: l.linkedTask,
-            }))}
-            incoming={task.linksTo.map((l) => ({
-              id: l.id,
-              type: l.type,
-              task: l.task,
-            }))}
-            candidates={linkCandidates}
-          />
-        </CardContent>
-      </Card>
+          <Card className="mb-6">
+            <CardContent className="p-5">
+              <TaskLinks
+                taskId={task.id}
+                links={task.linksFrom.map((l) => ({
+                  id: l.id,
+                  type: l.type,
+                  linkedTask: l.linkedTask,
+                }))}
+                incoming={task.linksTo.map((l) => ({
+                  id: l.id,
+                  type: l.type,
+                  task: l.task,
+                }))}
+                candidates={linkCandidates}
+              />
+            </CardContent>
+          </Card>
 
-      {/* Custom fields */}
-      <TaskCustomFields taskId={task.id} fields={customFields} canEdit={canEdit} />
+          <TaskCustomFields taskId={task.id} fields={customFields} canEdit={canEditContent} />
+        </>
+      )}
 
       {/* Attachments */}
       <section className="mb-6">

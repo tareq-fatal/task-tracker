@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { taskVisibilityClause } from "./task-access";
+import { taskVisibilityClause, canEditTaskContent } from "./task-access";
 
 const admin = { id: "a1", role: "Admin" };
 const backend = { id: "b1", role: "BackendAdmin" };
@@ -16,18 +16,18 @@ describe("taskVisibilityClause (#26 project membership)", () => {
     expect(taskVisibilityClause(legacy, T, [])).toEqual({ tenantId: T });
   });
 
-  it("a non-admin with NO member projects sees only assigned tasks (unchanged)", () => {
+  it("a non-admin with NO member projects sees tasks they're an assignee of", () => {
     expect(taskVisibilityClause(user, T, [])).toEqual({
       tenantId: T,
-      assignedToUserId: "u1",
+      assignees: { some: { userId: "u1" } },
     });
   });
 
-  it("a member sees assigned tasks OR any task in their member projects", () => {
+  it("a member sees their assigned tasks OR any task in their member projects", () => {
     expect(taskVisibilityClause(user, T, ["p1", "p2"])).toEqual({
       tenantId: T,
       OR: [
-        { assignedToUserId: "u1" },
+        { assignees: { some: { userId: "u1" } } },
         { projectId: { in: ["p1", "p2"] } },
       ],
     });
@@ -41,5 +41,24 @@ describe("taskVisibilityClause (#26 project membership)", () => {
     ]) {
       expect(clause.tenantId).toBe(T);
     }
+  });
+});
+
+describe("canEditTaskContent (#36 assigned-task edit lock)", () => {
+  const ownTask = { createdByUserId: "u1" };
+  const adminTask = { createdByUserId: "admin-x" };
+
+  it("the creator may edit their own task's content", () => {
+    expect(canEditTaskContent(user, ownTask)).toBe(true);
+  });
+
+  it("a non-creator (only assigned) may NOT edit content", () => {
+    expect(canEditTaskContent(user, adminTask)).toBe(false);
+  });
+
+  it("admins/backend may edit any task's content", () => {
+    expect(canEditTaskContent(admin, adminTask)).toBe(true);
+    expect(canEditTaskContent(backend, adminTask)).toBe(true);
+    expect(canEditTaskContent(legacy, adminTask)).toBe(true);
   });
 });

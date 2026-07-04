@@ -129,6 +129,7 @@ model User {
   pushSubscriptions PushSubscription[]
   teamMemberships   TeamMember[]
   projectMemberships ProjectMember[]
+  taskAssignments   TaskAssignee[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -395,8 +396,11 @@ model Task {
   timerStartedAt DateTime? // when a running timer was started (null = stopped)
   completedAt    DateTime? // set when status becomes Done
 
+  // Primary assignee = "Hauptkopf" (the lead). Additional co-assignees live in
+  // TaskAssignee (#13). assignedToUserId stays the primary for cards/reports/filters.
   assignedToUserId String?
   assignedTo       User?   @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  assignees        TaskAssignee[]
 
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
@@ -434,6 +438,22 @@ model Task {
   @@index([parentId])
   @@index([tenantId])
   @@index([workflowColumnId])
+}
+
+// #13 — every user assigned to a task (co-workers). The "Hauptkopf" (primary) is
+// Task.assignedToUserId, which is also mirrored as a row here. Backfilled from
+// existing assignedToUserId values so single-assignee tasks are unchanged.
+model TaskAssignee {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@index([taskId])
 }
 
 model TaskLink {

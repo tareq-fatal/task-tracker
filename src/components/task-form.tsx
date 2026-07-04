@@ -18,6 +18,7 @@ export type TaskDefaults = {
   status?: string;
   priority?: string;
   assignedToUserId?: string | null;
+  assigneeIds?: string[]; // co-assignees (excluding the primary), #13
   projectId?: string | null;
   teamId?: string | null;
   dueDate?: string | null; // yyyy-MM-dd
@@ -164,7 +165,7 @@ export function TaskForm({
 
         {canAssign && (
           <div className="space-y-2">
-            <Label htmlFor="assignedToUserId">{t("task.assignee")}</Label>
+            <Label htmlFor="assignedToUserId">{t("task.primaryAssignee")}</Label>
             <select
               id="assignedToUserId"
               name="assignedToUserId"
@@ -178,6 +179,27 @@ export function TaskForm({
                 </option>
               ))}
             </select>
+            {/* #13 — additional co-assignees (the primary above is the Hauptkopf) */}
+            <p className="pt-1 text-xs font-medium text-muted-foreground">
+              {t("task.coAssignees")}
+            </p>
+            <div className="grid max-h-40 grid-cols-1 gap-1 overflow-y-auto rounded-md border p-2 sm:grid-cols-2">
+              {users.map((u) => (
+                <label
+                  key={u.id}
+                  className="flex items-center gap-2 rounded px-1.5 py-1 text-sm hover:bg-muted"
+                >
+                  <input
+                    type="checkbox"
+                    name="assigneeIds"
+                    value={u.id}
+                    defaultChecked={d.assigneeIds?.includes(u.id) ?? false}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <span className="truncate">{u.name}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 

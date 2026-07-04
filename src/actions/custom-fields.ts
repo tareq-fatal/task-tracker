@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
+import { canEditTaskContent } from "@/lib/task-access";
 import { isFieldType, parseOptions, validateValue, type FieldType } from "@/lib/custom-fields";
 
 export type FieldState = { ok?: boolean; error?: string };
@@ -68,8 +69,8 @@ export async function setFieldValueAction(taskId: string, fieldId: string, raw: 
   const { user, tenant } = await requireTenant();
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task || task.tenantId !== tenant.id) return { error: "NOT_FOUND" };
-  const canEdit = isAdminRole(user.role) || task.createdByUserId === user.id || task.assignedToUserId === user.id;
-  if (!canEdit) return { error: "FORBIDDEN" };
+  // #36 — custom fields are content: only the creator or an admin may change them.
+  if (!canEditTaskContent(user, task)) return { error: "FORBIDDEN" };
 
   const def = await prisma.customFieldDef.findFirst({ where: { id: fieldId, tenantId: tenant.id } });
   if (!def) return { error: "NOT_FOUND" };

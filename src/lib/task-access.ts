@@ -18,11 +18,11 @@ export async function memberProjectIds(
 
 /**
  * Pure builder for the task-visibility `where` clause — no DB access, so it's
- * unit-testable. Admins: tenant-only. Non-admins: their assigned tasks PLUS
- * every task in a project they're a member of. With no member projects the
- * clause collapses to `{ tenantId, assignedToUserId }` — identical to the old
- * assigned-only behaviour, so existing data is unaffected. Tenant scoping is
- * ALWAYS applied — never leak across tenants.
+ * unit-testable. Admins: tenant-only. Non-admins: any task they're an assignee
+ * of (primary Hauptkopf OR co-assignee, #13) PLUS every task in a project they
+ * belong to (#26). With no member projects the clause collapses to
+ * `{ tenantId, assignees: { some } }` — the previous assigned-only behaviour
+ * (the primary is mirrored into TaskAssignee). Tenant scoping is ALWAYS applied.
  */
 export function taskVisibilityClause(
   user: { id: string; role: string },
@@ -30,15 +30,13 @@ export function taskVisibilityClause(
   projectIds: string[]
 ) {
   if (isAdminRole(user.role)) return { tenantId };
+  const mine = { assignees: { some: { userId: user.id } } };
   if (projectIds.length === 0) {
-    return { tenantId, assignedToUserId: user.id };
+    return { tenantId, ...mine };
   }
   return {
     tenantId,
-    OR: [
-      { assignedToUserId: user.id },
-      { projectId: { in: projectIds } },
-    ],
+    OR: [mine, { projectId: { in: projectIds } }],
   };
 }
 
@@ -74,10 +72,25 @@ export async function canAccessProject(
   if (member) return true;
 
   const assigned = await prisma.task.findFirst({
-    where: { projectId, tenantId, assignedToUserId: user.id },
+    where: { projectId, tenantId, assignees: { some: { userId: user.id } } },
     select: { id: true },
   });
   return Boolean(assigned);
+}
+
+/**
+ * #36 — two-tier edit rights on a task:
+ *  - "act": status, comments, timer, attachments — allowed for the creator,
+ *    any assignee, or an admin.
+ *  - "editContent": title, description, assignee, due date, priority, story
+ *    points, custom fields, subtasks, links — ONLY the creator or an admin.
+ *    A user working an admin-assigned task may act but not rewrite it.
+ */
+export function canEditTaskContent(
+  user: { id: string; role: string },
+  task: { createdByUserId: string }
+): boolean {
+  return isAdminRole(user.role) || task.createdByUserId === user.id;
 }
 
 /**
@@ -93,7 +106,11 @@ export async function visibleProjectIds(
   const [members, assigned] = await Promise.all([
     memberProjectIds(user.id, tenantId),
     prisma.task.findMany({
-      where: { tenantId, assignedToUserId: user.id, projectId: { not: null } },
+      where: {
+        tenantId,
+        assignees: { some: { userId: user.id } },
+        projectId: { not: null },
+      },
       select: { projectId: true },
       distinct: ["projectId"],
     }),

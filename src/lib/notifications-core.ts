@@ -9,6 +9,7 @@ export const NOTIFICATION_EVENTS = [
   "overdue",
   "blocker_resolved",
   "recurring",
+  "admin_activity", // #35 — admins are told about every user change to a task
 ] as const;
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];
 

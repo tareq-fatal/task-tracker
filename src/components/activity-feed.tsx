@@ -22,6 +22,11 @@ const DOT: Record<string, string> = {
   priority: "bg-rose-500",
   comment: "bg-teal-500",
   due: "bg-slate-400",
+  renamed: "bg-indigo-500",
+  description: "bg-slate-500",
+  storyPoints: "bg-fuchsia-500",
+  timer: "bg-emerald-500",
+  attachment: "bg-cyan-500",
 };
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {

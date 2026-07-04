@@ -16,6 +16,7 @@ import {
   ALLOWED_MIME,
 } from "@/lib/validation";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
+import { canEditTaskContent } from "@/lib/task-access";
 import { applyAutomations } from "@/lib/automation-run";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
@@ -61,6 +62,59 @@ async function logActivity(
   await prisma.activityLog
     .create({ data: { taskId, userId, type, detail: detail ?? null } })
     .catch(() => {});
+}
+
+/**
+ * #35 — tell every tenant admin about a change a NON-admin user made to a task.
+ * No-op for admin actors (they don't need to watch each other). Best-effort.
+ */
+async function notifyAdminsOfChange(
+  actor: { id: string; role: string; name: string },
+  task: { id: string; tenantId: string; title: string },
+  detail: string
+): Promise<void> {
+  if (isAdminRole(actor.role)) return;
+  const admins = await prisma.user.findMany({
+    where: { tenantId: task.tenantId, role: { in: ["Admin", "BackendAdmin", "SuperAdmin"] } },
+    select: { id: true },
+  });
+  await notifyMany(
+    admins.map((a) => a.id),
+    {
+      tenantId: task.tenantId,
+      type: "admin_activity",
+      title: `${actor.name}: ${task.title}`,
+      body: detail,
+      url: `/tasks/${task.id}`,
+      taskId: task.id,
+      actorUserId: actor.id,
+    }
+  );
+}
+
+/**
+ * #13 — make TaskAssignee reflect exactly `ids` (the full assignee set, primary
+ * included). Removes dropped assignees, adds new ones. Idempotent.
+ */
+async function syncAssignees(taskId: string, ids: (string | null | undefined)[]): Promise<void> {
+  const unique = [...new Set(ids.filter((x): x is string => Boolean(x)))];
+  await prisma.taskAssignee.deleteMany({
+    where: { taskId, userId: { notIn: unique.length ? unique : ["__none__"] } },
+  });
+  for (const userId of unique) {
+    await prisma.taskAssignee
+      .upsert({
+        where: { taskId_userId: { taskId, userId } },
+        create: { taskId, userId },
+        update: {},
+      })
+      .catch(() => {});
+  }
+}
+
+/** Parse the additional-assignee ids from the form (checkbox list, #13). */
+function additionalAssigneeIds(formData: FormData): string[] {
+  return formData.getAll("assigneeIds").map((v) => v.toString()).filter(Boolean);
 }
 
 /** True when an open "DependsOn" blocker prevents completing this task. */
@@ -137,6 +191,11 @@ async function recomputeTaskProgress(taskId: string): Promise<void> {
   });
 }
 
+/**
+ * "Act" gate — may this user DO something on the task (status, comment, timer,
+ * attachment)? Admins, the creator, and ANY assignee (primary or co-assignee,
+ * #13) qualify. Throws NOT_FOUND across tenants, FORBIDDEN otherwise.
+ */
 async function assertCanEdit(
   taskId: string,
   user: { id: string; role: string },
@@ -146,11 +205,29 @@ async function assertCanEdit(
   if (!task) throw new Error("NOT_FOUND");
   // Hard tenant isolation: a task from another tenant is invisible.
   if (task.tenantId !== tenantId) throw new Error("NOT_FOUND");
-  const allowed =
-    isAdminRole(user.role) ||
-    task.createdByUserId === user.id ||
-    task.assignedToUserId === user.id;
-  if (!allowed) throw new Error("FORBIDDEN");
+  if (isAdminRole(user.role) || task.createdByUserId === user.id) return task;
+  const assignee = await prisma.taskAssignee.findUnique({
+    where: { taskId_userId: { taskId, userId: user.id } },
+    select: { id: true },
+  });
+  if (!assignee) throw new Error("FORBIDDEN");
+  return task;
+}
+
+/**
+ * "Edit content" gate (#36) — may this user rewrite the task itself (title,
+ * description, assignee, due date, priority, story points, subtasks, links,
+ * custom fields)? ONLY the creator or an admin. A user working an admin-assigned
+ * task passes assertCanEdit but NOT this.
+ */
+async function assertCanEditContent(
+  taskId: string,
+  user: { id: string; role: string },
+  tenantId: string
+) {
+  const task = await prisma.task.findUnique({ where: { id: taskId } });
+  if (!task || task.tenantId !== tenantId) throw new Error("NOT_FOUND");
+  if (!canEditTaskContent(user, task)) throw new Error("FORBIDDEN");
   return task;
 }
 
@@ -183,6 +260,8 @@ export async function createTaskAction(
   const d = parsed.data;
   // Non-admins may only create tasks assigned to themselves.
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
+  // #13 — admins may add co-assignees; the primary above is the Hauptkopf.
+  const extraAssignees = isAdminRole(user.role) ? additionalAssigneeIds(formData) : [];
   const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
   const hier = await hierarchyFromForm(formData, tenant.id);
 
@@ -210,12 +289,18 @@ export async function createTaskAction(
     },
   });
 
+  // #13 — record the full assignee set (Hauptkopf + co-assignees).
+  await syncAssignees(task.id, [assignee, ...extraAssignees]);
+
   await logActivity(task.id, user.id, "created");
   await applyAutomations(tenant.id, task.id, { type: "created", projectId: task.projectId });
 
-  if (assignee && assignee !== user.id) {
-    await notify({
-      recipientUserId: assignee,
+  // Notify every assignee (except the creator) of the new task.
+  const notifyIds = [assignee, ...extraAssignees].filter(
+    (x): x is string => Boolean(x) && x !== user.id
+  );
+  if (notifyIds.length) {
+    await notifyMany(notifyIds, {
       tenantId: tenant.id,
       type: "assigned",
       title: "Neue Aufgabe zugewiesen",
@@ -237,7 +322,10 @@ export async function updateTaskAction(
   formData: FormData
 ): Promise<TaskFormState> {
   const { user, tenant } = await requireTenant();
-  const existing = await assertCanEdit(taskId, user, tenant.id);
+  // #36 — only the creator or an admin may rewrite a task's content. A user
+  // working an admin-assigned task edits status/comments/timer/attachments via
+  // their own controls, never this full form.
+  const existing = await assertCanEditContent(taskId, user, tenant.id);
   const parsed = parseForm(formData);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
@@ -253,10 +341,9 @@ export async function updateTaskAction(
   }
 
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
-  // Non-admins cannot reassign tasks — keep the existing assignee.
-  const assignee = isAdminRole(user.role)
-    ? d.assignedToUserId
-    : (existing.assignedToUserId ?? user.id);
+  // Whoever reaches here (creator or admin) may set the primary + co-assignees (#13).
+  const assignee = d.assignedToUserId || null;
+  const extraAssignees = additionalAssigneeIds(formData);
   const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
   const hier = await hierarchyFromForm(formData, tenant.id, taskId);
 
@@ -284,22 +371,29 @@ export async function updateTaskAction(
       ...(becameDone && subtaskCount === 0 ? { progress: 100 } : {}),
     },
   });
+  await syncAssignees(taskId, [assignee, ...extraAssignees]);
 
-  // Activity log: record meaningful field changes.
-  if (existing.status !== d.status) {
-    await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${d.status}`);
-  }
-  if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) {
-    await logActivity(taskId, user.id, "assigned", assignee ? undefined : "unassigned");
-  }
-  if (existing.priority !== d.priority) {
-    await logActivity(taskId, user.id, "priority", `${existing.priority} → ${d.priority}`);
+  // #35 — detect every meaningful field change; log each + tell admins.
+  const changes: { type: string; detail: string }[] = [];
+  if (existing.title !== d.title) changes.push({ type: "renamed", detail: `„${existing.title}" → „${d.title}"` });
+  if ((existing.description ?? "") !== (d.description ?? "")) changes.push({ type: "description", detail: "Beschreibung geändert" });
+  if (existing.status !== d.status) changes.push({ type: leftDone ? "reopened" : "status", detail: `Status: ${existing.status} → ${d.status}` });
+  if (existing.priority !== d.priority) changes.push({ type: "priority", detail: `Priorität: ${existing.priority} → ${d.priority}` });
+  if ((existing.storyPoints ?? null) !== (hier.storyPoints ?? null)) changes.push({ type: "storyPoints", detail: `Story Points: ${existing.storyPoints ?? "—"} → ${hier.storyPoints ?? "—"}` });
+  if ((existing.dueDate?.getTime() ?? 0) !== (d.dueDate?.getTime() ?? 0)) changes.push({ type: "due", detail: `Fälligkeit: ${existing.dueDate ? existing.dueDate.toISOString().slice(0, 10) : "—"} → ${d.dueDate ? d.dueDate.toISOString().slice(0, 10) : "—"}` });
+  if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) changes.push({ type: "assigned", detail: assignee ? "Hauptkopf geändert" : "Nicht mehr zugewiesen" });
+
+  for (const c of changes) await logActivity(taskId, user.id, c.type, c.detail);
+  if (changes.length) {
+    await notifyAdminsOfChange(user, { id: taskId, tenantId: tenant.id, title: d.title }, changes.map((c) => c.detail).join(" · "));
   }
 
-  // Notifications: newly-assigned person, status change to watchers, blockers freed.
-  if (assignee && assignee !== existing.assignedToUserId && assignee !== user.id) {
-    await notify({
-      recipientUserId: assignee,
+  // Notifications: newly-assigned people, status change to watchers, blockers freed.
+  const newlyAssigned = [assignee, ...extraAssignees].filter(
+    (x): x is string => Boolean(x) && x !== existing.assignedToUserId && x !== user.id
+  );
+  if (newlyAssigned.length) {
+    await notifyMany(newlyAssigned, {
       tenantId: tenant.id,
       type: "assigned",
       title: "Aufgabe zugewiesen",
@@ -361,7 +455,7 @@ export async function setTaskDueDateAction(
   dateStr: string | null
 ): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
+  await assertCanEditContent(taskId, user, tenant.id); // #36 due date = content
   const dueDate = dateStr ? new Date(dateStr + "T00:00:00Z") : null;
   await prisma.task.update({ where: { id: taskId }, data: { dueDate } });
   revalidateTaskViews(taskId);
@@ -399,6 +493,7 @@ export async function updateTaskStatusAction(
 
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
   await notifyWatchers(existing, user.id, "status", `Status: ${existing.title}`, `${existing.status} → ${status}`);
+  await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
   revalidateTaskViews(taskId);
@@ -447,7 +542,7 @@ export async function addCommentAction(
   await prisma.taskComment.create({
     data: { taskId, userId: user.id, content: parsed.data.content },
   });
-  await logActivity(taskId, user.id, "comment");
+  await logActivity(taskId, user.id, "comment", parsed.data.content.slice(0, 80));
 
   // Notify: @mentions (within the tenant) get a mention; watchers get a comment.
   const task = await prisma.task.findUnique({
@@ -487,6 +582,7 @@ export async function addCommentAction(
       taskId,
       actorUserId: user.id,
     });
+    await notifyAdminsOfChange(user, task, `Kommentar: ${parsed.data.content.slice(0, 80)}`);
   }
 
   revalidatePath(`/tasks/${taskId}`);
@@ -498,7 +594,7 @@ export async function uploadAttachmentAction(
   formData: FormData
 ): Promise<{ error?: string }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
+  const task = await assertCanEdit(taskId, user, tenant.id);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -527,6 +623,8 @@ export async function uploadAttachmentAction(
       sizeBytes: file.size,
     },
   });
+  await logActivity(taskId, user.id, "attachment", file.name);
+  await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${file.name}`);
 
   revalidatePath(`/tasks/${taskId}`);
   return {};
@@ -542,7 +640,7 @@ export async function updateTaskProgressAction(
   progress: number
 ): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
+  await assertCanEditContent(taskId, user, tenant.id); // #36 progress = content
 
   const parsed = progressSchema.safeParse({ progress });
   if (!parsed.success) return { ok: false };
@@ -570,7 +668,7 @@ export async function addSubtaskAction(
   formData: FormData
 ): Promise<{ error?: string }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
+  await assertCanEditContent(taskId, user, tenant.id); // #36 subtasks = content
 
   const parsed = subtaskSchema.safeParse({ title: formData.get("title") });
   if (!parsed.success) return { error: "INVALID" };
@@ -599,7 +697,7 @@ export async function toggleSubtaskAction(
   const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEdit(sub.taskId, user, tenant.id);
+  await assertCanEditContent(sub.taskId, user, tenant.id); // #36 subtasks = content
 
   await prisma.subtask.update({
     where: { id: subtaskId },
@@ -617,7 +715,7 @@ export async function deleteSubtaskAction(
   const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEdit(sub.taskId, user, tenant.id);
+  await assertCanEditContent(sub.taskId, user, tenant.id); // #36 subtasks = content
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   await recomputeTaskProgress(sub.taskId);
@@ -640,6 +738,8 @@ export async function startTimerAction(
     where: { id: taskId },
     data: { timerStartedAt: new Date() },
   });
+  await logActivity(taskId, user.id, "timer", "Timer gestartet");
+  await notifyAdminsOfChange(user, task, "Timer gestartet");
   revalidateTaskViews(taskId);
   return { ok: true };
 }
@@ -659,6 +759,8 @@ export async function stopTimerAction(
       timerStartedAt: null,
     },
   });
+  await logActivity(taskId, user.id, "timer", "Timer gestoppt");
+  await notifyAdminsOfChange(user, task, "Timer gestoppt");
   revalidateTaskViews(taskId);
   return { ok: true };
 }

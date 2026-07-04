@@ -9,6 +9,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { updateTaskAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
+import { canEditTaskContent } from "@/lib/task-access";
 import { TaskForm } from "@/components/task-form";
 import { describeRule } from "@/lib/recurrence";
 
@@ -23,18 +24,18 @@ export default async function EditTaskPage({
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task || task.tenantId !== tenant.id) notFound();
 
-  const canEdit =
-    isAdminRole(user.role) ||
-    task.createdByUserId === user.id ||
-    task.assignedToUserId === user.id;
-  if (!canEdit) notFound();
+  // #36 — only the creator or an admin may open the content-edit form.
+  if (!canEditTaskContent(user, task)) notFound();
 
-  const [users, projects, teams, parents] = await Promise.all([
+  const [users, projects, teams, parents, assigneeRows] = await Promise.all([
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.task.findMany({ where: { tenantId: tenant.id, type: { not: "Subtask" }, id: { not: task.id } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    prisma.taskAssignee.findMany({ where: { taskId: task.id }, select: { userId: true } }),
   ]);
+  // #13 — co-assignees = everyone assigned except the primary (Hauptkopf)
+  const coAssigneeIds = assigneeRows.map((a) => a.userId).filter((id) => id !== task.assignedToUserId);
 
   const action = updateTaskAction.bind(null, task.id);
 
@@ -65,6 +66,7 @@ export default async function EditTaskPage({
           storyPoints: task.storyPoints != null ? String(task.storyPoints) : "",
           parentId: task.parentId,
           assignedToUserId: task.assignedToUserId,
+          assigneeIds: coAssigneeIds,
           projectId: task.projectId,
           teamId: task.teamId,
           dueDate: task.dueDate ? format(task.dueDate, "yyyy-MM-dd") : null,
