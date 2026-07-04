@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
+import { publish } from "./notification-stream";
 import { notifyUser as webPush } from "./push";
 import { sendEmail, basicEmailTemplate } from "./email";
 import {
@@ -48,7 +49,7 @@ export async function notify(input: NotifyInput): Promise<void> {
   });
 
   if (ch.inApp) {
-    await prisma.notification
+    const created = await prisma.notification
       .create({
         data: {
           userId: input.recipientUserId,
@@ -60,7 +61,22 @@ export async function notify(input: NotifyInput): Promise<void> {
           taskId: input.taskId ?? null,
         },
       })
-      .catch(() => {});
+      .catch(() => null);
+    // live-push the new item so any open tab's bell badge updates instantly
+    if (created) {
+      publish(input.recipientUserId, {
+        kind: "new",
+        item: {
+          id: created.id,
+          type: created.type,
+          title: created.title,
+          body: created.body,
+          url: created.url,
+          read: false,
+          createdAt: created.createdAt.toISOString(),
+        },
+      });
+    }
   }
   if (ch.webPush) {
     await webPush(input.recipientUserId, { title: input.title, body: input.body ?? "", url: input.url });

@@ -26,11 +26,13 @@ export async function getNotifications(): Promise<{
   const user = await requireUser();
   const [rows, unread] = await Promise.all([
     prisma.notification.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, tenantId: user.tenantId },
       orderBy: { createdAt: "desc" },
       take: 30,
     }),
-    prisma.notification.count({ where: { userId: user.id, read: false } }),
+    prisma.notification.count({
+      where: { userId: user.id, tenantId: user.tenantId, read: false },
+    }),
   ]);
   return {
     unread,
@@ -46,10 +48,18 @@ export async function getNotifications(): Promise<{
   };
 }
 
+/** Lightweight unread count for the live badge (tenant-scoped). */
+export async function getUnreadCount(): Promise<number> {
+  const user = await requireUser();
+  return prisma.notification.count({
+    where: { userId: user.id, tenantId: user.tenantId, read: false },
+  });
+}
+
 export async function markAllReadAction(): Promise<{ ok: boolean }> {
   const user = await requireUser();
   await prisma.notification.updateMany({
-    where: { userId: user.id, read: false },
+    where: { userId: user.id, tenantId: user.tenantId, read: false },
     data: { read: true },
   });
   return { ok: true };
