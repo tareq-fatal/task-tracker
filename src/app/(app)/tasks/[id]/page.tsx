@@ -117,7 +117,7 @@ export default async function TaskDetailPage({
 
   // Candidate tasks to link (visible to the user, excluding this one)
   const linkCandidates = await prisma.task.findMany({
-    where: { id: { not: task.id }, ...taskVisibility(user, tenant.id) },
+    where: { id: { not: task.id }, ...(await taskVisibility(user, tenant.id)) },
     select: { id: true, title: true },
     orderBy: { updatedAt: "desc" },
     take: 200,

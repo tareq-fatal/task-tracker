@@ -128,6 +128,7 @@ model User {
   comments          TaskComment[]
   pushSubscriptions PushSubscription[]
   teamMemberships   TeamMember[]
+  projectMemberships ProjectMember[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -240,8 +241,24 @@ model Project {
   columns      WorkflowColumn[]
   customFields CustomFieldDef[]
   automations  AutomationRule[]
+  members      ProjectMember[]
 
   @@index([tenantId])
+}
+
+// Explicit project access grant. When a project has ≥1 member, non-admin
+// members see ALL of that project's tasks (not just the ones assigned to them).
+// A project with no members behaves exactly as before (assigned-only visibility).
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model SavedView {

@@ -27,7 +27,7 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
 
   // Every query stays tenant-scoped via taskVisibility; a crafted foreign id
   // simply matches nothing (tasks are tenant-scoped), so isolation holds.
-  const base = taskVisibility(user, tenant.id);
+  const base = await taskVisibility(user, tenant.id);
   let where: Record<string, unknown> = { ...base, status: { not: "Archived" } };
   if (view === "person" && id) where = { ...base, assignedToUserId: id };
   else if (view === "team" && id) where = { ...base, teamId: id };

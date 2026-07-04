@@ -6,13 +6,19 @@ import { getActiveLocale } from "@/lib/locale";
 import { NewProjectDialog } from "@/components/new-project-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
+import { visibleProjectIds } from "@/lib/task-access";
 
 export default async function ProjectsPage() {
-  const { tenant } = await requireTenant();
+  const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
+  // #26: non-admins see only projects they're a member of (or have a task in)
+  const allowed = await visibleProjectIds(user, tenant.id);
   const projects = await prisma.project.findMany({
-    where: { tenantId: tenant.id },
+    where: {
+      tenantId: tenant.id,
+      ...(allowed ? { id: { in: allowed } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { tasks: true } } },
   });

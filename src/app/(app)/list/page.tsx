@@ -10,7 +10,7 @@ export default async function ListPage() {
   const t = getDictionary(getActiveLocale());
 
   const rows = await prisma.task.findMany({
-    where: { ...taskVisibility(user, tenant.id), status: { not: "Archived" } },
+    where: { ...(await taskVisibility(user, tenant.id)), status: { not: "Archived" } },
     select: {
       id: true, title: true, status: true, priority: true, dueDate: true, storyPoints: true,
       assignedTo: { select: { name: true } },

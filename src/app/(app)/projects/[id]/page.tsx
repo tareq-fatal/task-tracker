@@ -6,7 +6,9 @@ import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { taskVisibility } from "@/lib/task-access";
+import { taskVisibility, canAccessProject } from "@/lib/task-access";
+import { getProjectMembersView } from "@/actions/projects";
+import { ProjectMembers } from "@/components/project-members";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
 import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
@@ -30,9 +32,14 @@ export default async function ProjectDetailPage({
     where: { id: params.id },
   });
   if (!project || project.tenantId !== tenant.id) notFound();
+  // #26: non-admins may only open projects they're a member of (or have a task in)
+  if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
+
+  const isAdmin = isAdminRole(user.role);
+  const membersView = isAdmin ? await getProjectMembersView(project.id) : null;
 
   const filters = parseTaskFilters(searchParams);
-  const base = { projectId: project.id, ...taskVisibility(user, tenant.id) };
+  const base = { projectId: project.id, ...(await taskVisibility(user, tenant.id)) };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
@@ -90,6 +97,16 @@ export default async function ProjectDetailPage({
           </Button>
         </div>
       </div>
+
+      {isAdmin && membersView && (
+        <div className="mb-6">
+          <ProjectMembers
+            projectId={project.id}
+            members={membersView.members}
+            candidates={membersView.candidates}
+          />
+        </div>
+      )}
 
       <FilterBar
         basePath={`/projects/${project.id}`}

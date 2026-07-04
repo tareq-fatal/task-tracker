@@ -11,7 +11,8 @@ test("admin can open the sprints page and create a sprint", async ({ page }) => 
   // create a sprint
   await page.locator('input[name="name"]').fill("Sprint Alpha");
   await page.getByRole("button", { name: "Anlegen" }).click();
-  await expect(page.getByText("Sprint Alpha")).toBeVisible();
+  // (this spec re-runs against a persistent dev DB, so ≥1 "Sprint Alpha" may exist)
+  await expect(page.getByText("Sprint Alpha").first()).toBeVisible();
 });
 
 test("non-admin cannot reach /sprints", async ({ page }) => {

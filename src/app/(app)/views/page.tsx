@@ -31,7 +31,7 @@ export default async function ViewsPage({
 
   const tasks = await prisma.task.findMany({
     where: {
-      ...taskVisibility(user, tenant.id),
+      ...(await taskVisibility(user, tenant.id)),
       status: { not: "Archived" },
       ...(projectId ? { projectId } : {}),
     },

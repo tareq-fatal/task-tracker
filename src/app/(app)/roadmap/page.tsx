@@ -21,7 +21,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: { zo
 
   // Primary lanes = Epics with their child tasks; fall back to projects.
   const epics = await prisma.task.findMany({
-    where: { ...taskVisibility(user, tenant.id), type: "Epic" },
+    where: { ...(await taskVisibility(user, tenant.id)), type: "Epic" },
     select: { id: true, title: true, priority: true, createdAt: true, dueDate: true, project: { select: { color: true } } },
   });
 
@@ -41,7 +41,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: { zo
   } else {
     const projects = await prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true, color: true } });
     const tasks = await prisma.task.findMany({
-      where: { ...taskVisibility(user, tenant.id), projectId: { in: projects.map((p) => p.id) } },
+      where: { ...(await taskVisibility(user, tenant.id)), projectId: { in: projects.map((p) => p.id) } },
       select: { projectId: true, status: true, createdAt: true, dueDate: true },
     });
     lanes = projects.map((p, i) => {

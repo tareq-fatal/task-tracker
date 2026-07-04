@@ -19,7 +19,7 @@ export default async function BoardPage({
 
   const filters = parseTaskFilters(searchParams);
   const base = {
-    ...taskVisibility(user, tenant.id),
+    ...(await taskVisibility(user, tenant.id)),
     status: { in: ["Todo", "InProgress", "Done"] },
   };
   const where = { AND: [base, buildTaskWhere(filters)] };

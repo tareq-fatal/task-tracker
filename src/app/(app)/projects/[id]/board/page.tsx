@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { taskVisibility } from "@/lib/task-access";
+import { taskVisibility, canAccessProject } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
 import { KanbanBoard } from "@/components/kanban-board";
 
@@ -19,11 +19,12 @@ export default async function ProjectBoardPage({
 
   const project = await prisma.project.findUnique({ where: { id: params.id } });
   if (!project || project.tenantId !== tenant.id) notFound();
+  if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
 
   const tasks = await prisma.task.findMany({
     where: {
       projectId: project.id,
-      ...taskVisibility(user, tenant.id),
+      ...(await taskVisibility(user, tenant.id)),
       status: { in: ["Todo", "InProgress", "Done"] },
     },
     select: taskCardSelect,
