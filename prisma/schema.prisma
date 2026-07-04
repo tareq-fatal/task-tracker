@@ -278,6 +278,7 @@ model TaskTemplate {
   id          String   @id @default(cuid())
   tenantId    String
   name        String // template label (e.g. "Bug Report")
+  category    String? // #22 — optional grouping label (e.g. "Engineering", "HR")
   title       String // task title to pre-fill
   description String?
   type        String   @default("Task")

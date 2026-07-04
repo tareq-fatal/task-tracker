@@ -4,7 +4,7 @@ import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { taskVisibility } from "@/lib/task-access";
+import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { laneRange, pct, roadmapWindow, ZOOMS, type Zoom } from "@/lib/roadmap";
 import { cn } from "@/lib/utils";
 import { RoadmapView, type Lane } from "@/components/roadmap-view";
@@ -39,7 +39,13 @@ export default async function RoadmapPage({ searchParams }: { searchParams: { zo
       return { id: e.id, title: e.title, kind: "Epic" as const, color: e.project?.color ?? PALETTE[i % PALETTE.length], priority: e.priority, start, end, total: kids.length, done, pct: pct(done, kids.length) };
     });
   } else {
-    const projects = await prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true, color: true } });
+    // #25 — non-admins only see roadmap lanes for projects they can access
+    // (member of, or with a task assigned to them). Admins see all.
+    const allowed = await visibleProjectIds(user, tenant.id);
+    const projects = await prisma.project.findMany({
+      where: { tenantId: tenant.id, ...(allowed ? { id: { in: allowed } } : {}) },
+      select: { id: true, name: true, color: true },
+    });
     const tasks = await prisma.task.findMany({
       where: { ...(await taskVisibility(user, tenant.id)), projectId: { in: projects.map((p) => p.id) } },
       select: { projectId: true, status: true, createdAt: true, dueDate: true },

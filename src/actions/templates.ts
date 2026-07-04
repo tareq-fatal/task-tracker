@@ -9,7 +9,7 @@ import { applyAutomations } from "@/lib/automation-run";
 
 export type TemplateState = { ok?: boolean; error?: string };
 export type TemplateLite = {
-  id: string; name: string; title: string; description: string | null;
+  id: string; name: string; category: string | null; title: string; description: string | null;
   type: string; priority: string; storyPoints: number | null; subtasks: string[];
 };
 
@@ -31,15 +31,18 @@ function parseSubtasks(json: string | null): string[] {
 
 export async function getTemplates(): Promise<TemplateLite[]> {
   const { tenant } = await requireTenant();
-  const rows = await prisma.taskTemplate.findMany({ where: { tenantId: tenant.id }, orderBy: { createdAt: "asc" } });
+  const rows = await prisma.taskTemplate.findMany({
+    where: { tenantId: tenant.id },
+    orderBy: [{ category: "asc" }, { createdAt: "asc" }],
+  });
   return rows.map((r) => ({
-    id: r.id, name: r.name, title: r.title, description: r.description,
+    id: r.id, name: r.name, category: r.category, title: r.title, description: r.description,
     type: r.type, priority: r.priority, storyPoints: r.storyPoints, subtasks: parseSubtasks(r.subtasks),
   }));
 }
 
 export async function addTemplateAction(input: {
-  name: string; title: string; description?: string; type: string; priority: string; storyPoints?: number | null; subtasksText?: string;
+  name: string; category?: string; title: string; description?: string; type: string; priority: string; storyPoints?: number | null; subtasksText?: string;
 }): Promise<TemplateState> {
   const { tenant } = await requireAdmin();
   const name = input.name.trim();
@@ -51,7 +54,8 @@ export async function addTemplateAction(input: {
 
   await prisma.taskTemplate.create({
     data: {
-      tenantId: tenant.id, name, title, description: input.description?.trim() || null,
+      tenantId: tenant.id, name, category: input.category?.trim() || null,
+      title, description: input.description?.trim() || null,
       type: input.type, priority: input.priority, storyPoints: input.storyPoints ?? null,
       subtasks: subtasks.length ? JSON.stringify(subtasks) : null,
     },
@@ -81,6 +85,8 @@ export async function createFromTemplateAction(id: string): Promise<TemplateStat
       title: tpl.title, description: tpl.description, type: tpl.type, priority: tpl.priority,
       storyPoints: tpl.storyPoints, status: "Todo",
       assignedToUserId: user.id, createdByUserId: user.id, tenantId: tenant.id,
+      // #13 — mirror the primary assignee into TaskAssignee so visibility holds
+      assignees: { create: { userId: user.id } },
       subtasks: subtasks.length ? { create: subtasks.map((title, i) => ({ title, order: i })) } : undefined,
     },
   });
