@@ -405,6 +405,22 @@ export async function updateTaskStatusAction(
   return { ok: true };
 }
 
+/** Admin-only: reassign a task's creator (e.g. when the original creator leaves).
+ *  Tenant-scoped + audited via the activity log. */
+export async function changeCreatorAction(taskId: string, newCreatorId: string): Promise<{ ok: boolean; error?: string }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) return { ok: false, error: "FORBIDDEN" };
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true, createdBy: { select: { name: true } } } });
+  if (!task || task.tenantId !== tenant.id) return { ok: false, error: "NOT_FOUND" };
+  const newCreator = await prisma.user.findFirst({ where: { id: newCreatorId, tenantId: tenant.id }, select: { name: true } });
+  if (!newCreator) return { ok: false, error: "BAD_USER" };
+
+  await prisma.task.update({ where: { id: taskId }, data: { createdByUserId: newCreatorId } });
+  await logActivity(taskId, user.id, "creator_changed", `${task.createdBy.name} → ${newCreator.name}`);
+  revalidateTaskViews(taskId);
+  return { ok: true };
+}
+
 export async function deleteTaskAction(taskId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
   const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true, createdByUserId: true } });

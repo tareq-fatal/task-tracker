@@ -19,7 +19,7 @@ test("MandantAdmin: no Backend section, blocked from DB console", async ({ page 
   await expect(page.getByRole("link", { name: /Datenbank/ })).toHaveCount(0); // no DB console
   await page.goto("/admin/db");
   await expect(page).toHaveURL("/"); // blocked
-  await page.goto("/admin/tenants");
+  await page.goto("/admin/mandanten");
   await expect(page).toHaveURL("/"); // blocked
 });
 

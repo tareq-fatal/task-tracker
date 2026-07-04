@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { login } from "./helpers";
 
-const ROUTES = ["/", "/board", "/tasks", "/list", "/roadmap", "/views", "/reports", "/reports/insights", "/sprints", "/settings/branding", "/settings/integrations", "/admin/db", "/admin/tenants", "/admin/custom-fields"];
+const ROUTES = ["/", "/board", "/tasks", "/list", "/roadmap", "/views", "/reports", "/reports/insights", "/sprints", "/settings/branding", "/settings/integrations", "/admin/db", "/admin/mandanten", "/admin/custom-fields"];
 
 test("main routes have no critical/serious accessibility violations", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");

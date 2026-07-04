@@ -8,7 +8,7 @@ test("SuperAdmin onboards a tenant; its owner logs in as a restricted TenantAdmi
   const pass = "Acme-2026!";
 
   await login(page, "admin", "Admin-2026!", "de");
-  await page.goto("/admin/tenants");
+  await page.goto("/admin/mandanten");
   await expect(page.getByRole("heading", { name: "Mandanten" })).toBeVisible();
   await page.waitForTimeout(900); // hydrate the wizard
 
@@ -32,6 +32,6 @@ test("SuperAdmin onboards a tenant; its owner logs in as a restricted TenantAdmi
 
 test("a TenantAdmin (non-super) cannot open the tenants manager", async ({ page }) => {
   await login(page, "tarek", "Demo-2026!", "de"); // tarek is Admin, not SuperAdmin
-  await page.goto("/admin/tenants");
+  await page.goto("/admin/mandanten");
   await expect(page).toHaveURL("/");
 });

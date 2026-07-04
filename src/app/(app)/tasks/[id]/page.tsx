@@ -22,6 +22,7 @@ import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
 import { DeleteTaskButton } from "@/components/delete-task-button";
+import { ChangeCreator } from "@/components/change-creator";
 import { ProgressControl } from "@/components/progress-control";
 import { SubtaskList } from "@/components/subtask-list";
 import { TimerControl } from "@/components/timer-control";
@@ -97,6 +98,11 @@ export default async function TaskDetailPage({
   if (!canEdit) notFound();
 
   const overdue = isOverdue(task.dueDate, task.status as any);
+
+  // Admin-only: users of this tenant, for the "change creator" control
+  const tenantUsers = isAdminRole(user.role)
+    ? await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+    : [];
 
   // Custom fields: tenant-wide definitions + this task's values
   const fieldDefs = await prisma.customFieldDef.findMany({
@@ -229,6 +235,9 @@ export default async function TaskDetailPage({
                 </span>
               )}
               <span>· {format(task.createdAt, "dd.MM.yyyy")}</span>
+              {isAdminRole(user.role) && (
+                <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
+              )}
             </div>
           </div>
         </CardContent>

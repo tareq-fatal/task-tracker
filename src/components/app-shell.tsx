@@ -80,7 +80,7 @@ const ADMIN: NavItem[] = [
 ];
 
 const SUPER: NavItem[] = [
-  { href: "/admin/tenants", label: "nav.tenants", icon: Building2 },
+  { href: "/admin/mandanten", label: "nav.tenants", icon: Building2 },
   { href: "/admin/db", label: "nav.db", icon: Database },
 ];
 
