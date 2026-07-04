@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -34,7 +34,6 @@ import {
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/tasks";
 import { useT } from "@/components/i18n-provider";
-import { logoutAction } from "@/actions/auth";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
@@ -52,12 +51,13 @@ type NavItem = {
   label: TKey;
   icon: React.ElementType;
   tour?: string;
+  adminOnly?: boolean;
 };
 
 const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
   { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board" },
-  { href: "/tasks", label: "nav.focus", icon: Target },
+  { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true },
   { href: "/list", label: "nav.list", icon: Table2 },
   { href: "/views", label: "nav.views", icon: CalendarDays },
   { href: "/roadmap", label: "nav.roadmap", icon: Map },
@@ -141,8 +141,27 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const isAdmin = isAdminRole(user.role);
   const isBackend = can(user.role, "useDbConsole"); // BackendAdmin (Tarek) only
-  const allItems = [...MAIN, ...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])];
+  // Focus (/tasks) is admin-only — hide it from regular users' nav.
+  const mainNav = isAdmin ? MAIN : MAIN.filter((i) => !i.adminOnly);
+  const allItems = [...mainNav, ...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])];
   const activeItem = allItems.find((i) => isActive(pathname, i.href));
+
+  // Lock background scroll while the mobile drawer is open, preserving position
+  // (fixes the "opening the menu jumps to top" bug in the APK).
+  useEffect(() => {
+    if (!open) return;
+    const y = window.scrollY;
+    const body = document.body;
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.width = "100%";
+    return () => {
+      body.style.position = "";
+      body.style.top = "";
+      body.style.width = "";
+      window.scrollTo(0, y);
+    };
+  }, [open]);
 
   return (
     <div className="min-h-screen">
@@ -165,7 +184,7 @@ export function AppShell({
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
-          {MAIN.map((item) => (
+          {mainNav.map((item) => (
             <NavLink
               key={item.href}
               item={item}
@@ -214,11 +233,9 @@ export function AppShell({
                 {t(roleLabelKey(user.role))}
               </p>
             </div>
-            <form action={logoutAction}>
-              <Button variant="ghost" size="icon" aria-label={t("nav.logout")} title={t("nav.logout")}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </form>
+            <Button asChild variant="ghost" size="icon" aria-label={t("nav.logout")} title={t("nav.logout")}>
+              <a href="/logout"><LogOut className="h-4 w-4" /></a>
+            </Button>
           </div>
         </div>
       </aside>
@@ -301,22 +318,26 @@ export function AppShell({
                 <Settings className="h-4 w-4" />
                 {t("nav.settings")}
               </Link>
-              <form action={logoutAction} className="px-1 pt-1">
-                <Button variant="outline" size="sm" className="w-full">
+              <Button asChild variant="outline" size="sm" className="mx-1 mt-1 w-[calc(100%-0.5rem)]">
+                <a href="/logout" onClick={() => setOpen(false)}>
                   <LogOut className="me-1 h-4 w-4" />
                   {t("nav.logout")}
-                </Button>
-              </form>
+                </a>
+              </Button>
             </nav>
           )}
         </header>
 
-        <main className="flex-1 pb-20 md:pb-8">{children}</main>
+        <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">{children}</main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t bg-background/90 py-1 backdrop-blur-md md:hidden">
-        {MAIN.map((item) => {
+      {/* Mobile bottom nav — pb includes the device safe-area so icons aren't
+          hidden behind the Android/iOS system bar inside the APK */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t bg-background/90 pt-1 backdrop-blur-md md:hidden"
+        style={{ paddingBottom: "calc(0.25rem + env(safe-area-inset-bottom))" }}
+      >
+        {mainNav.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname, item.href);
           return (

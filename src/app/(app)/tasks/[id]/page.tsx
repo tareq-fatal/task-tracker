@@ -147,7 +147,7 @@ export default async function TaskDetailPage({
               {t["common.edit"]}
             </Link>
           </Button>
-          <DeleteTaskButton taskId={task.id} />
+          {isAdminRole(user.role) && <DeleteTaskButton taskId={task.id} />}
         </div>
       </div>
 

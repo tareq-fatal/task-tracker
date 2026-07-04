@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { getDictionary } from "@/lib/i18n";
@@ -17,6 +18,7 @@ const VIEWS: FocusView[] = ["all", "person", "team", "project", "operations"];
 
 export default async function FocusPage({ searchParams }: { searchParams: { view?: string; id?: string } }) {
   const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) redirect("/"); // Focus is admin-only
   const t = getDictionary(getActiveLocale());
   const view: FocusView = VIEWS.includes(searchParams.view as FocusView) ? (searchParams.view as FocusView) : "all";
   const id = searchParams.id ?? null;

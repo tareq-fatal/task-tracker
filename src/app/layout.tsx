@@ -37,6 +37,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover", // enables env(safe-area-inset-*) inside the APK
 };
 
 export default function RootLayout({

@@ -9,8 +9,7 @@ export function taskVisibility(
   tenantId: string
 ) {
   if (isAdminRole(user.role)) return { tenantId };
-  return {
-    tenantId,
-    OR: [{ assignedToUserId: user.id }, { createdByUserId: user.id }],
-  };
+  // Regular users see ONLY tasks assigned to them (their own creations are always
+  // self-assigned, so nothing is lost). Admins see the whole tenant.
+  return { tenantId, assignedToUserId: user.id };
 }

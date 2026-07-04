@@ -407,7 +407,11 @@ export async function updateTaskStatusAction(
 
 export async function deleteTaskAction(taskId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
+  // Only admins (Mandant-Admin / Backend-Admin) may delete. Hard-fail otherwise.
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
+  // still tenant-scoped: never delete another tenant's task
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true } });
+  if (!task || task.tenantId !== tenant.id) throw new Error("NOT_FOUND");
   await prisma.task.delete({ where: { id: taskId } });
   revalidatePath("/");
   revalidatePath("/board");
