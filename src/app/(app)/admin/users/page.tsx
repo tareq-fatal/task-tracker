@@ -57,7 +57,7 @@ export default async function AdminUsersPage() {
                   </Badge>
                 </div>
                 <p className="truncate text-sm text-muted-foreground">
-                  @{u.username} · {u.email}
+                  @{u.username}{u.email ? ` · ${u.email}` : ""}
                 </p>
               </div>
               <div className="hidden text-end text-xs text-muted-foreground sm:block">

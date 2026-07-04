@@ -35,10 +35,10 @@ export function NewUserDialog() {
   const [state, formAction] = useFormState(createUserAction, {});
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Close & reset when a submit succeeds (no error returned)
+  // Close & reset on success — BUT keep open to show a generated temp password.
   const submitted = useRef(false);
   useEffect(() => {
-    if (submitted.current && !state.error) {
+    if (submitted.current && !state.error && !state.tempPassword) {
       setOpen(false);
       formRef.current?.reset();
     }
@@ -86,19 +86,46 @@ export function NewUserDialog() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input id="email" name="email" type="email" required />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" placeholder={t("admin.users.optional")} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">{t("login.password")} *</Label>
-            <Input id="password" name="password" type="text" required minLength={6} />
+            <Label htmlFor="password">{t("login.password")}</Label>
+            <Input id="password" name="password" type="text" minLength={6} placeholder={t("admin.users.passwordOptional")} />
+            <p className="text-xs text-muted-foreground">{t("admin.users.passwordHint")}</p>
           </div>
           {state.error && (
             <p className="text-sm font-medium text-destructive">{state.error}</p>
           )}
-          <div className="flex justify-end">
-            <Submit label={t("admin.users.create")} />
-          </div>
+          {state.tempPassword ? (
+            <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm dark:border-emerald-500/40 dark:bg-emerald-500/10">
+              <p className="mb-1 font-semibold text-emerald-800 dark:text-emerald-300">
+                {t("admin.users.tempCreated")}
+              </p>
+              <p className="text-emerald-900 dark:text-emerald-200">
+                @{state.createdUsername} · <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono dark:bg-black/30">{state.tempPassword}</code>
+              </p>
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+                {t("admin.users.tempHint")}
+              </p>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setOpen(false);
+                    formRef.current?.reset();
+                  }}
+                >
+                  {t("common.done")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <Submit label={t("admin.users.create")} />
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

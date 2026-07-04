@@ -27,6 +27,9 @@ const DOT: Record<string, string> = {
   storyPoints: "bg-fuchsia-500",
   timer: "bg-emerald-500",
   attachment: "bg-cyan-500",
+  escalated: "bg-rose-600",
+  assist: "bg-indigo-600",
+  coaching: "bg-amber-500",
 };
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {

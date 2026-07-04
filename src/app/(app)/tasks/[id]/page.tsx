@@ -17,7 +17,8 @@ import { initials, isOverdue } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
-import { ShieldAlert } from "lucide-react";
+import { SupportTools } from "@/components/support-tools";
+import { ShieldAlert, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
@@ -107,6 +108,11 @@ export default async function TaskDetailPage({
   const coAssignees = task.assignees
     .filter((a) => a.userId !== task.assignedToUserId)
     .map((a) => a.user);
+
+  // #24 — admin support state
+  const isAdmin = isAdminRole(user.role);
+  const escalated = task.escalatedAt != null;
+  const isAssisting = task.assignees.some((a) => a.userId === user.id);
 
   // Admin-only: users of this tenant, for the "change creator" control
   const tenantUsers = isAdminRole(user.role)
@@ -202,6 +208,21 @@ export default async function TaskDetailPage({
           </Link>
         )}
       </div>
+
+      {/* #24 — escalation banner (visible to everyone on the task) */}
+      {escalated && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
+          <AlertTriangle className="h-4 w-4" />
+          {t["support.escalatedBanner"]}
+        </div>
+      )}
+
+      {/* #24 — admin-only support tools */}
+      {isAdmin && (
+        <div className="mb-6">
+          <SupportTools taskId={task.id} escalated={escalated} isAssisting={isAssisting} />
+        </div>
+      )}
 
       <Card className="mb-6">
         <CardContent className="space-y-4 p-5">

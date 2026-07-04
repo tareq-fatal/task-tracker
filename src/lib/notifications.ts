@@ -24,7 +24,7 @@ export type NotifyInput = {
 export async function notify(input: NotifyInput): Promise<void> {
   if (input.actorUserId && input.actorUserId === input.recipientUserId) return;
 
-  let user: { email: string; quietHoursStart: number | null; quietHoursEnd: number | null } | null;
+  let user: { email: string | null; quietHoursStart: number | null; quietHoursEnd: number | null } | null;
   let prefRow: ChannelPrefs | null = null;
   try {
     user = await prisma.user.findUnique({

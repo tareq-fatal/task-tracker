@@ -1,13 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { userSchema } from "@/lib/validation";
 
-export type UserFormState = { error?: string };
+export type UserFormState = { error?: string; tempPassword?: string; createdUsername?: string };
+
+/** A readable temporary password, e.g. "Task-7f3a9c". */
+function generateTempPassword(): string {
+  return `Task-${randomBytes(4).toString("hex")}`;
+}
 
 export async function createUserAction(
   _prev: UserFormState,
@@ -27,13 +33,14 @@ export async function createUserAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
   const d = parsed.data;
+  const email = d.email ? d.email.toLowerCase() : null; // #31 — optional
 
-  // username is globally unique; email is unique within the tenant.
+  // username is globally unique; email (when given) is unique within the tenant.
   const clash = await prisma.user.findFirst({
     where: {
       OR: [
         { username: d.username.toLowerCase() },
-        { email: d.email.toLowerCase(), tenantId: tenant.id },
+        ...(email ? [{ email, tenantId: tenant.id }] : []),
       ],
     },
   });
@@ -43,19 +50,25 @@ export async function createUserAction(
   // (BackendAdmin / legacy SuperAdmin) is never assignable via this form.
   const role = d.role === "BackendAdmin" ? "User" : d.role;
 
+  // #31 — no password given → generate a temporary one the admin hands over;
+  // the account is flagged to force a change on next login.
+  const tempPassword = d.password ? undefined : generateTempPassword();
+  const password = d.password || tempPassword!;
+
   await prisma.user.create({
     data: {
       name: d.name,
       username: d.username.toLowerCase(),
-      email: d.email.toLowerCase(),
-      passwordHash: await hashPassword(d.password),
+      email,
+      passwordHash: await hashPassword(password),
+      mustChangePassword: Boolean(tempPassword),
       role,
       tenantId: tenant.id,
     },
   });
 
   revalidatePath("/admin/users");
-  return {};
+  return tempPassword ? { tempPassword, createdUsername: d.username.toLowerCase() } : {};
 }
 
 export async function deleteUserAction(userId: string): Promise<void> {

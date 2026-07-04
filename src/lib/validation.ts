@@ -78,8 +78,10 @@ export const userSchema = z.object({
     .min(3)
     .max(40)
     .regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, . _ -"),
-  email: z.string().trim().email(),
-  password: z.string().min(6, "At least 6 characters"),
+  // #31 — email optional (empty = no email); password optional (empty = generate
+  // a temporary one). Both accept "" so the form can omit them.
+  email: z.union([z.literal(""), z.string().trim().email()]).default(""),
+  password: z.union([z.literal(""), z.string().min(6, "At least 6 characters")]).default(""),
   role: z.enum(ROLES).default("User"),
 });
 

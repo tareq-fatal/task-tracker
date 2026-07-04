@@ -63,11 +63,12 @@ export type SessionUser = {
   id: string;
   name: string;
   username: string;
-  email: string;
+  email: string | null; // #31 — optional
   role: Role;
   avatar: string | null;
   locale: string;
   hasSeenTour: boolean;
+  mustChangePassword: boolean;
   tenantId: string;
   tenantSlug: string;
 };
@@ -104,6 +105,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     avatar: u.avatar,
     locale: u.locale,
     hasSeenTour: u.hasSeenTour,
+    mustChangePassword: u.mustChangePassword,
     tenantId: u.tenantId,
     tenantSlug: u.tenant.slug,
   };

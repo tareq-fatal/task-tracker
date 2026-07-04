@@ -11,7 +11,7 @@ export function UserDetailHeader({
   user,
   labels,
 }: {
-  user: { id: string; name: string; email: string; role: string };
+  user: { id: string; name: string; email: string | null; role: string };
   labels: { back: string; tasks: string; performance: string };
 }) {
   return (
@@ -39,7 +39,7 @@ export function UserDetailHeader({
           </div>
           <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
             <Mail className="h-3.5 w-3.5" />
-            {user.email}
+            {user.email ?? "—"}
           </p>
         </div>
       </div>

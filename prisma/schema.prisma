@@ -104,8 +104,9 @@ model User {
   id           String   @id @default(cuid())
   name         String
   username     String   @unique // login id — globally unique (unambiguous login)
-  email        String // unique per tenant (see @@unique below)
+  email        String? // #31 — optional (users can be created without an email)
   passwordHash String
+  mustChangePassword Boolean @default(false) // #31 — set for temp-password accounts
   role         String   @default("User") // "SuperAdmin" | "Admin" | "User"
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
@@ -402,6 +403,9 @@ model Task {
   assignedToUserId String?
   assignedTo       User?   @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   assignees        TaskAssignee[]
+
+  // #24 — admin support: when set, the task is flagged as escalated (needs help).
+  escalatedAt DateTime?
 
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])

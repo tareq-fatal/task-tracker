@@ -21,11 +21,12 @@ export async function updateSettingsAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
 
-  const data: { locale: string; passwordHash?: string } = {
+  const data: { locale: string; passwordHash?: string; mustChangePassword?: boolean } = {
     locale: parsed.data.locale,
   };
   if (parsed.data.newPassword) {
     data.passwordHash = await hashPassword(parsed.data.newPassword);
+    data.mustChangePassword = false; // #31 — clear the temp-password flag
   }
 
   await prisma.user.update({ where: { id: user.id }, data });
