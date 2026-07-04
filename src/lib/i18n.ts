@@ -462,6 +462,10 @@ export const dictionaries = {
     "settings.save": "حفظ",
     "settings.saved": "تم الحفظ",
     "settings.notifications": "الإشعارات",
+    "settings.theme": "المظهر",
+    "theme.light": "فاتح",
+    "theme.dark": "داكن",
+    "theme.system": "النظام",
     "settings.enablePush": "تفعيل إشعارات المتصفح",
     "settings.pushUnsupported": "الإشعارات غير مدعومة في هذه البيئة",
 
@@ -1031,6 +1035,10 @@ export const dictionaries = {
     "settings.save": "Speichern",
     "settings.saved": "Gespeichert",
     "settings.notifications": "Benachrichtigungen",
+    "settings.theme": "Design",
+    "theme.light": "Hell",
+    "theme.dark": "Dunkel",
+    "theme.system": "System",
     "settings.enablePush": "Push-Benachrichtigungen aktivieren",
     "settings.pushUnsupported": "Push wird in dieser Umgebung nicht unterstützt",
 
@@ -1600,6 +1608,10 @@ export const dictionaries = {
     "settings.save": "Save",
     "settings.saved": "Saved",
     "settings.notifications": "Notifications",
+    "settings.theme": "Theme",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+    "theme.system": "System",
     "settings.enablePush": "Enable push notifications",
     "settings.pushUnsupported": "Push is not supported in this environment",
 

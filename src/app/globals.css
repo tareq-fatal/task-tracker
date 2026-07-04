@@ -46,6 +46,33 @@
     --brand-via: 292 84% 61%; /* fuchsia */
     --brand-to: 330 81% 60%; /* pink */
   }
+
+  /* Dark theme — real tokens (not just an inverse). Applied via .dark on <html>. */
+  .dark {
+    color-scheme: dark;
+    --background: 222 30% 8%;
+    --foreground: 240 20% 92%;
+    --card: 222 26% 11%;
+    --card-foreground: 240 20% 92%;
+    --popover: 222 26% 11%;
+    --popover-foreground: 240 20% 92%;
+    --primary: 243 80% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 240 20% 92%;
+    --muted: 222 20% 18%;
+    --muted-foreground: 240 12% 66%;
+    --accent: 160 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 347 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 16% 22%;
+    --input: 222 16% 22%;
+    --ring: 243 80% 68%;
+    --brand-from: 243 80% 66%;
+    --brand-via: 292 80% 64%;
+    --brand-to: 330 78% 62%;
+  }
 }
 
 @layer base {

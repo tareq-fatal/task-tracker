@@ -11,7 +11,7 @@ test("login page shows the Android app download link", async ({ page }) => {
 test("settings shows the mobile-app download button (any user)", async ({
   page,
 }) => {
-  await login(page, "alice", "Demo-2026!", "de");
+  await login(page, "admin", "Admin-2026!", "de");
   await page.goto("/settings");
   await expect(page.getByText("Mobile-App")).toBeVisible();
   const dl = page.getByRole("link", { name: /APK herunterladen/ });

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { login } from "./helpers";
 
 test("user can (re)start the welcome tour and skip it", async ({ page }) => {
-  await login(page, "charlie", "Demo-2026!", "de");
+  await login(page, "admin", "Admin-2026!", "de"); // restart-tour lives in admin settings now (#21)
 
   // Deterministic: restart the intro from settings, then it runs on the dashboard
   await page.goto("/settings");

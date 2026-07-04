@@ -25,27 +25,30 @@ function Submit({ label }: { label: string }) {
   );
 }
 
-export function SettingsForm({ locale }: { locale: string }) {
+export function SettingsForm({ locale, minimal = false }: { locale: string; minimal?: boolean }) {
   const { t } = useT();
   const [state, formAction] = useFormState(updateSettingsAction, {});
 
   return (
     <form action={formAction} className="space-y-5">
-      <div className="space-y-2">
-        <Label htmlFor="locale">{t("settings.language")}</Label>
-        <select
-          id="locale"
-          name="locale"
-          defaultValue={locale}
-          className={selectClass}
-        >
-          {LOCALES.map((l) => (
-            <option key={l} value={l}>
-              {LOCALE_LABELS[l]}
-            </option>
-          ))}
-        </select>
-      </div>
+      {minimal && <input type="hidden" name="locale" value={locale} />}
+      {!minimal && (
+        <div className="space-y-2">
+          <Label htmlFor="locale">{t("settings.language")}</Label>
+          <select
+            id="locale"
+            name="locale"
+            defaultValue={locale}
+            className={selectClass}
+          >
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_LABELS[l]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="newPassword">{t("settings.newPassword")}</Label>

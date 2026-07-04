@@ -56,6 +56,15 @@ export default function RootLayout({
       className={`${inter.variable} ${cairo.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Apply the saved theme before paint (no flash). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();",
+          }}
+        />
+      </head>
       <body className={`min-h-screen antialiased ${fontClass}`}>{children}</body>
     </html>
   );

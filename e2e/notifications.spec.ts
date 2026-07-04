@@ -8,7 +8,7 @@ test("notification bell is in the header", async ({ page }) => {
 });
 
 test("settings has the notification preferences matrix", async ({ page }) => {
-  await login(page, "alice", "Demo-2026!", "de");
+  await login(page, "admin", "Admin-2026!", "de");
   await page.goto("/settings");
   await expect(page.getByText("Benachrichtigungs-Einstellungen")).toBeVisible();
   // a channel column + an event row + quiet-hours/digest controls
