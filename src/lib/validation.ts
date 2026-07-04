@@ -98,11 +98,21 @@ export const settingsSchema = z.object({
     }),
 });
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 export const ALLOWED_MIME = [
   "image/png",
   "image/jpeg",
   "image/gif",
   "image/webp",
   "application/pdf",
+  // Office documents (Tarek uploads DOCX/XLSX)
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+  "text/plain",
+  "text/csv",
+  "application/zip",
 ];

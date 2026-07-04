@@ -54,6 +54,7 @@ export function TaskForm({
   defaults,
   submitLabel,
   canAssign = true,
+  isEdit = false,
 }: {
   action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>;
   users: Option[];
@@ -63,6 +64,7 @@ export function TaskForm({
   defaults?: TaskDefaults;
   submitLabel: string;
   canAssign?: boolean;
+  isEdit?: boolean;
 }) {
   const { t } = useT();
   const [state, formAction] = useFormState(action, {});
@@ -240,25 +242,29 @@ export function TaskForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="estimatedHours">{t("task.estimated")}</Label>
+          <Label htmlFor="estimatedHours">{t("task.planned")}</Label>
           <Input
             id="estimatedHours"
             name="estimatedHours"
             defaultValue={d.estimatedHours ?? ""}
-            placeholder="4h"
+            placeholder="2h30m"
           />
           <p className="text-xs text-muted-foreground">{t("task.timeHint")}</p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="spentHours">{t("task.spent")}</Label>
-          <Input
-            id="spentHours"
-            name="spentHours"
-            defaultValue={d.spentHours ?? ""}
-            placeholder="2h"
-          />
-        </div>
+        {/* "Spent" (actual) time only when editing — it's auto-tracked by the timer,
+            never entered at creation. */}
+        {isEdit && (
+          <div className="space-y-2">
+            <Label htmlFor="spentHours">{t("task.spent")}</Label>
+            <Input
+              id="spentHours"
+              name="spentHours"
+              defaultValue={d.spentHours ?? ""}
+              placeholder="2h"
+            />
+          </div>
+        )}
       </div>
 
       {state.error && (

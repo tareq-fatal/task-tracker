@@ -147,7 +147,7 @@ export default async function TaskDetailPage({
               {t["common.edit"]}
             </Link>
           </Button>
-          {isAdminRole(user.role) && <DeleteTaskButton taskId={task.id} />}
+          {(isAdminRole(user.role) || task.createdByUserId === user.id) && <DeleteTaskButton taskId={task.id} />}
         </div>
       </div>
 
@@ -325,9 +325,8 @@ export default async function TaskDetailPage({
             {task.attachments.map((a) => (
               <a
                 key={a.id}
-                href={a.filePath}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/download/attachment/${a.id}`}
+                download={a.fileName}
                 className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
               >
                 {a.mimeType.startsWith("image/") ? (

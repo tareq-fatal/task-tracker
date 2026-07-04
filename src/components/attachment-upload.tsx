@@ -8,8 +8,8 @@ import { useT } from "@/components/i18n-provider";
 
 const ERRORS: Record<string, string> = {
   NO_FILE: "Keine Datei ausgewählt · No file selected",
-  TOO_LARGE: "Datei zu groß (max 5 MB) · File too large (max 5 MB)",
-  BAD_TYPE: "Nur Bilder & PDF · Images & PDF only",
+  TOO_LARGE: "Datei zu groß (max 10 MB) · File too large (max 10 MB)",
+  BAD_TYPE: "Bilder, PDF & Office · Images, PDF & Office",
 };
 
 export function AttachmentUpload({ taskId }: { taskId: string }) {
@@ -36,7 +36,7 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
+        accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
         className="hidden"
         onChange={onChange}
       />

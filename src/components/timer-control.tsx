@@ -30,21 +30,25 @@ export function TimerControl({
 }) {
   const { t } = useT();
   const [pending, startTransition] = useTransition();
-  const running = Boolean(timerStartedAt);
-  const startMs = timerStartedAt ? new Date(timerStartedAt).getTime() : 0;
 
-  const [nowMs, setNowMs] = useState<number>(() =>
-    running ? startMs : 0
-  );
+  // Optimistic local state: respond to Start/Stop INSTANTLY, don't wait for the
+  // server round-trip + revalidation (that lag made the timer look broken).
+  const propStart = timerStartedAt ? new Date(timerStartedAt).getTime() : null;
+  const [localStart, setLocalStart] = useState<number | null>(propStart);
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
+  // keep in sync if the server prop changes (e.g. after navigation)
+  useEffect(() => { setLocalStart(propStart); }, [timerStartedAt]);
+
+  const running = localStart !== null;
   useEffect(() => {
     if (!running) return;
     setNowMs(Date.now());
     const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [running, startMs]);
+  }, [running, localStart]);
 
-  const runningSeconds = running ? Math.max(0, (nowMs - startMs) / 1000) : 0;
+  const runningSeconds = running ? Math.max(0, (nowMs - localStart!) / 1000) : 0;
   const liveSpent = spentHours + runningSeconds / 3600;
 
   return (
@@ -78,11 +82,10 @@ export function TimerControl({
           size="sm"
           variant="destructive"
           disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              await stopTimerAction(taskId);
-            })
-          }
+          onClick={() => {
+            setLocalStart(null); // optimistic stop
+            startTransition(async () => { await stopTimerAction(taskId); });
+          }}
         >
           <Square className="me-1 h-4 w-4" />
           {t("task.stopTimer")}
@@ -92,11 +95,10 @@ export function TimerControl({
           type="button"
           size="sm"
           disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              await startTimerAction(taskId);
-            })
-          }
+          onClick={() => {
+            setLocalStart(Date.now()); // optimistic start
+            startTransition(async () => { await startTimerAction(taskId); });
+          }}
         >
           <Play className="me-1 h-4 w-4" />
           {t("task.startTimer")}

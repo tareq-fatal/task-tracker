@@ -55,6 +55,7 @@ export default async function EditTaskPage({
         teams={teams}
         parents={parents}
         canAssign={isAdminRole(user.role)}
+        isEdit
         defaults={{
           title: task.title,
           description: task.description ?? "",

@@ -407,11 +407,11 @@ export async function updateTaskStatusAction(
 
 export async function deleteTaskAction(taskId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
-  // Only admins (Mandant-Admin / Backend-Admin) may delete. Hard-fail otherwise.
-  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
-  // still tenant-scoped: never delete another tenant's task
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true } });
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true, createdByUserId: true } });
   if (!task || task.tenantId !== tenant.id) throw new Error("NOT_FOUND");
+  // Admins may delete any task; regular users only tasks THEY created (not ones
+  // an admin assigned to them). Hard-fail otherwise.
+  if (!isAdminRole(user.role) && task.createdByUserId !== user.id) throw new Error("FORBIDDEN");
   await prisma.task.delete({ where: { id: taskId } });
   revalidatePath("/");
   revalidatePath("/board");
@@ -657,15 +657,18 @@ export async function addTaskLinkAction(
   type: string
 ): Promise<{ ok: boolean; error?: string }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEdit(taskId, user, tenant.id);
   if (!isTaskLinkType(type)) return { ok: false, error: "TYPE" };
   if (!linkedTaskId || linkedTaskId === taskId) {
     return { ok: false, error: "SELF" };
   }
-  const target = await prisma.task.findUnique({ where: { id: linkedTaskId } });
-  if (!target || target.tenantId !== tenant.id) {
+  const source = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true, createdByUserId: true } });
+  const target = await prisma.task.findUnique({ where: { id: linkedTaskId }, select: { tenantId: true, createdByUserId: true } });
+  if (!source || source.tenantId !== tenant.id || !target || target.tenantId !== tenant.id) {
     return { ok: false, error: "NOT_FOUND" };
   }
+  // Linking is admin-only, EXCEPT a user may link two of their OWN tasks.
+  const canLink = isAdminRole(user.role) || (source.createdByUserId === user.id && target.createdByUserId === user.id);
+  if (!canLink) return { ok: false, error: "FORBIDDEN" };
 
   await prisma.taskLink
     .create({ data: { taskId, linkedTaskId, type } })
@@ -679,9 +682,9 @@ export async function removeTaskLinkAction(
   linkId: string
 ): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
-  const link = await prisma.taskLink.findUnique({ where: { id: linkId } });
-  if (!link) return { ok: false };
-  await assertCanEdit(link.taskId, user, tenant.id);
+  const link = await prisma.taskLink.findUnique({ where: { id: linkId }, include: { task: { select: { tenantId: true, createdByUserId: true } } } });
+  if (!link || link.task.tenantId !== tenant.id) return { ok: false };
+  if (!isAdminRole(user.role) && link.task.createdByUserId !== user.id) return { ok: false };
   await prisma.taskLink.delete({ where: { id: linkId } });
   revalidateTaskViews(link.taskId);
   return { ok: true };
