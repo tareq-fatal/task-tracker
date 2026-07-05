@@ -16,7 +16,7 @@ import {
   ALLOWED_MIME,
 } from "@/lib/validation";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
-import { canEditTaskContent } from "@/lib/task-access";
+import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { applyAutomations } from "@/lib/automation-run";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
@@ -781,6 +781,22 @@ export async function stopTimerAction(
   await notifyAdminsOfChange(user, task, "Timer gestoppt");
   revalidateTaskViews(taskId);
   return { ok: true };
+}
+
+/** G+T shortcut: the visible task whose timer is currently running.
+ *  Prefers the caller's own assigned task when several timers run. */
+export async function findRunningTimerTaskAction(): Promise<{ id: string } | null> {
+  const { user, tenant } = await requireTenant();
+  const base = await taskVisibility(user, tenant.id);
+  const running = await prisma.task.findMany({
+    where: { ...base, timerStartedAt: { not: null } },
+    select: { id: true, assignedToUserId: true, timerStartedAt: true },
+    orderBy: { timerStartedAt: "desc" },
+    take: 10,
+  });
+  if (running.length === 0) return null;
+  const own = running.find((r) => r.assignedToUserId === user.id);
+  return { id: (own ?? running[0]).id };
 }
 
 /* ------------------------------------------------------------------ */
