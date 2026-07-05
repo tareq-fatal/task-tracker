@@ -62,7 +62,15 @@ test("Ctrl+K opens the palette", async ({ page }) => {
 
 test("non-admin sees no People section", async ({ page }) => {
   await login(page, "alice", "Demo-2026!", "de");
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
+
+  // a fresh demo user gets the joyride intro — dismiss it so its overlay
+  // can't swallow the header click
+  const skip = page.getByRole("button", { name: "Überspringen" });
+  if (await skip.count()) {
+    await skip.click();
+    await expect(page.locator(".react-joyride__overlay")).toHaveCount(0);
+  }
 
   await openPalette(page);
   await page.getByPlaceholder(INPUT).fill("admin");
