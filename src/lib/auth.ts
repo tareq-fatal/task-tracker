@@ -68,6 +68,7 @@ export type SessionUser = {
   avatar: string | null;
   locale: string;
   hasSeenTour: boolean;
+  onboardedAt: Date | null;
   mustChangePassword: boolean;
   tenantId: string;
   tenantSlug: string;
@@ -105,6 +106,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     avatar: u.avatar,
     locale: u.locale,
     hasSeenTour: u.hasSeenTour,
+    onboardedAt: u.onboardedAt,
     mustChangePassword: u.mustChangePassword,
     tenantId: u.tenantId,
     tenantSlug: u.tenant.slug,
