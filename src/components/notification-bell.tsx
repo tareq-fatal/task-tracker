@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
+import { useRealtime } from "@/components/realtime-provider";
 import {
   getNotifications,
   markAllReadAction,
@@ -14,6 +15,7 @@ import {
 
 export function NotificationBell() {
   const { t } = useT();
+  const { subscribe, syncTick } = useRealtime();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
@@ -41,6 +43,16 @@ export function NotificationBell() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
+
+  // Realtime: SSE push → instant refresh (poll above stays as fallback).
+  useEffect(() => {
+    return subscribe("notification", () => refresh());
+  }, [subscribe]);
+
+  // After a reconnect, catch up on anything missed while offline.
+  useEffect(() => {
+    if (syncTick > 0) refresh();
+  }, [syncTick]);
 
   // close on outside click
   useEffect(() => {

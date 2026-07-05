@@ -6,8 +6,19 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === "development",
+  // Custom entries below are checked BEFORE the plugin's default cache rules.
+  extendDefaultRuntimeCaching: true,
   workboxOptions: {
     disableDevLogs: true,
+    runtimeCaching: [
+      // The realtime SSE stream (and its cursor uplink) must NEVER be touched
+      // by the service worker: caching an infinite event-stream buffers it
+      // forever and breaks EventSource reconnects.
+      {
+        urlPattern: ({ url }) => url.pathname.startsWith("/api/realtime"),
+        handler: "NetworkOnly",
+      },
+    ],
   },
 });
 

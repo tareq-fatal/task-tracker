@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -17,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { BOARD_STATUSES, type TaskStatus } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
+import { useTaskChangeRefresh } from "@/components/realtime-provider";
 import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
@@ -107,6 +109,7 @@ function Column({
 
 export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
   const { t } = useT();
+  const router = useRouter();
   const [tasks, setTasks] = useState<BoardTask[]>(initialTasks);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeCol, setActiveCol] = useState(0);
@@ -116,6 +119,11 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
 
   // keep optimistic state in sync if the server data changes
   useEffect(() => setTasks(initialTasks), [initialTasks]);
+
+  // Live board: any task change in the tenant re-fetches the server data
+  // (updates `initialTasks` → synced above). Paused mid-drag so a colleague's
+  // change can't yank the card out from under the pointer.
+  useTaskChangeRefresh(() => router.refresh(), activeId !== null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),

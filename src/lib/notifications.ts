@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "./prisma";
 import { notifyUser as webPush } from "./push";
 import { sendEmail, basicEmailTemplate } from "./email";
+import { publishNotification } from "./realtime";
 import {
   defaultPrefs,
   resolveChannels,
@@ -61,6 +62,8 @@ export async function notify(input: NotifyInput): Promise<void> {
         },
       })
       .catch(() => {});
+    // realtime: nudge the recipient's open tabs to refresh their bell
+    publishNotification(input.tenantId, [input.recipientUserId]);
   }
   if (ch.webPush) {
     await webPush(input.recipientUserId, { title: input.title, body: input.body ?? "", url: input.url });

@@ -39,6 +39,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
+import { PresenceIndicator } from "@/components/presence-indicator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -282,6 +283,7 @@ export function AppShell({
                   {t("nav.newTask")}
                 </Link>
               </Button>
+              <PresenceIndicator selfId={user.id} />
               <NotificationBell />
               <LocaleSwitcher current={locale} />
               <Link

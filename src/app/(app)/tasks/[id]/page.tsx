@@ -15,6 +15,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
+import { LiveCursors } from "@/components/live-cursors";
 import { Check, CheckCheck } from "lucide-react";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
@@ -153,6 +154,8 @@ export default async function TaskDetailPage({
 
   return (
     <div className="container max-w-3xl py-6">
+      {/* Realtime co-viewing: show other users' cursors on this task */}
+      <LiveCursors room={`task:${task.id}`} />
       <Link
         href="/"
         className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"

@@ -626,6 +626,7 @@ export const dictionaries = {
     "time.daysLeft": "متبقٍ {n} يوم",
     "time.overdueBy": "متأخرة {n} يوم",
     "time.doneAgo": "اكتمل قبل {ago}",
+    "presence.count": "{n} متصل الآن",
   },
   de: {
     "app.name": "Task Tracker",
@@ -1252,6 +1253,7 @@ export const dictionaries = {
     "time.daysLeft": "noch {n} Tage",
     "time.overdueBy": "{n} Tage überfällig",
     "time.doneAgo": "Erledigt vor {ago}",
+    "presence.count": "{n} online",
   },
   en: {
     "app.name": "Task Tracker",
@@ -1878,6 +1880,7 @@ export const dictionaries = {
     "time.daysLeft": "{n} days left",
     "time.overdueBy": "{n} days overdue",
     "time.doneAgo": "Done {ago} ago",
+    "presence.count": "{n} online",
   },
 };
 

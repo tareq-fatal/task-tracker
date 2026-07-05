@@ -22,6 +22,7 @@ import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
+import { publishTaskChanged } from "@/lib/realtime";
 import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
 import { isBlockedByOpenDeps } from "@/lib/task-links";
 import {
@@ -173,11 +174,16 @@ async function hierarchyFromForm(
   return { type, parentId, storyPoints };
 }
 
-function revalidateTaskViews(taskId?: string) {
+function revalidateTaskViews(
+  taskId?: string,
+  live?: { tenantId: string; actorUserId?: string }
+) {
   revalidatePath("/");
   revalidatePath("/board");
   revalidatePath("/admin/tasks");
   if (taskId) revalidatePath(`/tasks/${taskId}`);
+  // Push to every open tab of the tenant (SSE) so views update without reload.
+  if (taskId && live) publishTaskChanged(live.tenantId, taskId, live.actorUserId);
 }
 
 /** Recompute a task's progress from its subtasks (no-op when none exist). */
@@ -313,6 +319,7 @@ export async function createTaskAction(
 
   revalidatePath("/");
   revalidatePath("/board");
+  publishTaskChanged(tenant.id, task.id, user.id);
   redirect(`/tasks/${task.id}`);
 }
 
@@ -417,6 +424,7 @@ export async function updateTaskAction(
   revalidatePath("/");
   revalidatePath("/board");
   revalidatePath(`/tasks/${taskId}`);
+  publishTaskChanged(tenant.id, taskId, user.id);
   redirect(`/tasks/${taskId}`);
 }
 
@@ -458,7 +466,7 @@ export async function setTaskDueDateAction(
   await assertCanEditContent(taskId, user, tenant.id); // #36 due date = content
   const dueDate = dateStr ? new Date(dateStr + "T00:00:00Z") : null;
   await prisma.task.update({ where: { id: taskId }, data: { dueDate } });
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   revalidatePath("/views");
   return { ok: true };
 }
@@ -496,7 +504,7 @@ export async function updateTaskStatusAction(
   await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -512,7 +520,7 @@ export async function changeCreatorAction(taskId: string, newCreatorId: string):
 
   await prisma.task.update({ where: { id: taskId }, data: { createdByUserId: newCreatorId } });
   await logActivity(taskId, user.id, "creator_changed", `${task.createdBy.name} → ${newCreator.name}`);
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -526,6 +534,7 @@ export async function deleteTaskAction(taskId: string): Promise<void> {
   await prisma.task.delete({ where: { id: taskId } });
   revalidatePath("/");
   revalidatePath("/board");
+  publishTaskChanged(tenant.id, taskId, user.id);
   redirect("/");
 }
 
@@ -586,6 +595,7 @@ export async function addCommentAction(
   }
 
   revalidatePath(`/tasks/${taskId}`);
+  publishTaskChanged(tenant.id, taskId, user.id);
   return {};
 }
 
@@ -645,6 +655,7 @@ export async function uploadAttachmentAction(
   await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${file.name}`);
 
   revalidatePath(`/tasks/${taskId}`);
+  publishTaskChanged(tenant.id, taskId, user.id);
   return {};
 }
 
@@ -672,7 +683,7 @@ export async function updateTaskProgressAction(
     data: { progress: value },
   });
 
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -705,7 +716,7 @@ export async function addSubtaskAction(
   });
 
   await recomputeTaskProgress(taskId);
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return {};
 }
 
@@ -723,7 +734,7 @@ export async function toggleSubtaskAction(
   });
 
   await recomputeTaskProgress(sub.taskId);
-  revalidateTaskViews(sub.taskId);
+  revalidateTaskViews(sub.taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -737,7 +748,7 @@ export async function deleteSubtaskAction(
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   await recomputeTaskProgress(sub.taskId);
-  revalidateTaskViews(sub.taskId);
+  revalidateTaskViews(sub.taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -758,7 +769,7 @@ export async function startTimerAction(
   });
   await logActivity(taskId, user.id, "timer", "Timer gestartet");
   await notifyAdminsOfChange(user, task, "Timer gestartet");
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -779,7 +790,7 @@ export async function stopTimerAction(
   });
   await logActivity(taskId, user.id, "timer", "Timer gestoppt");
   await notifyAdminsOfChange(user, task, "Timer gestoppt");
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -810,7 +821,7 @@ export async function addTaskLinkAction(
     .create({ data: { taskId, linkedTaskId, type } })
     .catch(() => {}); // ignore duplicate (unique constraint)
 
-  revalidateTaskViews(taskId);
+  revalidateTaskViews(taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }
 
@@ -822,6 +833,6 @@ export async function removeTaskLinkAction(
   if (!link || link.task.tenantId !== tenant.id) return { ok: false };
   if (!isAdminRole(user.role) && link.task.createdByUserId !== user.id) return { ok: false };
   await prisma.taskLink.delete({ where: { id: linkId } });
-  revalidateTaskViews(link.taskId);
+  revalidateTaskViews(link.taskId, { tenantId: tenant.id, actorUserId: user.id });
   return { ok: true };
 }

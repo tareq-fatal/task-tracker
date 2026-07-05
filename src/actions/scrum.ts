@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { isScrumColumn, statusForColumn } from "@/lib/scrum";
+import { publishTaskChanged } from "@/lib/realtime";
 
 /** Move a card into a scrum column (drag&drop); keeps `status` coherent. */
 export async function setTaskScrumColumnAction(
@@ -38,5 +39,6 @@ export async function setTaskScrumColumnAction(
 
   revalidatePath("/views");
   revalidatePath("/board");
+  publishTaskChanged(tenant.id, taskId, user.id);
   return { ok: true };
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole, isTaskStatus } from "@/lib/enums";
+import { publishTaskChanged } from "@/lib/realtime";
 
 export type BulkResult = { ok: boolean; count: number; error?: string };
 
@@ -31,6 +32,8 @@ export async function bulkSetStatusAction(ids: string[], status: string): Promis
   });
   revalidatePath("/list");
   revalidatePath("/board");
+  // one event per task; client refreshes are debounced into a single refetch
+  for (const id of allowed) publishTaskChanged(tenant.id, id, user.id);
   return { ok: true, count: allowed.length };
 }
 
@@ -42,5 +45,6 @@ export async function bulkDeleteAction(ids: string[]): Promise<BulkResult> {
   const res = await prisma.task.deleteMany({ where: { id: { in: allowed }, tenantId: tenant.id } });
   revalidatePath("/list");
   revalidatePath("/board");
+  for (const id of allowed) publishTaskChanged(tenant.id, id, user.id);
   return { ok: true, count: res.count };
 }

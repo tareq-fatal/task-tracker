@@ -4,6 +4,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
+import { RealtimeProvider } from "@/components/realtime-provider";
 import { AppShell } from "@/components/app-shell";
 import { WelcomeTour } from "@/components/welcome-tour";
 import { UpdatePrompt } from "@/components/update-prompt";
@@ -27,16 +28,18 @@ export default async function AppLayout({
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
-        <AppShell
-          user={user}
-          locale={locale}
-          tenant={tenant}
-          tenants={tenants}
-        >
-          {children}
-        </AppShell>
-        <WelcomeTour run={!user.hasSeenTour} role={user.role} />
-        <UpdatePrompt />
+        <RealtimeProvider>
+          <AppShell
+            user={user}
+            locale={locale}
+            tenant={tenant}
+            tenants={tenants}
+          >
+            {children}
+          </AppShell>
+          <WelcomeTour run={!user.hasSeenTour} role={user.role} />
+          <UpdatePrompt />
+        </RealtimeProvider>
       </ToastProvider>
     </I18nProvider>
   );
