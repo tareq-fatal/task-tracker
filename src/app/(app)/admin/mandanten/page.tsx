@@ -5,6 +5,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { getTenants } from "@/actions/tenants";
 import { TenantWizard } from "@/components/tenant-wizard";
+import { DeleteTenantButton } from "@/components/delete-tenant-button";
 
 export default async function TenantsPage() {
   const { user } = await requireTenant();
@@ -26,6 +27,7 @@ export default async function TenantsPage() {
             <span className="ms-auto text-xs text-muted-foreground">
               {tn.users} {t["tenants.users"]} · {tn.projects} {t["tenants.projects"]} · {tn.tasks} {t["tenants.tasks"]}
             </span>
+            <DeleteTenantButton tenantId={tn.id} tenantName={tn.name} ownTenantId={user.tenantId} />
           </li>
         ))}
       </ul>
