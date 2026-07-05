@@ -86,7 +86,7 @@ export function NewUserDialog() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("admin.users.email")}</Label>
             <Input id="email" name="email" type="email" placeholder={t("admin.users.optional")} />
           </div>
           <div className="space-y-2">

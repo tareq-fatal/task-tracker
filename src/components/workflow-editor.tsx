@@ -55,7 +55,7 @@ export function WorkflowEditor({ projectId, initial }: { projectId: string; init
                 onBlur={(e) => e.target.value.trim() && e.target.value !== c.name && run(() => updateColumnAction(c.id, { name: e.target.value }))} />
               <select defaultValue={c.status} title={t("workflow.wip")} className="h-8 rounded-md border bg-background px-1.5 text-xs"
                 onChange={(e) => run(() => updateColumnAction(c.id, { status: e.target.value }))}>
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s}` as never)}</option>)}
               </select>
               <label className="flex items-center gap-1 text-xs" title={t("workflow.wip")}>
                 WIP

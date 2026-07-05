@@ -13,13 +13,13 @@ test("admin can add and remove a project member", async ({ page }) => {
   // the admin-only members panel is present
   await expect(page.getByRole("heading", { name: "Projekt-Mitglieder" })).toBeVisible();
 
-  // pick bob from the candidate picker (by its @username in the option text)
+  // pick bob from the candidate picker (by its @username in the option text).
+  // count() first so a missing option skips instantly instead of hanging 30s
+  // (bob may already be a member from a prior run against the persistent dev DB).
   const picker = page.getByLabel("Mitglied hinzufügen");
-  const bobValue = await page
-    .locator("select option", { hasText: "@bob" })
-    .first()
-    .getAttribute("value");
-  test.skip(!bobValue, "bob already a member — nothing to add");
+  const bobOption = page.locator("select option", { hasText: "@bob" });
+  test.skip((await bobOption.count()) === 0, "bob already a member — nothing to add");
+  const bobValue = await bobOption.first().getAttribute("value");
   await picker.selectOption(bobValue!);
   await page.getByRole("button", { name: "Hinzufügen" }).click();
 
