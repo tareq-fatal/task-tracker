@@ -362,6 +362,7 @@ export default async function TaskDetailPage({
           </h2>
           <TimeTracking
             taskId={task.id}
+            taskTitle={task.title}
             runningOnThisTask={runningOnThisTask}
             totalMinutes={timeTotal}
             entries={task.timeEntries.map((e) => ({
@@ -371,6 +372,8 @@ export default async function TaskDetailPage({
               startedAt: e.startedAt.toISOString(),
               endedAt: e.endedAt?.toISOString() ?? null,
               note: e.note,
+              billable: e.billable,
+              source: e.source,
             }))}
           />
         </CardContent>

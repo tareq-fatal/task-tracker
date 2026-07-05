@@ -30,13 +30,16 @@ export async function getRunningEntry(): Promise<RunningEntry> {
   return e ? { id: e.id, taskId: e.taskId, taskTitle: e.task.title, startedAt: e.startedAt.toISOString() } : null;
 }
 
-export async function startTimerAction(taskId: string): Promise<{ ok: boolean }> {
+export async function startTimerAction(
+  taskId: string,
+  source: "timer" | "pomodoro" = "timer"
+): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
   await taskInTenant(taskId, tenant.id);
   // stop any other running entry for this user first (one timer at a time)
   await stopTimerAction();
   await prisma.taskTimeEntry.create({
-    data: { taskId, userId: user.id, tenantId: tenant.id, startedAt: new Date(), endedAt: null },
+    data: { taskId, userId: user.id, tenantId: tenant.id, startedAt: new Date(), endedAt: null, source },
   });
   revalidatePath(`/tasks/${taskId}`);
   revalidatePath("/", "layout");
@@ -44,12 +47,28 @@ export async function startTimerAction(taskId: string): Promise<{ ok: boolean }>
 }
 
 export async function stopTimerAction(): Promise<{ ok: boolean; minutes?: number }> {
+  return stopTimerAtAction(null);
+}
+
+/**
+ * Stop the running timer, optionally at an earlier moment (idle detection passes
+ * the last-activity time so unattended minutes are not billed). The end time is
+ * clamped to [startedAt, now].
+ */
+export async function stopTimerAtAction(endedAtIso: string | null): Promise<{ ok: boolean; minutes?: number }> {
   const { user } = await requireTenant();
   const running = await prisma.taskTimeEntry.findFirst({ where: { userId: user.id, endedAt: null } });
   if (!running) return { ok: true };
   const now = new Date();
-  const minutes = elapsedMinutes(running.startedAt, now);
-  await prisma.taskTimeEntry.update({ where: { id: running.id }, data: { endedAt: now, minutes } });
+  let end = now;
+  if (endedAtIso) {
+    const requested = new Date(endedAtIso);
+    if (!Number.isNaN(requested.getTime())) {
+      end = new Date(Math.min(now.getTime(), Math.max(running.startedAt.getTime(), requested.getTime())));
+    }
+  }
+  const minutes = elapsedMinutes(running.startedAt, end);
+  await prisma.taskTimeEntry.update({ where: { id: running.id }, data: { endedAt: end, minutes } });
   await bumpSpentHours(running.taskId, minutes);
   revalidatePath(`/tasks/${running.taskId}`);
   revalidatePath("/", "layout");
@@ -68,6 +87,7 @@ export async function addManualTimeAction(
   const minutes = parseDurationToMinutes(formData.get("duration")?.toString() ?? "");
   if (!minutes || minutes <= 0) return { error: "DURATION" };
   const note = formData.get("note")?.toString().trim() || null;
+  const billable = formData.get("billable") !== null;
   const now = new Date();
   await prisma.taskTimeEntry.create({
     data: {
@@ -78,10 +98,25 @@ export async function addManualTimeAction(
       endedAt: now,
       minutes,
       note,
+      billable,
+      source: "manual",
     },
   });
   await bumpSpentHours(taskId, minutes);
   revalidatePath(`/tasks/${taskId}`);
+  return { ok: true };
+}
+
+/** Flip billable/non-billable on an entry (owner or admin). */
+export async function toggleBillableAction(id: string): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  const entry = await prisma.taskTimeEntry.findFirst({ where: { id, tenantId: tenant.id } });
+  if (!entry) return { ok: false };
+  if (entry.userId !== user.id && !isAdminRole(user.role)) return { ok: false };
+  await prisma.taskTimeEntry.update({ where: { id }, data: { billable: !entry.billable } });
+  revalidatePath(`/tasks/${entry.taskId}`);
+  revalidatePath("/time");
+  revalidatePath("/reports/time");
   return { ok: true };
 }
 

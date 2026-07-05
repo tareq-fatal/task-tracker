@@ -3,15 +3,19 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
-import { Play, Square, Trash2 } from "lucide-react";
+import { BadgeEuro, Play, Square, Trash2 } from "lucide-react";
 import {
   startTimerAction,
   stopTimerAction,
   addManualTimeAction,
   deleteTimeEntryAction,
+  toggleBillableAction,
   type TimeActionState,
 } from "@/actions/time";
 import { formatMinutes } from "@/lib/time-tracking";
+import { startPomodoro } from "@/lib/pomodoro";
+import { savePomodoro, requestNotifyPermission } from "@/components/pomodoro-store";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
@@ -23,6 +27,8 @@ export type TimeEntryView = {
   startedAt: string;
   endedAt: string | null;
   note: string | null;
+  billable: boolean;
+  source: string;
 };
 
 function AddBtn() {
@@ -33,11 +39,13 @@ function AddBtn() {
 
 export function TimeTracking({
   taskId,
+  taskTitle,
   entries,
   totalMinutes,
   runningOnThisTask,
 }: {
   taskId: string;
+  taskTitle: string;
   entries: TimeEntryView[];
   totalMinutes: number;
   runningOnThisTask: boolean;
@@ -60,13 +68,33 @@ export function TimeTracking({
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {runningOnThisTask ? (
-          <Button size="sm" variant="destructive" disabled={pending} onClick={() => act(() => stopTimerAction())}>
+          <Button size="sm" variant="destructive" disabled={pending} onClick={() => act(async () => {
+            savePomodoro(null); // a manual stop also ends a pomodoro session
+            await stopTimerAction();
+          })}>
             <Square className="me-1 h-4 w-4 fill-current" /> {t("time.stop")}
           </Button>
         ) : (
-          <Button size="sm" disabled={pending} onClick={() => act(() => startTimerAction(taskId))}>
-            <Play className="me-1 h-4 w-4" /> {t("time.start")}
-          </Button>
+          <>
+            <Button size="sm" disabled={pending} onClick={() => act(() => startTimerAction(taskId))}>
+              <Play className="me-1 h-4 w-4" /> {t("time.start")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              title={t("pomodoro.hint")}
+              onClick={() =>
+                act(async () => {
+                  requestNotifyPermission();
+                  await startTimerAction(taskId, "pomodoro");
+                  savePomodoro(startPomodoro(taskId, Date.now(), taskTitle));
+                })
+              }
+            >
+              <span className="me-1" aria-hidden>🍅</span> {t("pomodoro.start")}
+            </Button>
+          </>
         )}
         <span className="text-sm text-muted-foreground">
           {t("time.total")}: <span className="font-semibold text-foreground tabular-nums">{formatMinutes(totalMinutes)}</span>
@@ -76,6 +104,10 @@ export function TimeTracking({
       <form action={formAction} className="mb-3 flex flex-wrap items-end gap-2">
         <Input name="duration" placeholder={t("time.durationHint")} className="w-28" />
         <Input name="note" placeholder={t("time.note")} className="flex-1 min-w-40" />
+        <label className="flex h-9 items-center gap-1.5 text-sm text-muted-foreground">
+          <input type="checkbox" name="billable" defaultChecked className="h-4 w-4 accent-emerald-600" />
+          {t("time.billable")}
+        </label>
         <AddBtn />
         {state.error && <span className="text-xs text-destructive">{t("time.durationHint")}</span>}
       </form>
@@ -90,8 +122,20 @@ export function TimeTracking({
               <span className="tabular-nums text-indigo-600">
                 {e.endedAt ? formatMinutes(e.minutes) : t("time.running")}
               </span>
+              {e.source === "pomodoro" && <span title={t("pomodoro.title")}>🍅</span>}
               {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}
               <span className="ms-auto text-xs text-muted-foreground">{new Date(e.startedAt).toLocaleDateString()}</span>
+              <button
+                onClick={() => act(() => toggleBillableAction(e.id))}
+                title={e.billable ? t("time.billable") : t("time.nonBillable")}
+                aria-label={t("time.toggleBillable")}
+                className={cn(
+                  "transition-colors",
+                  e.billable ? "text-emerald-600 hover:text-emerald-700" : "text-muted-foreground/40 hover:text-muted-foreground"
+                )}
+              >
+                <BadgeEuro className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => act(() => deleteTimeEntryAction(e.id))}
                 className="text-muted-foreground hover:text-destructive"

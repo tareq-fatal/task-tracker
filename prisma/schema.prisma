@@ -531,6 +531,8 @@ model TaskTimeEntry {
   endedAt   DateTime? // null = running
   minutes   Int       @default(0) // computed on stop / set manually
   note      String?
+  billable  Boolean   @default(true) // invoiceable time (toggle per entry)
+  source    String    @default("timer") // timer | manual | pomodoro
   createdAt DateTime  @default(now())
 
   @@index([taskId])

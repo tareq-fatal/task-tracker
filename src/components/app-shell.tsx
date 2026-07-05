@@ -26,6 +26,8 @@ import {
   Plug,
   Sparkles,
   Activity,
+  Clock,
+  Timer,
   Settings,
   LogOut,
   Plus,
@@ -64,6 +66,7 @@ const MAIN: NavItem[] = [
   { href: "/views", label: "nav.views", icon: CalendarDays },
   { href: "/roadmap", label: "nav.roadmap", icon: Map },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
+  { href: "/time", label: "nav.time", icon: Clock },
 ];
 
 const ADMIN: NavItem[] = [
@@ -74,6 +77,7 @@ const ADMIN: NavItem[] = [
   { href: "/sprints", label: "nav.sprints", icon: Rocket },
   { href: "/reports", label: "nav.reports", icon: BarChart3 },
   { href: "/reports/insights", label: "nav.insights", icon: Sparkles },
+  { href: "/reports/time", label: "nav.timeReports", icon: Timer },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
   { href: "/admin/templates", label: "nav.templates", icon: FileStack },
