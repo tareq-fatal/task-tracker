@@ -39,6 +39,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
+import { GlobalSearch } from "@/components/global-search";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -276,6 +277,7 @@ export function AppShell({
             )}
 
             <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
+              <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
               <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
                 <Link href="/tasks/new">
                   <Plus className="me-1 h-4 w-4" />
