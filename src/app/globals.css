@@ -125,6 +125,13 @@
     0 8px 24px -8px hsl(var(--brand-from) / 0.35);
 }
 
+/* Keyboard selection (j/k shortcuts): ring around the focused task link */
+a[data-kbd-selected] {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
 /* ---- Motion ----------------------------------------------------------- */
 /* Page transition (used by app/template.tsx) */
 @keyframes tt-page-in {

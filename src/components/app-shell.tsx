@@ -39,6 +39,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
+import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { SessionUser } from "@/lib/auth";
@@ -167,6 +168,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen">
+      <KeyboardShortcuts isAdmin={isAdmin} />
       {/* Desktop sidebar */}
       <aside
         data-tour="sidebar"

@@ -314,6 +314,7 @@ export function FilterBar({
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("common.search")}
               className="ps-9"
+              data-shortcut="search"
             />
           </div>
         )}
