@@ -165,17 +165,3 @@ export function initials(name: string): string {
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
 }
-
-/**
- * #12 — a comment is "read by everyone who should see it" when every intended
- * reader has a read-marker at/after the comment's creation time. Pure so it's
- * unit-testable. `reads` maps userId → their lastReadAt (epoch ms).
- */
-export function commentReadByAll(
-  commentCreatedAtMs: number,
-  intendedReaderIds: string[],
-  reads: Record<string, number>
-): boolean {
-  if (intendedReaderIds.length === 0) return false; // nobody else to read it
-  return intendedReaderIds.every((id) => (reads[id] ?? 0) >= commentCreatedAtMs);
-}

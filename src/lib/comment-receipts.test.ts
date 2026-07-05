@@ -1,27 +1,52 @@
 import { describe, it, expect } from "vitest";
-import { commentReadByAll } from "./tasks";
+import { receiptState, expectedReaders } from "./comment-receipts";
 
-// #12 — read-receipt logic
-describe("commentReadByAll", () => {
-  const T = 1000; // comment created at t=1000
-
-  it("is unread when nobody has read past the comment", () => {
-    expect(commentReadByAll(T, ["a", "b"], { a: 500, b: 999 })).toBe(false);
+// #12 — per-comment read-receipt logic
+describe("receiptState", () => {
+  it("is 'sent' when no expected reader has read it", () => {
+    expect(receiptState(["a", "b"], [])).toBe("sent");
+    expect(receiptState(["a", "b"], ["c"])).toBe("sent"); // c isn't expected
   });
 
-  it("is read when all intended readers read at/after the comment", () => {
-    expect(commentReadByAll(T, ["a", "b"], { a: 1000, b: 1500 })).toBe(true);
+  it("is 'some' when at least one but not all expected readers have read", () => {
+    expect(receiptState(["a", "b"], ["a"])).toBe("some");
   });
 
-  it("is unread when one reader is missing entirely", () => {
-    expect(commentReadByAll(T, ["a", "b"], { a: 1500 })).toBe(false);
+  it("is 'all' when every expected reader has read", () => {
+    expect(receiptState(["a", "b"], ["a", "b"])).toBe("all");
+    expect(receiptState(["a", "b"], ["a", "b", "c"])).toBe("all"); // extras ok
   });
 
-  it("is 'not read' (sent only) when there are no other readers", () => {
-    expect(commentReadByAll(T, [], { a: 9999 })).toBe(false);
+  it("dedups expected readers so duplicates don't skew the count", () => {
+    expect(receiptState(["a", "a", "b"], ["a", "b"])).toBe("all");
+    expect(receiptState(["a", "a"], ["a"])).toBe("all");
   });
 
-  it("treats a read exactly at the comment time as read", () => {
-    expect(commentReadByAll(T, ["a"], { a: T })).toBe(true);
+  it("with no expected audience, is 'sent' until anyone reads, then 'all'", () => {
+    expect(receiptState([], [])).toBe("sent");
+    expect(receiptState([], ["x"])).toBe("all");
+  });
+
+  it("accepts a Set of readers", () => {
+    expect(receiptState(["a", "b"], new Set(["a"]))).toBe("some");
+  });
+});
+
+describe("expectedReaders", () => {
+  it("unions mentions and assignees and drops the author", () => {
+    expect(
+      expectedReaders("me", ["alice", "me"], ["bob", "me"]).sort()
+    ).toEqual(["alice", "bob"]);
+  });
+
+  it("dedups across mentions and assignees", () => {
+    expect(expectedReaders("me", ["alice"], ["alice", "bob"]).sort()).toEqual([
+      "alice",
+      "bob",
+    ]);
+  });
+
+  it("returns empty when the author is the only candidate", () => {
+    expect(expectedReaders("me", ["me"], ["me"])).toEqual([]);
   });
 });

@@ -131,7 +131,7 @@ model User {
   teamMemberships   TeamMember[]
   projectMemberships ProjectMember[]
   taskAssignments   TaskAssignee[]
-  commentReads      TaskCommentRead[]
+  commentReads      CommentRead[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -408,8 +408,6 @@ model Task {
   // #24 — admin support: when set, the task is flagged as escalated (needs help).
   escalatedAt DateTime?
 
-  commentReads TaskCommentRead[]
-
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
 
@@ -467,15 +465,19 @@ model TaskAssignee {
 // #12 — per-user "read up to now" marker for a task's comment thread. A comment
 // counts as read by user X when X's lastReadAt >= the comment's createdAt.
 // Drives Telegram-style ✓ (sent) / ✓✓ (read by all other watchers) receipts.
-model TaskCommentRead {
-  id         String   @id @default(cuid())
-  taskId     String
-  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastReadAt DateTime @default(now())
+// #12 — per-comment read receipt (Telegram-style ✓/✓✓). One row per (comment,
+// reader): its mere existence means "this user has seen this comment". readAt
+// is when it first scrolled into view. Expected readers = the comment's
+// @mentions + the task's assignees (see src/lib/comment-receipts.ts).
+model CommentRead {
+  id        String      @id @default(cuid())
+  commentId String
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime    @default(now())
 
-  @@unique([taskId, userId])
+  @@unique([commentId, userId])
   @@index([userId])
 }
 
@@ -539,6 +541,8 @@ model TaskComment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
   createdAt DateTime @default(now())
+
+  reads     CommentRead[]
 
   @@index([taskId])
 }

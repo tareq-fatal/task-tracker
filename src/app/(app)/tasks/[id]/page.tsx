@@ -13,8 +13,10 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
-import { MarkCommentsRead } from "@/components/mark-comments-read";
+import { initials, isOverdue } from "@/lib/tasks";
+import { CommentReadObserver } from "@/components/comment-read-observer";
+import { receiptState, expectedReaders } from "@/lib/comment-receipts";
+import { parseMentions } from "@/lib/notifications-core";
 import { Check, CheckCheck } from "lucide-react";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
@@ -69,10 +71,12 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "asc" },
       },
       comments: {
-        include: { user: { select: { name: true } } },
+        include: {
+          user: { select: { id: true, name: true } },
+          reads: { select: { userId: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
-      commentReads: { select: { userId: true, lastReadAt: true } },
       attachments: { orderBy: { uploadedAt: "desc" } },
       subtasks: { orderBy: { order: "asc" } },
       customValues: true,
@@ -117,20 +121,40 @@ export default async function TaskDetailPage({
   const escalated = task.escalatedAt != null;
   const isAssisting = task.assignees.some((a) => a.userId === user.id);
 
-  // #12 — read-receipts: watchers = all assignees + creator; a comment I wrote is
-  // ✓✓ once every OTHER watcher has read past it.
-  const watcherIds = new Set<string>([
-    ...task.assignees.map((a) => a.userId),
-    task.createdByUserId,
-  ]);
-  const readsMap: Record<string, number> = {};
-  for (const r of task.commentReads) readsMap[r.userId] = r.lastReadAt.getTime();
-  const otherWatchers = [...watcherIds].filter((id) => id !== user.id);
+  // Tenant users, once: powers @mention resolution (username → id), receipt
+  // reader-name tooltips (id → name), and the admin "change creator" control.
+  const tenantUsers = await prisma.user.findMany({
+    where: { tenantId: tenant.id },
+    select: { id: true, name: true, username: true },
+    orderBy: { name: "asc" },
+  });
+  const nameById = new Map(tenantUsers.map((u) => [u.id, u.name]));
+  const idByUsername = new Map(
+    tenantUsers.map((u) => [u.username.toLowerCase(), u.id])
+  );
 
-  // Admin-only: users of this tenant, for the "change creator" control
-  const tenantUsers = isAdminRole(user.role)
-    ? await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } })
-    : [];
+  // #12 — per-comment read-receipts. A comment's expected readers are its
+  // @mentions plus the task's assignees (minus the author). ✓ once someone has
+  // read it, ✓✓ once everyone expected has. Precomputed here per comment.
+  const assigneeIds = task.assignees.map((a) => a.userId);
+  const receipts = new Map<
+    string,
+    { state: "sent" | "some" | "all"; readerNames: string[]; iRead: boolean }
+  >();
+  for (const c of task.comments) {
+    const mentionedIds = parseMentions(c.content)
+      .map((u) => idByUsername.get(u))
+      .filter((id): id is string => Boolean(id));
+    const expected = expectedReaders(c.userId, mentionedIds, assigneeIds);
+    const readerIds = c.reads.map((r) => r.userId);
+    receipts.set(c.id, {
+      state: receiptState(expected, readerIds),
+      readerNames: readerIds
+        .map((id) => nameById.get(id))
+        .filter((n): n is string => Boolean(n)),
+      iRead: c.userId === user.id || readerIds.includes(user.id),
+    });
+  }
 
   // Custom fields: tenant-wide definitions + this task's values
   const fieldDefs = await prisma.customFieldDef.findMany({
@@ -437,11 +461,21 @@ export default async function TaskDetailPage({
             <p className="text-sm text-muted-foreground">{t["task.noComments"]}</p>
           )}
           {task.comments.map((c) => {
-            // #12 — receipts on MY own comments: ✓ sent, ✓✓ read by all others
+            // #12 — per-comment receipts. On MY comments: ✓ sent / ✓ someone read
+            // / ✓✓ everyone expected read, with a "read by …" hover tooltip.
+            // Comments I still need to read carry data-comment-read so the
+            // IntersectionObserver marks them once they scroll into view.
             const mine = c.userId === user.id;
-            const readByAll = mine && commentReadByAll(c.createdAt.getTime(), otherWatchers, readsMap);
+            const r = receipts.get(c.id)!;
+            const readTitle = r.readerNames.length
+              ? `${t["receipt.readBy"]}: ${r.readerNames.join(", ")}`
+              : t["receipt.sent"];
             return (
-              <div key={c.id} className="flex gap-3">
+              <div
+                key={c.id}
+                className="flex gap-3"
+                {...(!mine && !r.iRead ? { "data-comment-read": c.id } : {})}
+              >
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarFallback className="bg-secondary text-xs">
                     {initials(c.user.name)}
@@ -452,12 +486,20 @@ export default async function TaskDetailPage({
                     <span className="text-sm font-medium">{c.user.name}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       {format(c.createdAt, "dd.MM.yyyy HH:mm")}
-                      {mine &&
-                        (readByAll ? (
-                          <CheckCheck className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />
-                        ) : (
-                          <Check className="h-3.5 w-3.5 text-muted-foreground" aria-label={t["receipt.sent"]} />
-                        ))}
+                      {mine && (
+                        <span
+                          className="inline-flex"
+                          title={r.state === "sent" ? t["receipt.sent"] : readTitle}
+                        >
+                          {r.state === "all" ? (
+                            <CheckCheck className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />
+                          ) : r.state === "some" ? (
+                            <Check className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />
+                          ) : (
+                            <Check className="h-3.5 w-3.5 text-muted-foreground" aria-label={t["receipt.sent"]} />
+                          )}
+                        </span>
+                      )}
                     </span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm">{c.content}</p>
@@ -467,7 +509,7 @@ export default async function TaskDetailPage({
           })}
         </div>
         <CommentForm taskId={task.id} />
-        <MarkCommentsRead taskId={task.id} />
+        <CommentReadObserver />
       </section>
 
       {/* Activity */}
