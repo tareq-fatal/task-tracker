@@ -74,11 +74,19 @@ export function WelcomeModal({
   }
 
   return (
-    <Dialog open={open}>
+    <Dialog
+      open={open}
+      // The dialog's built-in X maps to "skip" so we always persist the
+      // onboarded flag. Advancing via Start-tour / Create-sample flips `open`
+      // through the parent instead, which doesn't fire onOpenChange.
+      onOpenChange={(next) => {
+        if (!next) onSkip();
+      }}
+    >
       <DialogContent
         className="max-w-xl"
-        // No X / no outside-close: onboarding is dismissed via the explicit
-        // Skip button so we always persist the "onboarded" flag.
+        // Prevent accidental dismissal by Escape / outside-click; only the
+        // explicit X or Skip button ends onboarding.
         onEscapeKeyDown={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
