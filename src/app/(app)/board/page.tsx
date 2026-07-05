@@ -2,10 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { isAdminRole } from "@/lib/enums";
 import { taskVisibility } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
 import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
 import { loadFilterOptions } from "@/lib/filter-data";
+import { loadBulkOptions } from "@/lib/bulk-data";
 import { KanbanBoard } from "@/components/kanban-board";
 import { FilterBar } from "@/components/filter-bar";
 
@@ -24,8 +26,10 @@ export default async function BoardPage({
   };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
-  const [options, total, tasks] = await Promise.all([
+  const isAdmin = isAdminRole(user.role);
+  const [options, bulk, total, tasks] = await Promise.all([
     loadFilterOptions(tenant.id),
+    loadBulkOptions(tenant.id, isAdmin),
     prisma.task.count({ where: base }),
     prisma.task.findMany({
       where,
@@ -49,7 +53,13 @@ export default async function BoardPage({
         totalCount={total}
       />
 
-      <KanbanBoard initialTasks={tasks} />
+      <KanbanBoard
+        initialTasks={tasks}
+        isAdmin={isAdmin}
+        users={bulk.users}
+        sprints={bulk.sprints}
+        tagSuggestions={bulk.tagSuggestions}
+      />
     </div>
   );
 }

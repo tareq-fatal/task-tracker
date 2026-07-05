@@ -35,6 +35,7 @@ model Tenant {
   authProviders TenantAuthProvider[]
   plannerSyncs  PlannerSync[]
   sprints       Sprint[]
+  tags          Tag[]
 }
 
 model Sprint {
@@ -437,6 +438,7 @@ model Task {
   linksFrom   TaskLink[]       @relation("LinksFrom")
   linksTo     TaskLink[]       @relation("LinksTo")
   activity    ActivityLog[]
+  tags        TaskTag[]
 
   @@index([status])
   @@index([assignedToUserId])
@@ -446,6 +448,34 @@ model Task {
   @@index([parentId])
   @@index([tenantId])
   @@index([workflowColumnId])
+}
+
+// Free-form labels for grouping/filtering tasks. Tenant-scoped; created on the
+// fly by the bulk "Tag" action (find-or-create by name). Name is unique per
+// tenant (case-insensitive handled in application code).
+model Tag {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  color     String    @default("#6366f1") // indigo-500
+  createdAt DateTime  @default(now())
+
+  tasks TaskTag[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+// Join table: which tags are on which task (many-to-many).
+model TaskTag {
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
 }
 
 // #13 — every user assigned to a task (co-workers). The "Hauptkopf" (primary) is

@@ -21,4 +21,5 @@ export const taskCardSelect = {
     where: { type: "DependsOn" },
     select: { linkedTask: { select: { status: true } } },
   },
+  tags: { select: { tag: { select: { name: true, color: true } } } },
 } satisfies Prisma.TaskSelect;

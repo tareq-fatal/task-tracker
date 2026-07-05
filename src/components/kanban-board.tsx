@@ -20,11 +20,27 @@ import { useT } from "@/components/i18n-provider";
 import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
+import {
+  BulkActionBar,
+  type NamedOption,
+  type SprintOption,
+} from "@/components/bulk-action-bar";
+import { useBulkSelection } from "@/lib/use-bulk-selection";
 import type { TKey } from "@/lib/i18n";
 
 type BoardTask = TaskCardData & { status: string };
 
-function DraggableCard({ task }: { task: BoardTask }) {
+function DraggableCard({
+  task,
+  selected,
+  selectionActive,
+  onToggle,
+}: {
+  task: BoardTask;
+  selected: boolean;
+  selectionActive: boolean;
+  onToggle: (shiftKey: boolean) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: task.id });
 
@@ -33,12 +49,35 @@ function DraggableCard({ task }: { task: BoardTask }) {
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
       className={cn(
-        "cursor-grab active:cursor-grabbing",
-        isDragging && "opacity-30"
+        "group/sel relative cursor-grab rounded-xl active:cursor-grabbing",
+        isDragging && "opacity-30",
+        selected && "ring-2 ring-indigo-500 ring-offset-1"
       )}
       {...listeners}
       {...attributes}
     >
+      {/* Selection checkbox — stops the drag sensor + card link from firing. */}
+      <div
+        className={cn(
+          "absolute -start-1.5 -top-1.5 z-10 transition-opacity",
+          selected || selectionActive
+            ? "opacity-100"
+            : "opacity-0 group-hover/sel:opacity-100"
+        )}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <input
+          type="checkbox"
+          aria-label={`select ${task.title}`}
+          checked={selected}
+          readOnly
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(e.shiftKey);
+          }}
+          className="h-4 w-4 rounded border-2 border-white accent-indigo-600 shadow"
+        />
+      </div>
       <TaskCard task={task} showStatus={false} />
     </div>
   );
@@ -56,11 +95,17 @@ function Column({
   tasks,
   label,
   innerRef,
+  isSelected,
+  selectionActive,
+  onToggle,
 }: {
   status: TaskStatus;
   tasks: BoardTask[];
   label: string;
   innerRef: (el: HTMLDivElement | null) => void;
+  isSelected: (id: string) => boolean;
+  selectionActive: boolean;
+  onToggle: (id: string, shiftKey: boolean) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -88,7 +133,13 @@ function Column({
         )}
       >
         {tasks.map((task) => (
-          <DraggableCard key={task.id} task={task} />
+          <DraggableCard
+            key={task.id}
+            task={task}
+            selected={isSelected(task.id)}
+            selectionActive={selectionActive}
+            onToggle={(shiftKey) => onToggle(task.id, shiftKey)}
+          />
         ))}
         {tasks.length === 0 && (
           <div
@@ -105,11 +156,24 @@ function Column({
   );
 }
 
-export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
+export function KanbanBoard({
+  initialTasks,
+  isAdmin = false,
+  users = [],
+  sprints = [],
+  tagSuggestions = [],
+}: {
+  initialTasks: BoardTask[];
+  isAdmin?: boolean;
+  users?: NamedOption[];
+  sprints?: SprintOption[];
+  tagSuggestions?: string[];
+}) {
   const { t } = useT();
   const [tasks, setTasks] = useState<BoardTask[]>(initialTasks);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeCol, setActiveCol] = useState(0);
+  const sel = useBulkSelection();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const colRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -123,6 +187,11 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
     useSensor(TouchSensor, {
       activationConstraint: { delay: 450, tolerance: 8 },
     })
+  );
+
+  // Flat, visual top-to-bottom / left-to-right order for Shift+Click ranges.
+  const orderedIds = BOARD_STATUSES.flatMap((s) =>
+    tasks.filter((x) => x.status === s).map((x) => x.id)
   );
 
   function onDragStart(e: DragStartEvent) {
@@ -212,6 +281,9 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
             label={t(`status.${status}` as TKey)}
             tasks={tasks.filter((x) => x.status === status)}
             innerRef={(el) => (colRefs.current[i] = el)}
+            isSelected={sel.isSelected}
+            selectionActive={sel.count > 0}
+            onToggle={(id, shiftKey) => sel.toggle(id, { shiftKey, orderedIds })}
           />
         ))}
       </div>
@@ -223,6 +295,15 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
           </div>
         ) : null}
       </DragOverlay>
+
+      <BulkActionBar
+        ids={sel.ids}
+        onCleared={sel.clear}
+        isAdmin={isAdmin}
+        users={users}
+        sprints={sprints}
+        tagSuggestions={tagSuggestions}
+      />
     </DndContext>
   );
 }

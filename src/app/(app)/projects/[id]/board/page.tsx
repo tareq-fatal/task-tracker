@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canAccessProject } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
+import { loadBulkOptions } from "@/lib/bulk-data";
 import { KanbanBoard } from "@/components/kanban-board";
 
 export default async function ProjectBoardPage({
@@ -21,15 +23,19 @@ export default async function ProjectBoardPage({
   if (!project || project.tenantId !== tenant.id) notFound();
   if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      projectId: project.id,
-      ...(await taskVisibility(user, tenant.id)),
-      status: { in: ["Todo", "InProgress", "Done"] },
-    },
-    select: taskCardSelect,
-    orderBy: { priority: "asc" },
-  });
+  const isAdmin = isAdminRole(user.role);
+  const [tasks, bulk] = await Promise.all([
+    prisma.task.findMany({
+      where: {
+        projectId: project.id,
+        ...(await taskVisibility(user, tenant.id)),
+        status: { in: ["Todo", "InProgress", "Done"] },
+      },
+      select: taskCardSelect,
+      orderBy: { priority: "asc" },
+    }),
+    loadBulkOptions(tenant.id, isAdmin, project.id),
+  ]);
 
   return (
     <div className="container py-6">
@@ -49,7 +55,13 @@ export default async function ProjectBoardPage({
           {project.name} · {t["board.title"]}
         </h1>
       </div>
-      <KanbanBoard initialTasks={tasks} />
+      <KanbanBoard
+        initialTasks={tasks}
+        isAdmin={isAdmin}
+        users={bulk.users}
+        sprints={bulk.sprints}
+        tagSuggestions={bulk.tagSuggestions}
+      />
     </div>
   );
 }

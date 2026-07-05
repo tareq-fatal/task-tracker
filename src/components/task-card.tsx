@@ -8,6 +8,7 @@ import type { TaskPriority } from "@/lib/enums";
 import { dueBucket, type DueBucket } from "@/lib/due";
 import { formatDate } from "@/lib/format";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
+import { TagChips, flattenTags } from "@/components/tag-chips";
 import { ProgressBar } from "@/components/progress-bar";
 import { TimeBadge } from "@/components/time-badge";
 import { useT } from "@/components/i18n-provider";
@@ -29,6 +30,7 @@ export type TaskCardData = {
   project: { name: string; color: string } | null;
   _count?: { comments: number; attachments: number; subtasks: number };
   linksFrom?: { linkedTask: { status: string } }[];
+  tags?: { tag: { name: string; color: string } }[];
 };
 
 const PRIORITY_DOT: Record<TaskPriority, string> = {
@@ -124,6 +126,8 @@ export function TaskCard({
             </span>
           )}
         </div>
+
+        <TagChips tags={flattenTags(task.tags)} className="mb-3" />
 
         {showBar && (
           <div className="mb-3 space-y-1">
