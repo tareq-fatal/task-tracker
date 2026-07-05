@@ -29,6 +29,7 @@ export type TaskCardData = {
   project: { name: string; color: string } | null;
   _count?: { comments: number; attachments: number; subtasks: number };
   linksFrom?: { linkedTask: { status: string } }[];
+  linksTo?: { task: { status: string } }[];
 };
 
 const PRIORITY_DOT: Record<TaskPriority, string> = {
@@ -58,12 +59,12 @@ export function TaskCard({
   const showBar = task.progress > 0 || subtaskCount > 0;
   const bucket = done ? null : dueBucket(task.dueDate, new Date());
   const avatarSrc = task.assignedTo?.avatar && /^https?:|^\//.test(task.assignedTo.avatar) ? task.assignedTo.avatar : undefined;
+  const openStatus = (s: string) => s !== "Done" && s !== "Archived";
   const waitingOn = done
     ? 0
-    : (task.linksFrom ?? []).filter(
-        (l) =>
-          l.linkedTask.status !== "Done" && l.linkedTask.status !== "Archived"
-      ).length;
+    : (task.linksFrom ?? []).filter((l) => openStatus(l.linkedTask.status))
+        .length +
+      (task.linksTo ?? []).filter((l) => openStatus(l.task.status)).length;
 
   return (
     <Link href={`/tasks/${task.id}`} className="block">

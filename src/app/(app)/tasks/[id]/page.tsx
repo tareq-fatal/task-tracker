@@ -20,7 +20,7 @@ import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
 import { SupportTools } from "@/components/support-tools";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
@@ -111,6 +111,25 @@ export default async function TaskDetailPage({
   const coAssignees = task.assignees
     .filter((a) => a.userId !== task.assignedToUserId)
     .map((a) => a.user);
+
+  // Dependencies: open blockers of this task (outgoing DependsOn + incoming
+  // Blocks) and open tasks waiting on this one (the inverse). Deduped by id.
+  const openStatus = (s: string) => s !== "Done" && s !== "Archived";
+  const blockerMap = new Map<string, { id: string; title: string; status: string }>();
+  for (const l of task.linksFrom)
+    if (l.type === "DependsOn" && openStatus(l.linkedTask.status)) blockerMap.set(l.linkedTask.id, l.linkedTask);
+  for (const l of task.linksTo)
+    if (l.type === "Blocks" && openStatus(l.task.status)) blockerMap.set(l.task.id, l.task);
+  const blockedBy = [...blockerMap.values()];
+
+  const blocksMap = new Map<string, { id: string; title: string; status: string }>();
+  for (const l of task.linksFrom)
+    if (l.type === "Blocks" && openStatus(l.linkedTask.status)) blocksMap.set(l.linkedTask.id, l.linkedTask);
+  for (const l of task.linksTo)
+    if (l.type === "DependsOn" && openStatus(l.task.status)) blocksMap.set(l.task.id, l.task);
+  const blocks = [...blocksMap.values()];
+
+  const isBlocked = openStatus(task.status) && blockedBy.length > 0;
 
   // #24 — admin support state
   const isAdmin = isAdminRole(user.role);
@@ -223,6 +242,45 @@ export default async function TaskDetailPage({
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
           <AlertTriangle className="h-4 w-4" />
           {t["support.escalatedBanner"]}
+        </div>
+      )}
+
+      {/* Dependencies — blocked banner + clickable chips, visible to everyone */}
+      {isBlocked && (
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+            <Ban className="h-4 w-4" />
+            {t["links.blockedBy"]}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {blockedBy.map((b) => (
+              <Link
+                key={b.id}
+                href={`/tasks/${b.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-card px-2.5 py-1 text-xs font-medium hover:bg-amber-100 dark:border-amber-500/40 dark:hover:bg-amber-500/20"
+              >
+                <span className="max-w-[16rem] truncate">{b.title}</span>
+                <StatusBadge status={b.status} />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tasks waiting on this one (inverse direction) */}
+      {openStatus(task.status) && blocks.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{t["links.blocksList"]}:</span>
+          {blocks.map((b) => (
+            <Link
+              key={b.id}
+              href={`/tasks/${b.id}`}
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium hover:bg-secondary/60"
+            >
+              <span className="max-w-[16rem] truncate">{b.title}</span>
+              <StatusBadge status={b.status} />
+            </Link>
+          ))}
         </div>
       )}
 

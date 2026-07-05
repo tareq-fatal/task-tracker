@@ -23,7 +23,12 @@ import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
 import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
-import { isBlockedByOpenDeps } from "@/lib/task-links";
+import {
+  isBlockedByLinks,
+  normalizeDependencyEdge,
+  wouldCreateDependencyCycle,
+  type DirectedLink,
+} from "@/lib/task-links";
 import {
   presetToRule,
   nextOccurrence,
@@ -117,18 +122,34 @@ function additionalAssigneeIds(formData: FormData): string[] {
   return formData.getAll("assigneeIds").map((v) => v.toString()).filter(Boolean);
 }
 
-/** True when an open "DependsOn" blocker prevents completing this task. */
+/**
+ * True when an open blocker prevents completing this task. Bidirectional:
+ * an outgoing "DependsOn" and an incoming "Blocks" mean the same thing.
+ */
 async function isTaskBlocked(taskId: string): Promise<boolean> {
-  const deps = await prisma.taskLink.findMany({
-    where: { taskId, type: "DependsOn" },
-    include: { linkedTask: { select: { status: true } } },
-  });
-  return isBlockedByOpenDeps(
-    deps.map((d) => ({
+  const [deps, blockedBy] = await Promise.all([
+    prisma.taskLink.findMany({
+      where: { taskId, type: "DependsOn" },
+      include: { linkedTask: { select: { status: true } } },
+    }),
+    prisma.taskLink.findMany({
+      where: { linkedTaskId: taskId, type: "Blocks" },
+      include: { task: { select: { status: true } } },
+    }),
+  ]);
+  const links: DirectedLink[] = [
+    ...deps.map((d) => ({
       type: d.type as TaskLinkType,
+      direction: "out" as const,
       linkedStatus: d.linkedTask.status as TaskStatus,
-    }))
-  );
+    })),
+    ...blockedBy.map((d) => ({
+      type: d.type as TaskLinkType,
+      direction: "in" as const,
+      linkedStatus: d.task.status as TaskStatus,
+    })),
+  ];
+  return isBlockedByLinks(links);
 }
 
 /** Resolve the recurrence rule + next spawn time from a form's preset field. */
@@ -420,22 +441,40 @@ export async function updateTaskAction(
   redirect(`/tasks/${taskId}`);
 }
 
-/** When a task is completed, tell the assignees of tasks that DependOn it. */
+/**
+ * Auto-unblock (#deps): when a task is completed, find every task that was
+ * waiting on it — via its own "DependsOn" link OR via this task's "Blocks"
+ * link — and, if no other open blocker remains, notify the assignee and log
+ * the unblock on the dependent task.
+ */
 async function notifyBlockerResolved(
   blockerTaskId: string,
   tenantId: string,
   actorUserId: string
 ): Promise<void> {
-  // tasks whose "DependsOn" link points at the just-completed task
-  const dependents = await prisma.taskLink.findMany({
-    where: { linkedTaskId: blockerTaskId, type: "DependsOn" },
-    include: { task: { select: { id: true, title: true, assignedToUserId: true } } },
-  });
-  for (const link of dependents) {
-    const dep = link.task;
-    if (!dep.assignedToUserId) continue;
-    // only notify if the dependent now has no remaining open blockers
+  const [dependsOnMe, iBlock] = await Promise.all([
+    // tasks whose "DependsOn" link points at the just-completed task
+    prisma.taskLink.findMany({
+      where: { linkedTaskId: blockerTaskId, type: "DependsOn" },
+      include: { task: { select: { id: true, title: true, status: true, assignedToUserId: true } } },
+    }),
+    // tasks the just-completed task "Blocks"
+    prisma.taskLink.findMany({
+      where: { taskId: blockerTaskId, type: "Blocks" },
+      include: { linkedTask: { select: { id: true, title: true, status: true, assignedToUserId: true } } },
+    }),
+  ]);
+  const dependents = new Map<string, { id: string; title: string; status: string; assignedToUserId: string | null }>();
+  for (const l of dependsOnMe) dependents.set(l.task.id, l.task);
+  for (const l of iBlock) dependents.set(l.linkedTask.id, l.linkedTask);
+
+  for (const dep of dependents.values()) {
+    // a finished dependent was not waiting on anything
+    if (dep.status === "Done" || dep.status === "Archived") continue;
+    // only unblock if the dependent now has no remaining open blockers
     if (await isTaskBlocked(dep.id)) continue;
+    await logActivity(dep.id, actorUserId, "unblocked", dep.title);
+    if (!dep.assignedToUserId) continue;
     await notify({
       recipientUserId: dep.assignedToUserId,
       tenantId,
@@ -806,11 +845,31 @@ export async function addTaskLinkAction(
   const canLink = isAdminRole(user.role) || (source.createdByUserId === user.id && target.createdByUserId === user.id);
   if (!canLink) return { ok: false, error: "FORBIDDEN" };
 
+  // Cycle guard: a DependsOn/Blocks link must not close a dependency loop
+  // (A→B→…→A). Both types are normalized into "X waits for Y" edges.
+  const newEdge = normalizeDependencyEdge(taskId, linkedTaskId, type);
+  if (newEdge) {
+    const existing = await prisma.taskLink.findMany({
+      where: {
+        type: { in: ["DependsOn", "Blocks"] },
+        task: { tenantId: tenant.id },
+      },
+      select: { taskId: true, linkedTaskId: true, type: true },
+    });
+    const edges = existing
+      .map((l) => normalizeDependencyEdge(l.taskId, l.linkedTaskId, l.type))
+      .filter((e): e is NonNullable<typeof e> => e !== null);
+    if (wouldCreateDependencyCycle(edges, newEdge)) {
+      return { ok: false, error: "CYCLE" };
+    }
+  }
+
   await prisma.taskLink
     .create({ data: { taskId, linkedTaskId, type } })
     .catch(() => {}); // ignore duplicate (unique constraint)
 
   revalidateTaskViews(taskId);
+  revalidatePath(`/tasks/${linkedTaskId}`); // the other end shows the link too
   return { ok: true };
 }
 
@@ -823,5 +882,6 @@ export async function removeTaskLinkAction(
   if (!isAdminRole(user.role) && link.task.createdByUserId !== user.id) return { ok: false };
   await prisma.taskLink.delete({ where: { id: linkId } });
   revalidateTaskViews(link.taskId);
+  revalidatePath(`/tasks/${link.linkedTaskId}`);
   return { ok: true };
 }

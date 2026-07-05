@@ -17,6 +17,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { BOARD_STATUSES, type TaskStatus } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
+import { useToast } from "@/components/toast";
 import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
@@ -107,6 +108,7 @@ function Column({
 
 export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
   const { t } = useT();
+  const { toast } = useToast();
   const [tasks, setTasks] = useState<BoardTask[]>(initialTasks);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeCol, setActiveCol] = useState(0);
@@ -143,8 +145,10 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
       ts.map((x) => (x.id === taskId ? { ...x, status: overId } : x))
     );
     const res = await updateTaskStatusAction(taskId, overId);
-    if (!res.ok) setTasks(prev);
-    else if (overId === "Done") celebrate();
+    if (!res.ok) {
+      setTasks(prev);
+      if (res.error === "BLOCKED") toast(t("task.blocked"), "error");
+    } else if (overId === "Done") celebrate();
   }
 
   // Track which column is centered (mobile swipe indicator)

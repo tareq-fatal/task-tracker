@@ -8,6 +8,8 @@ import { sprintBurndown, velocity, averageVelocity, type BurndownPoint } from "@
 
 export type SprintState = { ok?: boolean; error?: string };
 
+type SprintTaskLite = { id: string; title: string; status: string; blocked: boolean };
+
 type SprintLite = {
   id: string;
   name: string;
@@ -15,14 +17,14 @@ type SprintLite = {
   status: string;
   startDate: string | null;
   endDate: string | null;
-  tasks: { id: string; title: string; status: string }[];
+  tasks: SprintTaskLite[];
 };
 
 export type SprintsView = {
   projects: { id: string; name: string }[];
   projectId: string | null;
   sprints: SprintLite[];
-  backlog: { id: string; title: string; status: string }[];
+  backlog: SprintTaskLite[];
   targetSprintId: string | null; // where "add to sprint" sends a backlog task
   burndown: BurndownPoint[];
   velocity: Array<{ name: string; completed: number; total: number }>;
@@ -59,6 +61,47 @@ export async function getSprintsView(projectId?: string): Promise<SprintsView> {
     take: 200,
   });
 
+  // Blocked-state for every task shown here (sprint tasks + backlog): a task
+  // is blocked while an open task exists that it DependsOn, or that Blocks it.
+  const shownIds = new Set<string>([
+    ...sprints.flatMap((s) => s.tasks.map((t) => t.id)),
+    ...backlog.map((t) => t.id),
+  ]);
+  const depLinks = shownIds.size
+    ? await prisma.taskLink.findMany({
+        where: {
+          type: { in: ["DependsOn", "Blocks"] },
+          OR: [
+            { taskId: { in: [...shownIds] } },
+            { linkedTaskId: { in: [...shownIds] } },
+          ],
+        },
+        select: {
+          taskId: true,
+          linkedTaskId: true,
+          type: true,
+          task: { select: { status: true } },
+          linkedTask: { select: { status: true } },
+        },
+      })
+    : [];
+  const open = (s: string) => s !== "Done" && s !== "Archived";
+  const blockedIds = new Set<string>();
+  for (const l of depLinks) {
+    if (l.type === "DependsOn" && shownIds.has(l.taskId) && open(l.linkedTask.status)) {
+      blockedIds.add(l.taskId);
+    }
+    if (l.type === "Blocks" && shownIds.has(l.linkedTaskId) && open(l.task.status)) {
+      blockedIds.add(l.linkedTaskId);
+    }
+  }
+  const withBlocked = (t: { id: string; title: string; status: string }) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    blocked: open(t.status) && blockedIds.has(t.id),
+  });
+
   const active = sprints.find((s) => s.status === "active");
   const planned = sprints.find((s) => s.status === "planned");
   const target = active ?? planned ?? null;
@@ -76,7 +119,7 @@ export async function getSprintsView(projectId?: string): Promise<SprintsView> {
     projects,
     projectId: pid,
     targetSprintId: target?.id ?? null,
-    backlog,
+    backlog: backlog.map(withBlocked),
     burndown,
     velocity: vel,
     avgVelocity: averageVelocity(closed.map((s) => ({ name: s.name, tasks: s.tasks }))),
@@ -87,7 +130,7 @@ export async function getSprintsView(projectId?: string): Promise<SprintsView> {
       status: s.status,
       startDate: s.startDate?.toISOString() ?? null,
       endDate: s.endDate?.toISOString() ?? null,
-      tasks: s.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
+      tasks: s.tasks.map(withBlocked),
     })),
   };
 }
