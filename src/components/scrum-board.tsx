@@ -152,7 +152,7 @@ export function ScrumBoard({
           <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> {meName} · {t("scrum.live")}
           </span>
-          <div className="flex -space-x-2">
+          <div className="flex -space-x-2 rtl:space-x-reverse">
             {team.slice(0, 6).map((n, i) => <Avatar key={i} name={n} />)}
             {team.length > 6 && <span className="grid h-6 w-6 place-items-center rounded-full bg-muted text-[10px] ring-2 ring-white">+{team.length - 6}</span>}
           </div>

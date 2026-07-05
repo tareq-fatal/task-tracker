@@ -70,7 +70,7 @@ function DayCell({ date, day, inMonth, tasks, onCreate }: {
         "hover:bg-secondary/40"
       )}
     >
-      <div className={cn("mb-1 text-right text-[11px]", today && "inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white")}>
+      <div className={cn("mb-1 text-end text-[11px]", today && "inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white")}>
         {day}
       </div>
       <div className="space-y-1">
