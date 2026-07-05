@@ -21,7 +21,8 @@
     "cap:copy": "npx cap copy android",
     "apk:debug": "cd android && ./gradlew assembleDebug",
     "apk:release": "cd android && ./gradlew assembleRelease",
-    "audit:tenant": "node scripts/audit-tenant-scope.mjs"
+    "audit:tenant": "node scripts/audit-tenant-scope.mjs",
+    "openapi:gen": "tsx scripts/gen-openapi.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
