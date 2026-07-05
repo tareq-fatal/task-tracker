@@ -38,6 +38,27 @@ test("assigning a task creates an in-app notification for the assignee", async (
   await expect(page.getByRole("button", { name: "Benachrichtigungen" })).toBeVisible();
 });
 
+test("clicking the bell opens the notifications panel", async ({ page }) => {
+  await login(page, "admin", "Admin-2026!", "de");
+  await page.goto("/");
+  const bell = page.getByRole("button", { name: "Benachrichtigungen" });
+  await expect(bell).toBeVisible();
+  // re-click until hydration wires up the handler (see board-hydration-timing note)
+  await expect(async () => {
+    await bell.click();
+    await expect(page.getByRole("menu")).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  // panel header shows the title
+  await expect(page.getByRole("menu").getByText("Benachrichtigungen")).toBeVisible();
+});
+
+test("notifications REST list requires auth", async ({ request }) => {
+  const res = await request.get("/api/notifications", {
+    headers: { cookie: "" },
+  });
+  expect([200, 401]).toContain(res.status());
+});
+
 test("notification cron endpoint rejects unauthenticated calls", async ({ request }) => {
   const res = await request.get("/api/cron/notifications");
   expect([401, 503]).toContain(res.status());

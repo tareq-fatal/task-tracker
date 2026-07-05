@@ -19,16 +19,17 @@ export type NotificationItem = {
   createdAt: string;
 };
 
-export async function getNotifications(): Promise<{
+export async function getNotifications(limit = 20): Promise<{
   items: NotificationItem[];
   unread: number;
 }> {
   const user = await requireUser();
+  const take = Math.min(Math.max(1, Math.trunc(limit)), 50);
   const [rows, unread] = await Promise.all([
     prisma.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take,
     }),
     prisma.notification.count({ where: { userId: user.id, read: false } }),
   ]);
