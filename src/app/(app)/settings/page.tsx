@@ -119,7 +119,7 @@ export default async function SettingsPage() {
               <p className="mt-3 text-xs text-muted-foreground">
                 {t["settings.mobile.steps"]}
               </p>
-              <p className="mt-1 text-xs italic text-amber-600">
+              <p className="mt-1 text-xs italic text-amber-600 dark:text-amber-400">
                 {t["settings.mobile.beta"]}
               </p>
             </CardContent>

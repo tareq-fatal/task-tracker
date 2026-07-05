@@ -88,7 +88,7 @@ export function NotificationSettings({ view }: { view: NotificationPrefsView }) 
       <div className="flex items-center gap-3">
         <SaveBtn />
         {state.ok && (
-          <span className="text-sm text-emerald-600">{t("notif.saved")}</span>
+          <span className="text-sm text-emerald-600 dark:text-emerald-400">{t("notif.saved")}</span>
         )}
       </div>
     </form>

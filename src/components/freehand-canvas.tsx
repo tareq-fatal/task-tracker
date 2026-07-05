@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Eraser, X } from "lucide-react";
 
-const COLORS = ["#1f2937", "#6366f1", "#ec4899", "#10b981", "#f59e0b"];
+// "Ink" adapts to the theme — near-black is invisible on the dark board.
+const INK = { light: "#1f2937", dark: "#e5e7eb" };
+const COLORS = (dark: boolean) => [dark ? INK.dark : INK.light, "#6366f1", "#ec4899", "#10b981", "#f59e0b"];
 const SIZES = [2, 4, 8];
 
 /** Lightweight local freehand layer over the board (Miro-style doodle).
@@ -11,7 +13,9 @@ const SIZES = [2, 4, 8];
 export function FreehandCanvas({ onClose }: { onClose: () => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
-  const [color, setColor] = useState(COLORS[1]);
+  const dark = typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+  const colors = COLORS(dark);
+  const [color, setColor] = useState(colors[1]);
   const [size, setSize] = useState(SIZES[1]);
 
   useEffect(() => {
@@ -64,12 +68,12 @@ export function FreehandCanvas({ onClose }: { onClose: () => void }) {
         className="absolute inset-0 z-30 cursor-crosshair touch-none"
       />
       <div className="glass absolute start-1/2 top-2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg">
-        {COLORS.map((c) => (
-          <button key={c} onClick={() => setColor(c)} className="h-5 w-5 rounded-full ring-2 ring-offset-1" style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : "none" }} aria-label="color" />
+        {colors.map((c) => (
+          <button key={c} onClick={() => setColor(c)} className="h-5 w-5 rounded-full ring-1 ring-border ring-offset-1 ring-offset-background" style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : "none" }} aria-label="color" />
         ))}
         <span className="mx-1 h-4 w-px bg-border" />
         {SIZES.map((s) => (
-          <button key={s} onClick={() => setSize(s)} className={`grid h-6 w-6 place-items-center rounded ${size === s ? "bg-indigo-100" : ""}`} aria-label="size">
+          <button key={s} onClick={() => setSize(s)} className={`grid h-6 w-6 place-items-center rounded ${size === s ? "bg-indigo-100 dark:bg-indigo-500/25" : ""}`} aria-label="size">
             <span className="rounded-full bg-foreground" style={{ width: s + 2, height: s + 2 }} />
           </button>
         ))}

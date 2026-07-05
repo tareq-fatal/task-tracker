@@ -69,7 +69,7 @@ export function SettingsForm({ locale, minimal = false }: { locale: string; mini
         <p className="text-sm font-medium text-destructive">{state.error}</p>
       )}
       {state.ok && (
-        <p className="text-sm font-medium text-emerald-600">
+        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
           {t("settings.saved")} ✓
         </p>
       )}

@@ -32,7 +32,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#4f46e5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e121b" }, // = --background dark
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -57,11 +60,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Apply the saved theme before paint (no flash). */}
+        {/* Apply the saved theme before paint (no flash), follow OS changes
+            app-wide while in "system" mode, and sync across tabs. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();",
+              "(function(){try{var m=window.matchMedia('(prefers-color-scheme:dark)');function a(){var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&m.matches);document.documentElement.classList.toggle('dark',d);}a();if(m.addEventListener)m.addEventListener('change',a);window.addEventListener('storage',function(e){if(!e.key||e.key==='theme')a();});}catch(e){}})();",
           }}
         />
       </head>

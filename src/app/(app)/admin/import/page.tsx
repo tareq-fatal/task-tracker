@@ -14,7 +14,7 @@ export default async function AdminImportPage() {
   return (
     <div className="container max-w-3xl py-6">
       <div className="mb-1 flex items-center gap-2">
-        <FileUp className="h-6 w-6 text-indigo-600" />
+        <FileUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
         <h1 className="text-2xl font-bold">{t["import.title"]}</h1>
       </div>
       <p className="mb-6 text-sm text-muted-foreground">{t["import.subtitle"]}</p>

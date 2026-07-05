@@ -63,14 +63,14 @@ export function WorkflowEditor({ projectId, initial }: { projectId: string; init
                   onBlur={(e) => { const v = e.target.value ? Number(e.target.value) : null; if (v !== c.wipLimit) run(() => updateColumnAction(c.id, { wipLimit: v })); }} />
               </label>
               <button title={t("workflow.markInitial")} onClick={() => run(() => updateColumnAction(c.id, { isInitial: true }))}
-                className={cn("rounded p-1.5", c.isInitial ? "bg-sky-100 text-sky-700" : "text-muted-foreground hover:bg-muted")}><Play className="h-3.5 w-3.5" /></button>
+                className={cn("rounded p-1.5", c.isInitial ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" : "text-muted-foreground hover:bg-muted")}><Play className="h-3.5 w-3.5" /></button>
               <button title={t("workflow.markFinal")} onClick={() => run(() => updateColumnAction(c.id, { isFinal: true }))}
-                className={cn("rounded p-1.5", c.isFinal ? "bg-emerald-100 text-emerald-700" : "text-muted-foreground hover:bg-muted")}><Flag className="h-3.5 w-3.5" /></button>
+                className={cn("rounded p-1.5", c.isFinal ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : "text-muted-foreground hover:bg-muted")}><Flag className="h-3.5 w-3.5" /></button>
               <span className="ms-auto whitespace-nowrap text-xs text-muted-foreground">{c.taskCount} {t("workflow.tasks")}</span>
-              {c.isInitial && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700">{t("workflow.initialBadge")}</span>}
-              {c.isFinal && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">{t("workflow.finalBadge")}</span>}
+              {c.isInitial && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-500/20 dark:text-sky-300">{t("workflow.initialBadge")}</span>}
+              {c.isFinal && <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">{t("workflow.finalBadge")}</span>}
               <button disabled={pending} title={t("workflow.delete")} onClick={() => run(() => deleteColumnAction(c.id))}
-                className="rounded p-1.5 text-rose-500 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
+                className="rounded p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"><Trash2 className="h-4 w-4" /></button>
             </li>
           ))}
         </ul>

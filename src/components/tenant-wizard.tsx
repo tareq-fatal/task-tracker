@@ -37,8 +37,8 @@ export function TenantWizard() {
   const canSubmit = f.name.trim() && f.slug.trim() && f.ownerName.trim() && f.ownerUsername.trim() && f.ownerEmail.trim() && f.ownerPassword.length >= 6;
 
   return (
-    <div className="rounded-xl border-2 border-indigo-100 bg-indigo-50/40 p-4">
-      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-indigo-700">
+    <div className="rounded-xl border-2 border-indigo-100 bg-indigo-50/40 p-4 dark:border-indigo-500/20 dark:bg-indigo-500/10">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-indigo-700 dark:text-indigo-300">
         <Building2 className="h-4 w-4" /> {t("tenants.new")}
       </h2>
 
@@ -57,7 +57,7 @@ export function TenantWizard() {
         </div>
       </div>
 
-      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-700/70">{t("tenants.owner")}</p>
+      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-700/70 dark:text-indigo-300/70">{t("tenants.owner")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1"><Label htmlFor="tw-oname">{t("tenants.ownerName")}</Label><Input id="tw-oname" value={f.ownerName} onChange={(e) => setF((s) => ({ ...s, ownerName: e.target.value, ownerUsername: s.ownerUsername || slugify(e.target.value) }))} /></div>
         <div className="space-y-1"><Label htmlFor="tw-ouser">{t("tenants.ownerUsername")}</Label><Input id="tw-ouser" value={f.ownerUsername} onChange={set("ownerUsername")} /></div>
@@ -67,7 +67,7 @@ export function TenantWizard() {
 
       <div className="mt-4 flex items-center gap-3">
         <Button onClick={submit} disabled={pending || !canSubmit}><Check className="me-1 h-4 w-4" /> {t("tenants.create")}</Button>
-        {msg && <span className={msg.ok ? "text-sm font-medium text-emerald-600" : "text-sm font-medium text-destructive"}>{msg.text}</span>}
+        {msg && <span className={msg.ok ? "text-sm font-medium text-emerald-600 dark:text-emerald-400" : "text-sm font-medium text-destructive"}>{msg.text}</span>}
       </div>
     </div>
   );

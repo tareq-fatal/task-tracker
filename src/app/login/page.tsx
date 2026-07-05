@@ -35,15 +35,15 @@ export default async function LoginPage({
 
   return (
     <I18nProvider locale={locale}>
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-pink-50 p-4">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-pink-50 p-4 dark:from-indigo-950/60 dark:via-background dark:to-pink-950/40">
         {/* soft decorative glows */}
-        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl" />
+        <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl dark:bg-indigo-600/20" />
+        <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl dark:bg-pink-600/20" />
 
         <div className="absolute end-4 top-4">
           <LocaleSwitcher current={locale} />
         </div>
-        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10">
+        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10 dark:border-white/10 dark:shadow-black/40">
           <div className="h-1.5 w-full brand-gradient" />
           <CardHeader className="items-center pt-8 text-center">
             <div className="relative mb-3 grid h-20 w-20 place-items-center">

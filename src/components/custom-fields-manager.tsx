@@ -39,13 +39,13 @@ export function CustomFieldsManager({ initial }: { initial: FieldDefLite[] }) {
           {initial.map((f) => (
             <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3" data-testid="cf-def">
               <span className="font-medium">{f.name}</span>
-              <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">{t(`cf.type.${f.type}`)}</span>
+              <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">{t(`cf.type.${f.type}`)}</span>
               {f.type === "select" && <span className="text-xs text-muted-foreground">{f.options.join(" · ")}</span>}
               <label className="ms-auto flex items-center gap-1 text-xs">
                 <input type="checkbox" checked={f.required} onChange={(e) => run(() => toggleRequiredAction(f.id, e.target.checked))} className="h-4 w-4 accent-indigo-600" />
                 {t("cf.required")}
               </label>
-              <button disabled={pending} title={t("cf.delete")} onClick={() => run(() => deleteFieldDefAction(f.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50">
+              <button disabled={pending} title={t("cf.delete")} onClick={() => run(() => deleteFieldDefAction(f.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                 <Trash2 className="h-4 w-4" />
               </button>
             </li>

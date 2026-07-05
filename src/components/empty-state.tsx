@@ -44,13 +44,12 @@ function Illustration({ className }: { className?: string }) {
         width="68"
         height="86"
         rx="12"
-        fill="hsl(243 75% 59% / 0.08)"
-        stroke="hsl(243 75% 59% / 0.35)"
+        style={{ fill: "hsl(var(--primary) / 0.08)", stroke: "hsl(var(--primary) / 0.35)" }}
         strokeWidth="2"
       />
-      <rect x="48" y="12" width="24" height="14" rx="5" fill="hsl(243 75% 59%)" />
+      <rect x="48" y="12" width="24" height="14" rx="5" className="fill-primary" />
       {/* check rows */}
-      <circle cx="42" cy="46" r="5" fill="hsl(160 84% 39%)" />
+      <circle cx="42" cy="46" r="5" className="fill-accent" />
       <path
         d="M39.5 46l1.8 1.8 3-3.4"
         stroke="white"
@@ -58,8 +57,8 @@ function Illustration({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <rect x="54" y="43" width="28" height="6" rx="3" fill="hsl(214 32% 88%)" />
-      <circle cx="42" cy="64" r="5" fill="hsl(243 75% 59%)" />
+      <rect x="54" y="43" width="28" height="6" rx="3" className="fill-border" />
+      <circle cx="42" cy="64" r="5" className="fill-primary" />
       <path
         d="M39.5 64l1.8 1.8 3-3.4"
         stroke="white"
@@ -67,20 +66,19 @@ function Illustration({ className }: { className?: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <rect x="54" y="61" width="22" height="6" rx="3" fill="hsl(214 32% 88%)" />
+      <rect x="54" y="61" width="22" height="6" rx="3" className="fill-border" />
       <circle
         cx="42"
         cy="82"
         r="5"
-        fill="white"
-        stroke="hsl(214 32% 80%)"
+        className="fill-card stroke-border"
         strokeWidth="2"
       />
-      <rect x="54" y="79" width="26" height="6" rx="3" fill="hsl(214 32% 92%)" />
+      <rect x="54" y="79" width="26" height="6" rx="3" className="fill-muted" />
       {/* sparkle */}
       <path
         d="M96 30c.8 3.2 1.6 4 4.8 4.8-3.2.8-4 1.6-4.8 4.8-.8-3.2-1.6-4-4.8-4.8 3.2-.8 4-1.6 4.8-4.8z"
-        fill="hsl(330 81% 60%)"
+        style={{ fill: "hsl(var(--brand-to))" }}
       />
     </svg>
   );

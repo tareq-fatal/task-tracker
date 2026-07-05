@@ -34,6 +34,9 @@ export function WelcomeTour({
 
   const isMobile =
     typeof window !== "undefined" && window.innerWidth < 768;
+  // Joyride styles are plain JS objects — read the active theme (safe here,
+  // we only render after mount) so the tooltip matches dark mode.
+  const isDark = document.documentElement.classList.contains("dark");
 
   const center = (key: TKey): Step => ({
     target: "body",
@@ -96,11 +99,11 @@ export function WelcomeTour({
       }}
       styles={{
         options: {
-          primaryColor: "#4f46e5",
-          textColor: "#1f2937",
-          backgroundColor: "#ffffff",
-          arrowColor: "#ffffff",
-          overlayColor: "rgba(15, 23, 42, 0.55)",
+          primaryColor: isDark ? "#818cf8" : "#4f46e5",
+          textColor: isDark ? "#e7e9f2" : "#1f2937",
+          backgroundColor: isDark ? "#151923" : "#ffffff",
+          arrowColor: isDark ? "#151923" : "#ffffff",
+          overlayColor: isDark ? "rgba(0, 0, 0, 0.65)" : "rgba(15, 23, 42, 0.55)",
           zIndex: 10000,
         },
         tooltip: { borderRadius: 16, padding: 20 },
@@ -111,7 +114,7 @@ export function WelcomeTour({
           padding: "8px 14px",
           backgroundColor: "#4f46e5",
         },
-        buttonBack: { color: "#6b7280" },
+        buttonBack: { color: isDark ? "#9ca3af" : "#6b7280" },
         buttonSkip: { color: "#94a3b8" },
       }}
     />

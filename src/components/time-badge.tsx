@@ -36,7 +36,7 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
       locale: dateLocale,
     });
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
         <CheckCircle2 className="h-3 w-3" />
         {t("time.doneAgo", { ago })}
       </span>
@@ -56,7 +56,7 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
         <span
           className={cn(
             "inline-flex items-center gap-1 text-muted-foreground",
-            running && "font-medium text-indigo-600"
+            running && "font-medium text-indigo-600 dark:text-indigo-400"
           )}
         >
           <Clock className={cn("h-3 w-3", running && "animate-pulse")} />
@@ -66,14 +66,14 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
       )}
 
       {task.dueDate && overdue && (
-        <span className="inline-flex animate-pulse items-center gap-1 rounded px-1.5 py-0.5 font-medium text-rose-700 bg-rose-100">
+        <span className="inline-flex animate-pulse items-center gap-1 rounded px-1.5 py-0.5 font-medium text-rose-700 bg-rose-100 dark:text-rose-300 dark:bg-rose-500/20">
           <AlertTriangle className="h-3 w-3" />
           {t("time.overdueBy", { n: overdueDaysCount(task.dueDate) })}
         </span>
       )}
 
       {task.dueDate && dueToday && (
-        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-700">
+        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 font-medium text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
           <CalendarDays className="h-3 w-3" />
           {t("dashboard.dueToday")}
         </span>

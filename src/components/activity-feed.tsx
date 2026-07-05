@@ -58,7 +58,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
             className={cn(
               "rounded-full px-3 py-1 text-xs font-medium transition-colors",
               filter === tb.key
-                ? "bg-sky-100 text-sky-700"
+                ? "bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300"
                 : "text-muted-foreground hover:bg-muted"
             )}
           >

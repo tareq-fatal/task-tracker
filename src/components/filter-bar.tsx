@@ -139,7 +139,7 @@ export function FilterBar({
                 <Users className="h-4 w-4" />
                 {t("task.assignee")}
                 {current.assignees.length > 0 && (
-                  <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+                  <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
                     {current.assignees.length}
                   </span>
                 )}
@@ -333,7 +333,7 @@ export function FilterBar({
           <Filter className="me-1 h-4 w-4" />
           {t("common.filters")}
           {activeCount > 0 && (
-            <span className="ms-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+            <span className="ms-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
               {activeCount}
             </span>
           )}

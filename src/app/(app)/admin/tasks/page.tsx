@@ -127,7 +127,7 @@ export default async function AdminTasksPage({
                   className={cn(
                     "hidden p-3 sm:table-cell",
                     isOverdue(task.dueDate, task.status as any) &&
-                      "font-medium text-rose-600"
+                      "font-medium text-rose-600 dark:text-rose-400"
                   )}
                 >
                   {task.dueDate ? format(task.dueDate, "dd.MM.yyyy") : t["common.none"]}

@@ -200,7 +200,7 @@ export default async function TaskDetailPage({
         <StatusBadge status={task.status} />
         <PriorityBadge priority={task.priority} />
         {task.storyPoints != null && (
-          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
             {task.storyPoints} SP
           </span>
         )}
@@ -266,7 +266,7 @@ export default async function TaskDetailPage({
               <CalendarClock className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">{t["task.dueDate"]}:</span>
               <span
-                className={cn("font-medium", overdue && "text-rose-600")}
+                className={cn("font-medium", overdue && "text-rose-600 dark:text-rose-400")}
               >
                 {task.dueDate
                   ? format(task.dueDate, "dd.MM.yyyy")
@@ -318,7 +318,7 @@ export default async function TaskDetailPage({
                   {t["hierarchy.children"]} ({r.done}/{r.total}
                   {r.totalPoints > 0 ? ` · ${r.donePoints}/${r.totalPoints} SP` : ""})
                 </h2>
-                <span className="text-sm font-semibold text-indigo-600">{r.progress}%</span>
+                <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{r.progress}%</span>
               </div>
               <div className="mb-3 h-2 overflow-hidden rounded-full bg-secondary">
                 <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500" style={{ width: `${r.progress}%` }} />

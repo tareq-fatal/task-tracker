@@ -116,7 +116,7 @@ export function ReportsDashboard({ data, labels: L }: { data: Data; labels: Labe
             <ActivityHeatmap cells={data.heatmap} label={L.activity} />
             <div className="flex flex-col gap-2">
               {data.bestDay && data.bestDay.count > 0 && (
-                <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm dark:bg-amber-500/10">
                   <Trophy className="h-4 w-4 text-amber-500" />
                   <span>
                     <span className="font-semibold">{L.bestDay}:</span> {data.bestDay.date} ·{" "}
@@ -124,14 +124,14 @@ export function ReportsDashboard({ data, labels: L }: { data: Data; labels: Labe
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm dark:bg-emerald-500/10">
                 <Flame className="h-4 w-4 text-emerald-500" />
                 <span>
                   <span className="font-semibold">{L.streak}:</span> {data.streak}
                 </span>
               </div>
               {data.prediction.daysLeft != null && (
-                <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm dark:bg-indigo-500/10">
                   <TrendingUp className="h-4 w-4 text-indigo-500" />
                   <span>
                     <span className="font-semibold">{L.prediction}:</span> ~{data.prediction.daysLeft}{" "}

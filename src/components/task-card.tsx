@@ -39,10 +39,10 @@ const PRIORITY_DOT: Record<TaskPriority, string> = {
 };
 
 const DUE_STYLE: Record<DueBucket, string> = {
-  overdue: "border-rose-200 bg-rose-50 text-rose-700",
-  today: "border-orange-200 bg-orange-50 text-orange-700",
-  week: "border-sky-200 bg-sky-50 text-sky-700",
-  far: "border-slate-200 bg-slate-50 text-slate-500",
+  overdue: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300",
+  today: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-300",
+  week: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300",
+  far: "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400",
 };
 
 export function TaskCard({
@@ -118,7 +118,7 @@ export function TaskCard({
             </span>
           )}
           {waitingOn > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
               <AlertTriangle className="h-3 w-3" />
               {t("links.waiting", { n: waitingOn })}
             </span>

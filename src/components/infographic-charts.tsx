@@ -122,7 +122,7 @@ export function ProgressRing({
             <stop offset="100%" stopColor="#ec4899" />
           </linearGradient>
         </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef2f7" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" className="stroke-muted" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}

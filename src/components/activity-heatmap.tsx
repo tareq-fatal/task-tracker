@@ -2,8 +2,9 @@
 
 import { heatLevel, type HeatCell } from "@/lib/infographics";
 
+// Level 0 uses the theme's muted token so empty cells work in dark mode too.
 const LEVEL_FILL = [
-  "#eef2f7", // 0
+  null, // 0 → fill-muted
   "#c7d2fe", // 1 indigo-200
   "#818cf8", // 2 indigo-400
   "#6366f1", // 3 indigo-500
@@ -49,7 +50,8 @@ export function ActivityHeatmap({
               width={size}
               height={size}
               rx={3}
-              fill={LEVEL_FILL[lvl]}
+              className={lvl === 0 ? "fill-muted" : undefined}
+              fill={LEVEL_FILL[lvl] ?? undefined}
             >
               <title>{`${c.date}: ${c.count}`}</title>
             </rect>
@@ -58,8 +60,12 @@ export function ActivityHeatmap({
       </svg>
       <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
         <span>−</span>
-        {LEVEL_FILL.map((f) => (
-          <span key={f} className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: f }} />
+        {LEVEL_FILL.map((f, i) => (
+          <span
+            key={i}
+            className={`inline-block h-2.5 w-2.5 rounded-sm ${f ? "" : "bg-muted"}`}
+            style={f ? { background: f } : undefined}
+          />
         ))}
         <span>+</span>
       </div>

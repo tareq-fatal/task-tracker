@@ -77,10 +77,9 @@ export function NewTeamDialog() {
                   type="button"
                   key={c}
                   onClick={() => setColor(c)}
-                  className="h-8 w-8 rounded-full border-2 transition-transform"
+                  className={`h-8 w-8 rounded-full border-2 transition-transform ${color === c ? "border-foreground" : "border-transparent"}`}
                   style={{
                     backgroundColor: c,
-                    borderColor: color === c ? "#111827" : "transparent",
                     transform: color === c ? "scale(1.1)" : "scale(1)",
                   }}
                   aria-label={c}

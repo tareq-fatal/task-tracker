@@ -57,7 +57,7 @@ export function RoadmapView({ lanes, from, to, now, doneLabel }: { lanes: Lane[]
                   ))}
                   {/* rounded gradient bar with progress fill + milestone diamond at the end */}
                   <div
-                    className="absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden rounded-full shadow-sm ring-1 ring-black/5"
+                    className="absolute top-1/2 h-6 -translate-y-1/2 overflow-hidden rounded-full shadow-sm ring-1 ring-black/5 dark:ring-white/10"
                     style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: `linear-gradient(90deg, ${lane.color}, ${lane.color}bb)` }}
                     title={tip}
                   >

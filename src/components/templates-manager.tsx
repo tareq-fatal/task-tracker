@@ -64,7 +64,7 @@ export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
                     <Button size="sm" variant="outline" className="ms-auto" disabled={pending} onClick={() => start(async () => { await createFromTemplateAction(tpl.id); })}>
                       <PlayCircle className="me-1 h-4 w-4" /> {t("tpl.create")}
                     </Button>
-                    <button disabled={pending} title={t("tpl.delete")} onClick={() => run(() => deleteTemplateAction(tpl.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50">
+                    <button disabled={pending} title={t("tpl.delete")} onClick={() => run(() => deleteTemplateAction(tpl.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </li>

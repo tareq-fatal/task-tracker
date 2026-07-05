@@ -43,7 +43,7 @@ export type ScrumTask = {
 function Avatar({ name, className }: { name: string; className?: string }) {
   const init = name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <span className={cn("grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-[10px] font-bold text-white ring-2 ring-white", className)} title={name}>
+    <span className={cn("grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-[10px] font-bold text-white ring-2 ring-background", className)} title={name}>
       {init}
     </span>
   );
@@ -68,10 +68,10 @@ function Sticky({ task }: { task: ScrumTask }) {
         {task.title}
       </p>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[10px] text-foreground/70">{task.code}</span>
+        <span className="rounded bg-black/5 px-1.5 py-0.5 font-mono text-[10px] text-foreground/70 dark:bg-white/10">{task.code}</span>
         <div className="flex items-center gap-1">
           {task.storyPoints != null && (
-            <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-bold">{task.storyPoints} P</span>
+            <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-bold dark:bg-white/15">{task.storyPoints} P</span>
           )}
           {task.assignee && <Avatar name={task.assignee} />}
         </div>
@@ -85,15 +85,15 @@ function Column({ col, tasks, label, emoji }: { col: ScrumColumn; tasks: ScrumTa
   const over = isOverWip(col, tasks.length);
   return (
     <div className="flex w-60 shrink-0 flex-col">
-      <div className={cn("mb-2 flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm font-semibold", over ? "bg-rose-100 text-rose-700" : "bg-secondary")}>
+      <div className={cn("mb-2 flex items-center justify-between rounded-md px-2.5 py-1.5 text-sm font-semibold", over ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-secondary")}>
         <span className="flex items-center gap-1.5">{emoji} {label}</span>
-        <span className={cn("rounded-full px-1.5 text-xs", over ? "bg-rose-200" : "bg-background/70")}>
+        <span className={cn("rounded-full px-1.5 text-xs", over ? "bg-rose-200 dark:bg-rose-500/30" : "bg-background/70")}>
           {tasks.length}{WIP_LIMIT[col] ? `/${WIP_LIMIT[col]}` : ""}
         </span>
       </div>
       <div
         ref={setNodeRef}
-        className={cn("flex min-h-[60vh] flex-col gap-3 rounded-xl border border-dashed p-2 transition-colors", isOver && "bg-indigo-50 ring-2 ring-indigo-300")}
+        className={cn("flex min-h-[60vh] flex-col gap-3 rounded-xl border border-dashed p-2 transition-colors", isOver && "bg-indigo-50 ring-2 ring-indigo-300 dark:bg-indigo-500/10 dark:ring-indigo-500/40")}
       >
         {tasks.map((t) => (
           <Link key={t.id} href={`/tasks/${t.id}`} onClick={(e) => e.defaultPrevented && e.preventDefault()}>
@@ -142,21 +142,21 @@ export function ScrumBoard({
   return (
     <div className="relative">
       {/* Header bar */}
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-gradient-to-r from-indigo-50 to-pink-50 p-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-gradient-to-r from-indigo-50 to-pink-50 p-3 dark:from-indigo-950/40 dark:to-pink-950/40">
         <div className="min-w-0">
           <div className="font-bold">{sprint ? sprint.name : t("scrum.sprintNone")}</div>
           {sprint && <div className="text-xs text-muted-foreground">{sprint.range}{sprint.goal ? ` · 🎯 ${sprint.goal}` : ""}</div>}
         </div>
         <div className="ms-auto flex items-center gap-3">
           {/* presence (foundation for realtime) */}
-          <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> {meName} · {t("scrum.live")}
           </span>
           <div className="flex -space-x-2">
             {team.slice(0, 6).map((n, i) => <Avatar key={i} name={n} />)}
-            {team.length > 6 && <span className="grid h-6 w-6 place-items-center rounded-full bg-muted text-[10px] ring-2 ring-white">+{team.length - 6}</span>}
+            {team.length > 6 && <span className="grid h-6 w-6 place-items-center rounded-full bg-muted text-[10px] ring-2 ring-background">+{team.length - 6}</span>}
           </div>
-          <button onClick={() => setDraw((d) => !d)} className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", draw && "bg-indigo-100 text-indigo-700")}>
+          <button onClick={() => setDraw((d) => !d)} className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", draw && "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300")}>
             <Pencil className="h-3.5 w-3.5" /> {t("scrum.draw")}
           </button>
         </div>

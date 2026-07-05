@@ -26,7 +26,7 @@ export default async function IntegrationsPage() {
           <div key={c.name} className="rounded-xl border bg-card p-4 opacity-90" data-testid="integration-card">
             <div className="mb-2 flex items-center justify-between">
               <c.icon className="h-6 w-6 text-indigo-500" />
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
                 {t["integ.notConfigured"]}
               </span>
             </div>

@@ -80,7 +80,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="glass absolute end-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-white/40 shadow-xl">
+        <div className="glass absolute end-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-white/40 shadow-xl dark:border-white/10">
           <div className="flex items-center justify-between border-b px-4 py-2.5">
             <span className="text-sm font-semibold">{t("notif.title")}</span>
             {items.some((i) => !i.read) ? null : (
@@ -98,7 +98,7 @@ export function NotificationBell() {
                   <div
                     className={cn(
                       "border-b px-4 py-3 text-sm transition-colors hover:bg-secondary/60",
-                      !n.read && "bg-indigo-50/60"
+                      !n.read && "bg-indigo-50/60 dark:bg-indigo-500/10"
                     )}
                   >
                     <div className="font-medium">{n.title}</div>

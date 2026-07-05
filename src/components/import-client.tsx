@@ -132,7 +132,7 @@ export function ImportClient() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-lg font-semibold">{preview.planName}</h2>
               {preview.alreadyImported! > 0 && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">
                   {preview.alreadyImported} {t("import.alreadyImported")}
                 </span>
               )}
@@ -210,9 +210,9 @@ export function ImportClient() {
 
       {/* Result */}
       {result?.ok && (
-        <Card className="border-emerald-200">
+        <Card className="border-emerald-200 dark:border-emerald-500/30">
           <CardContent className="space-y-3 p-5">
-            <div className="flex items-center gap-2 text-emerald-700">
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-semibold">{t("import.done")}</span>
             </div>

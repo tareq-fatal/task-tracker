@@ -25,7 +25,7 @@ export function UserDetailHeader({
       </Link>
 
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border bg-gradient-to-br from-indigo-500/5 to-emerald-500/5 p-5 shadow-sm">
-        <Avatar className="h-16 w-16 border-2 border-white shadow">
+        <Avatar className="h-16 w-16 border-2 border-background shadow">
           <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xl text-white">
             {initials(user.name)}
           </AvatarFallback>

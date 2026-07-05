@@ -65,7 +65,7 @@ function DayCell({ date, day, inMonth, tasks, onCreate }: {
       className={cn(
         "min-h-[92px] border p-1 transition-colors",
         !inMonth && "bg-muted/40 text-muted-foreground",
-        isOver && "bg-indigo-50 ring-2 ring-indigo-300",
+        isOver && "bg-indigo-50 ring-2 ring-indigo-300 dark:bg-indigo-500/10 dark:ring-indigo-500/40",
         "hover:bg-secondary/40"
       )}
     >

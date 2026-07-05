@@ -6,6 +6,9 @@ const config: Config = {
     "./src/pages/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
     "./src/app/**/*.{ts,tsx}",
+    // class maps live here too (e.g. STICKY_COLOR in lib/scrum.ts) — without
+    // this glob their classes get purged from the production CSS
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     container: {

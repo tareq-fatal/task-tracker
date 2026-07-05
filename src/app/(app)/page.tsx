@@ -72,7 +72,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold">{t["dashboard.title"]}</h1>
           {overdueCount > 0 && (
-            <p className="mt-1 text-sm font-medium text-rose-600">
+            <p className="mt-1 text-sm font-medium text-rose-600 dark:text-rose-400">
               {overdueCount} {t["dashboard.overdue"].toLowerCase()}
             </p>
           )}

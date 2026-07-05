@@ -48,7 +48,7 @@ export function ApkDownloadLink() {
       <div className="mt-4 text-center">
         <a
           href="/download/task-tracker-latest.apk"
-          className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
+          className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400"
         >
           {t("login.downloadApp")}
         </a>
@@ -62,7 +62,7 @@ export function ApkDownloadLink() {
         {installEvt ? (
           <button
             onClick={() => installEvt.prompt()}
-            className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
+            className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400"
           >
             {t("login.installAndroid")}
           </button>

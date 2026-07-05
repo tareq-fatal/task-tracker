@@ -20,7 +20,9 @@ export function ExportButtons({
     const el = document.getElementById(targetId);
     if (!el) return null;
     const html2canvas = (await import("html2canvas")).default;
-    return html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+    // Match the active theme, otherwise dark-mode exports get light text on white.
+    const dark = document.documentElement.classList.contains("dark");
+    return html2canvas(el, { scale: 2, backgroundColor: dark ? "#0e121b" : "#ffffff", useCORS: true });
   }
 
   async function png() {

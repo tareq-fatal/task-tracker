@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 type Trend = "up" | "down" | "flat";
 
 const ACCENTS = {
-  sky: "from-indigo-500/10 to-indigo-500/0 text-indigo-600",
-  teal: "from-emerald-500/10 to-emerald-500/0 text-emerald-600",
-  emerald: "from-emerald-500/10 to-emerald-500/0 text-emerald-600",
-  rose: "from-rose-500/10 to-rose-500/0 text-rose-600",
-  amber: "from-amber-500/10 to-amber-500/0 text-amber-600",
+  sky: "from-indigo-500/10 to-indigo-500/0 text-indigo-600 dark:text-indigo-400",
+  teal: "from-emerald-500/10 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
+  emerald: "from-emerald-500/10 to-emerald-500/0 text-emerald-600 dark:text-emerald-400",
+  rose: "from-rose-500/10 to-rose-500/0 text-rose-600 dark:text-rose-400",
+  amber: "from-amber-500/10 to-amber-500/0 text-amber-600 dark:text-amber-400",
 } as const;
 
 export function StatCard({
@@ -32,9 +32,9 @@ export function StatCard({
     trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus;
   const trendColor =
     trend === "up"
-      ? "text-emerald-600"
+      ? "text-emerald-600 dark:text-emerald-400"
       : trend === "down"
-        ? "text-rose-600"
+        ? "text-rose-600 dark:text-rose-400"
         : "text-muted-foreground";
 
   return (

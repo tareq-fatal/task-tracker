@@ -19,7 +19,7 @@ type Row = {
   dueDate: string | Date | null; storyPoints?: number | null; assignedTo: { name: string } | null;
 };
 
-const DUE_COLOR = { overdue: "text-rose-600", today: "text-orange-600", week: "text-sky-600", far: "text-muted-foreground" };
+const DUE_COLOR = { overdue: "text-rose-600 dark:text-rose-400", today: "text-orange-600 dark:text-orange-400", week: "text-sky-600 dark:text-sky-400", far: "text-muted-foreground" };
 
 export function TaskTable({ rows }: { rows: Row[] }) {
   const { t, locale } = useT();
@@ -85,7 +85,7 @@ export function TaskTable({ rows }: { rows: Row[] }) {
             {sorted.map((r) => {
               const bucket = r.status === "Done" || r.status === "Archived" ? null : dueBucket(r.dueDate, new Date());
               return (
-                <tr key={r.id} className={cn("border-t hover:bg-muted/30", sel.has(r.id) && "bg-indigo-50/50")} data-testid="list-row">
+                <tr key={r.id} className={cn("border-t hover:bg-muted/30", sel.has(r.id) && "bg-indigo-50/50 dark:bg-indigo-500/10")} data-testid="list-row">
                   <td className={cn("px-3", pad)}>
                     <input type="checkbox" aria-label={`select ${r.title}`} checked={sel.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-indigo-600" />
                   </td>

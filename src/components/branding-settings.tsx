@@ -85,7 +85,7 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
 
         <div className="flex items-center gap-3">
           <Button onClick={save} disabled={pending}><Check className="me-1 h-4 w-4" /> {t("brand.save")}</Button>
-          {saved && <span className="text-sm font-medium text-emerald-600">{t("brand.saved")}</span>}
+          {saved && <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{t("brand.saved")}</span>}
         </div>
       </div>
 

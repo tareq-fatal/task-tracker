@@ -44,11 +44,11 @@ export function stickyRotation(id: string): number {
 
 /** Pastel sticky background per task type. */
 export const STICKY_COLOR: Record<TaskType, string> = {
-  Story: "bg-amber-100 border-amber-200",
-  Task: "bg-sky-100 border-sky-200",
-  Epic: "bg-violet-100 border-violet-200",
-  Bug: "bg-rose-100 border-rose-200",
-  Subtask: "bg-emerald-100 border-emerald-200",
+  Story: "bg-amber-100 border-amber-200 dark:bg-amber-500/15 dark:border-amber-500/30",
+  Task: "bg-sky-100 border-sky-200 dark:bg-sky-500/15 dark:border-sky-500/30",
+  Epic: "bg-violet-100 border-violet-200 dark:bg-violet-500/15 dark:border-violet-500/30",
+  Bug: "bg-rose-100 border-rose-200 dark:bg-rose-500/15 dark:border-rose-500/30",
+  Subtask: "bg-emerald-100 border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30",
 };
 
 /** Soft WIP limits per column (0 = no limit). PR-AK will make these configurable. */

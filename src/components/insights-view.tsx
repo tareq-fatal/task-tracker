@@ -52,12 +52,12 @@ export function InsightsView({ data }: { data: InsightsData }) {
         <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Gauge className="h-4 w-4 text-indigo-500" /> {t("ins.forecast")}</div>
         {data.forecast ? (
           data.forecast.daysLeft === null ? (
-            <p className="text-lg font-bold text-rose-600">{t("ins.stalled")}</p>
+            <p className="text-lg font-bold text-rose-600 dark:text-rose-400">{t("ins.stalled")}</p>
           ) : (
             <div>
               <p className="text-3xl font-black tabular-nums"><CountUp value={data.forecast.daysLeft} /> <span className="text-base font-medium text-muted-foreground">{t("ins.days")}</span></p>
               {data.forecast.delta !== null && (
-                <p className={cn("mt-1 text-sm font-semibold", data.forecast.delta > 0 ? "text-rose-600" : data.forecast.delta < 0 ? "text-emerald-600" : "text-muted-foreground")}>
+                <p className={cn("mt-1 text-sm font-semibold", data.forecast.delta > 0 ? "text-rose-600 dark:text-rose-400" : data.forecast.delta < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
                   {data.forecast.delta === 0 ? t("ins.onTrack") : `${Math.abs(data.forecast.delta)} ${data.forecast.delta > 0 ? t("ins.late") : t("ins.early")}`}
                   {data.forecast.sprintName ? ` · ${data.forecast.sprintName}` : ""}
                 </p>
@@ -75,18 +75,18 @@ export function InsightsView({ data }: { data: InsightsData }) {
             <p className="text-2xl font-black">{data.bottleneck.status}</p>
             <p className="mt-1 text-sm text-muted-foreground">{t("ins.avgAge")}: <b className="text-foreground">{data.bottleneck.avgAgeDays} {t("ins.days")}</b> · {data.bottleneck.count} {t("ins.open")}</p>
           </div>
-        ) : <p className="text-sm text-emerald-600">{t("ins.bottleneckNone")}</p>}
+        ) : <p className="text-sm text-emerald-600 dark:text-emerald-400">{t("ins.bottleneckNone")}</p>}
       </Glass>
 
       {/* Burnout */}
       <Glass className="md:col-span-2">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><AlertTriangle className="h-4 w-4 text-rose-500" /> {t("ins.burnout")}</div>
         {data.burnout.length === 0 ? (
-          <p className="text-sm text-emerald-600">{t("ins.burnoutNone")}</p>
+          <p className="text-sm text-emerald-600 dark:text-emerald-400">{t("ins.burnoutNone")}</p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {data.burnout.map((u) => (
-              <li key={u.name} className={cn("flex items-center gap-2 rounded-xl border px-3 py-2 text-sm", u.risk === "high" ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50")}>
+              <li key={u.name} className={cn("flex items-center gap-2 rounded-xl border px-3 py-2 text-sm", u.risk === "high" ? "border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10" : "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10")}>
                 <span className={cn("text-lg", u.risk === "high" ? "grayscale-0" : "")}>{u.risk === "high" ? "🚨" : "⚠️"}</span>
                 <span className="font-semibold">{u.name}</span>
                 <span className="text-muted-foreground">{u.open} {t("ins.open")} · {u.overdue} {t("ins.overdue")}</span>

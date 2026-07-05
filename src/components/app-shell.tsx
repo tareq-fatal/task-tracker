@@ -110,14 +110,14 @@ function NavLink({
       className={cn(
         "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-gradient-to-r from-indigo-500/15 to-emerald-500/10 text-indigo-700"
+          ? "bg-gradient-to-r from-indigo-500/15 to-emerald-500/10 text-indigo-700 dark:text-indigo-300"
           : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
       )}
     >
       {active && (
         <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-pink-500" />
       )}
-      <Icon className={cn("h-5 w-5", active && "text-indigo-600")} />
+      <Icon className={cn("h-5 w-5", active && "text-indigo-600 dark:text-indigo-400")} />
       {t(item.label)}
     </Link>
   );
@@ -270,7 +270,7 @@ export function AppShell({
             {/* Mobile section chip */}
             {activeItem && (
               <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
-                <activeItem.icon className="h-3.5 w-3.5 text-indigo-600" />
+                <activeItem.icon className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
                 {t(activeItem.label)}
               </span>
             )}
@@ -358,7 +358,7 @@ export function AppShell({
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] transition-colors",
-                active ? "text-indigo-600" : "text-muted-foreground"
+                active ? "text-indigo-600 dark:text-indigo-400" : "text-muted-foreground"
               )}
             >
               <span
@@ -375,7 +375,7 @@ export function AppShell({
         })}
         <Link
           href="/tasks/new"
-          className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-indigo-600"
+          className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-indigo-600 dark:text-indigo-400"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-md">
             <Plus className="h-4 w-4" />

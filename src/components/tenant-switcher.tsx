@@ -75,7 +75,7 @@ export function TenantSwitcher({
             {dot(t.primaryColor)}
             <span className="flex-1 truncate">{t.name}</span>
             {t.slug === current.slug && (
-              <Check className="h-4 w-4 text-indigo-600" />
+              <Check className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             )}
           </DropdownMenuItem>
         ))}

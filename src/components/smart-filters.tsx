@@ -10,7 +10,7 @@ export function SmartFilters({ presets }: { presets: SmartPreset[] }) {
         <Link
           key={p.label}
           href={p.href}
-          className="rounded-full border border-input bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-sky-50 hover:text-sky-700"
+          className="rounded-full border border-input bg-background px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-sky-500/10 dark:hover:text-sky-300"
         >
           {p.label}
         </Link>

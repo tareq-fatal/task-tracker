@@ -83,7 +83,7 @@ function Column({
         className={cn(
           "flex min-h-[62vh] flex-col gap-2.5 rounded-2xl border bg-muted/30 p-2.5 transition-all duration-200",
           isOver
-            ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300/60"
+            ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300/60 dark:bg-indigo-500/10 dark:ring-indigo-500/40"
             : "border-dashed"
         )}
       >
@@ -94,7 +94,7 @@ function Column({
           <div
             className={cn(
               "flex flex-1 items-center justify-center rounded-xl border border-dashed py-10 text-center text-xs text-muted-foreground transition-colors",
-              isOver && "border-indigo-300 text-indigo-600"
+              isOver && "border-indigo-300 text-indigo-600 dark:border-indigo-500/40 dark:text-indigo-400"
             )}
           >
             {isOver ? "⤵" : "—"}

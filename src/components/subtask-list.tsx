@@ -36,7 +36,7 @@ function Row({ sub }: { sub: SubtaskItem }) {
         aria-label="toggle"
       >
         {sub.done ? (
-          <CheckSquare className="h-5 w-5 text-emerald-600" />
+          <CheckSquare className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
         ) : (
           <Square className="h-5 w-5" />
         )}

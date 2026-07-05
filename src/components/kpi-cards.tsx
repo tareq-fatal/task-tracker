@@ -8,10 +8,10 @@ export type KpiItem = {
 };
 
 const ACCENT: Record<NonNullable<KpiItem["accent"]>, string> = {
-  sky: "text-sky-600",
-  teal: "text-teal-600",
-  amber: "text-amber-600",
-  rose: "text-rose-600",
+  sky: "text-sky-600 dark:text-sky-400",
+  teal: "text-teal-600 dark:text-teal-400",
+  amber: "text-amber-600 dark:text-amber-400",
+  rose: "text-rose-600 dark:text-rose-400",
 };
 
 export function KpiCards({ items }: { items: KpiItem[] }) {

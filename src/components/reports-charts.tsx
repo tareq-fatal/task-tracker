@@ -45,7 +45,7 @@ export function ReportsCharts({
         <h2 className="mb-3 text-sm font-semibold">{labels.burndown}</h2>
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={burndown} margin={{ top: 5, right: 8, bottom: 0, left: -16 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => String(d).slice(5)} minTickGap={24} />
             <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
             <Tooltip />
@@ -63,7 +63,7 @@ export function ReportsCharts({
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={workload} margin={{ top: 5, right: 8, bottom: 0, left: -16 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={50} />
               <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
               <Tooltip />

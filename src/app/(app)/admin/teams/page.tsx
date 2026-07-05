@@ -47,9 +47,9 @@ export default async function AdminTeamsPage() {
             const overdue = overdueCount(team.tasks as any, now);
             const stats = [
               { label: t["teams.stats.total"], value: total, color: "text-foreground" },
-              { label: t["teams.stats.done"], value: done, color: "text-emerald-600" },
-              { label: t["teams.stats.active"], value: active, color: "text-amber-600" },
-              { label: t["teams.stats.overdue"], value: overdue, color: "text-rose-600" },
+              { label: t["teams.stats.done"], value: done, color: "text-emerald-600 dark:text-emerald-400" },
+              { label: t["teams.stats.active"], value: active, color: "text-amber-600 dark:text-amber-400" },
+              { label: t["teams.stats.overdue"], value: overdue, color: "text-rose-600 dark:text-rose-400" },
             ];
             return (
               <Link key={team.id} href={`/admin/teams/${team.id}`}>

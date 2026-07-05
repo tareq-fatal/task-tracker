@@ -47,13 +47,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             className={cn(
               "tt-rise pointer-events-auto flex items-center gap-2 rounded-xl border bg-card px-4 py-2.5 text-sm shadow-lg",
-              t.variant === "success" ? "border-emerald-200" : "border-rose-200"
+              t.variant === "success" ? "border-emerald-200 dark:border-emerald-500/30" : "border-rose-200 dark:border-rose-500/30"
             )}
           >
             {t.variant === "success" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-rose-600" />
+              <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
             )}
             <span className="font-medium">{t.message}</span>
             <button

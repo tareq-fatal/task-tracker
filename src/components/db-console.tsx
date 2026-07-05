@@ -60,7 +60,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
           </select>
           <label className="ms-auto flex items-center gap-1.5 text-xs">
             <input type="checkbox" checked={writeMode} onChange={(e) => setWriteMode(e.target.checked)} className="h-4 w-4 accent-rose-600" />
-            <span className={cn(writeMode && "font-semibold text-rose-600")}>Write mode</span>
+            <span className={cn(writeMode && "font-semibold text-rose-600 dark:text-rose-400")}>Write mode</span>
           </label>
           <Button size="sm" onClick={run} disabled={pending} variant={cls.dangerous ? "destructive" : "default"}>
             <Play className="me-1 h-4 w-4" /> Run
@@ -75,7 +75,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
           className="w-full resize-y bg-background p-3 font-mono text-sm outline-none"
         />
         {cls.dangerous && (
-          <div className="flex items-center gap-2 border-t bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <div className="flex items-center gap-2 border-t bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
             <AlertTriangle className="h-4 w-4" /> Mutating/DDL query ({cls.firstWord}) — requires <b>Write mode</b>. This changes data.
           </div>
         )}
@@ -126,7 +126,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
             <ul className="divide-y">
               {audit.map((a) => (
                 <li key={a.id} className="flex items-start gap-2 p-2">
-                  <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", a.mode === "read" ? "bg-emerald-100 text-emerald-700" : a.mode === "purge" ? "bg-rose-200 text-rose-800" : "bg-amber-100 text-amber-700")}>{a.mode}</span>
+                  <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", a.mode === "read" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" : a.mode === "purge" ? "bg-rose-200 text-rose-800 dark:bg-rose-500/30 dark:text-rose-200" : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300")}>{a.mode}</span>
                   <code className="min-w-0 flex-1 truncate" title={a.sql}>{a.sql}</code>
                   <span className="shrink-0 text-muted-foreground">{a.error ? "✗" : a.rowCount ?? ""} · {a.userName} · {new Date(a.createdAt).toLocaleTimeString()}</span>
                 </li>
@@ -157,11 +157,11 @@ function PurgeTenant() {
   }
 
   return (
-    <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-4">
-      <h2 className="flex items-center gap-1.5 text-sm font-bold text-rose-700">
+    <div className="rounded-xl border-2 border-rose-200 bg-rose-50/50 p-4 dark:border-rose-500/30 dark:bg-rose-500/10">
+      <h2 className="flex items-center gap-1.5 text-sm font-bold text-rose-700 dark:text-rose-300">
         <Trash2 className="h-4 w-4" /> {t("db.danger.title")}
       </h2>
-      <p className="mt-1 text-xs text-rose-700/80">{t("db.danger.desc")}</p>
+      <p className="mt-1 text-xs text-rose-700/80 dark:text-rose-300/80">{t("db.danger.desc")}</p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <Input value={slug} onChange={(e) => preview(e.target.value)} aria-label={t("db.danger.slug")} placeholder={t("db.danger.slug")} className="w-48" title={t("db.danger.slug")} />
         <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-label={t("db.danger.reconfirm")} placeholder={t("db.danger.reconfirm")} className="w-48" title={t("db.danger.reconfirm")} />
@@ -180,7 +180,7 @@ function PurgeTenant() {
         </Button>
       </div>
       {counts && (counts.tasks + counts.projects + counts.teams + counts.sprints > 0) && (
-        <p className="mt-2 text-xs font-semibold text-rose-700">
+        <p className="mt-2 text-xs font-semibold text-rose-700 dark:text-rose-300">
           ⚠ {t("db.danger.willRemove")} {counts.tasks} Tasks · {counts.projects} Projekte · {counts.teams} Teams · {counts.sprints} Sprints — <b>{counts.name}</b>
         </p>
       )}

@@ -72,12 +72,12 @@ export function LineChart({
             x2={W - padX}
             y1={y}
             y2={y}
-            stroke="hsl(214 32% 91%)"
+            className="stroke-border"
             strokeWidth="1"
             strokeDasharray={i === 2 ? "0" : "3 3"}
           />
         ))}
-        <text x={padX} y={padTop + 4} fontSize="10" fill="hsl(220 9% 60%)">
+        <text x={padX} y={padTop + 4} fontSize="10" className="fill-muted-foreground">
           {max}
         </text>
 
@@ -111,7 +111,7 @@ export function LineChart({
               y={H - 8}
               fontSize="9"
               textAnchor="middle"
-              fill="hsl(220 9% 60%)"
+              className="fill-muted-foreground"
             >
               {d.label}
             </text>

@@ -53,7 +53,7 @@ export function AutomationManager({ initial }: { initial: RuleLite[] }) {
                 <input type="checkbox" checked={r.enabled} onChange={(e) => run(() => toggleRuleAction(r.id, e.target.checked))} className="h-4 w-4 accent-emerald-600" />
                 {r.enabled ? "on" : "off"}
               </label>
-              <button disabled={pending} title={t("auto.delete")} onClick={() => run(() => deleteRuleAction(r.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50">
+              <button disabled={pending} title={t("auto.delete")} onClick={() => run(() => deleteRuleAction(r.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                 <Trash2 className="h-4 w-4" />
               </button>
             </li>

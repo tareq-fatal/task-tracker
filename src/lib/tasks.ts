@@ -2,18 +2,18 @@ import type { TaskPriority, TaskStatus } from "./enums";
 
 /** Tailwind classes for status pills. */
 export const STATUS_STYLES: Record<TaskStatus, string> = {
-  Todo: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  InProgress: "bg-amber-100 text-amber-700 border-amber-200",
-  Done: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Archived: "bg-slate-100 text-slate-500 border-slate-200",
+  Todo: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30",
+  InProgress: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30",
+  Done: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30",
+  Archived: "bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700",
 };
 
 /** Tailwind classes for priority pills. */
 export const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  Low: "bg-slate-100 text-slate-600 border-slate-200",
-  Medium: "bg-amber-100 text-amber-700 border-amber-200",
-  High: "bg-orange-100 text-orange-700 border-orange-200",
-  Critical: "bg-red-100 text-red-700 border-red-200",
+  Low: "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  Medium: "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30",
+  High: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/20 dark:text-orange-300 dark:border-orange-500/30",
+  Critical: "bg-red-100 text-red-700 border-red-200 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30",
 };
 
 export const PRIORITY_ORDER: Record<TaskPriority, number> = {
@@ -28,7 +28,7 @@ export const PRIORITY_ACCENT: Record<TaskPriority, string> = {
   Critical: "border-s-rose-400",
   High: "border-s-orange-400",
   Medium: "border-s-amber-400",
-  Low: "border-s-slate-300",
+  Low: "border-s-slate-300 dark:border-s-slate-600",
 };
 
 /** True when a task with this due date and status is overdue (not done/archived). */
