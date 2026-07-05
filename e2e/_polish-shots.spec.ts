@@ -34,9 +34,13 @@ test.describe("apk polish shots", () => {
     await shot(page, "02-notif-sheet-light");
 
     // ── Swipe a card partway to reveal the delete affordance ────────────
+    // (Only exists in the redesigned "after" build; tolerated otherwise.)
     const firstCard = page.locator('.tt-sheet-up [role="button"]').first();
-    await firstCard.waitFor({ state: "visible" });
-    const box = await firstCard.boundingBox();
+    const hasSheet = await firstCard
+      .waitFor({ state: "visible", timeout: 2500 })
+      .then(() => true)
+      .catch(() => false);
+    const box = hasSheet ? await firstCard.boundingBox() : null;
     if (box) {
       const cy = box.y + box.height / 2;
       await page.mouse.move(box.x + box.width - 24, cy);
