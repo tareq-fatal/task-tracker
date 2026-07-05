@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getActiveLocale } from "@/lib/locale";
-import { dirForLocale } from "@/lib/enums";
+import { dirForLocale, LOCALES, type Locale } from "@/lib/enums";
+import { translate } from "@/lib/i18n";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,20 +17,47 @@ const cairo = Cairo({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "متعقب المهام · Task Tracker",
-  description: "تطبيق خفيف لتتبّع المهام — لوحات ومشاريع وعمل جماعي.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "متعقب المهام",
-  },
-  icons: {
-    icon: "/logo.svg",
-    apple: "/icons/icon-192.png",
-  },
+// og:locale wants language_TERRITORY tags matching our regional conventions.
+const OG_LOCALE: Record<Locale, string> = {
+  ar: "ar_EG",
+  de: "de_DE",
+  en: "en_US",
 };
+
+export function generateMetadata(): Metadata {
+  const locale = getActiveLocale();
+  const title = translate(locale, "app.name");
+  const description = translate(locale, "meta.description");
+  return {
+    title,
+    description,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title,
+    },
+    icons: {
+      icon: "/logo.svg",
+      apple: "/icons/icon-192.png",
+    },
+    openGraph: {
+      title,
+      description,
+      siteName: title,
+      type: "website",
+      locale: OG_LOCALE[locale],
+      alternateLocale: LOCALES.filter((l) => l !== locale).map(
+        (l) => OG_LOCALE[l]
+      ),
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5",
