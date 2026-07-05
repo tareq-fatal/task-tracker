@@ -14,6 +14,7 @@ import { SprintBurndown, SprintVelocity } from "@/components/sprint-charts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
+import { FeatureHint } from "@/components/onboarding/feature-hint";
 import { cn } from "@/lib/utils";
 
 function CreateBtn() {
@@ -45,7 +46,15 @@ export function SprintBoard({ view }: { view: SprintsView }) {
   const active = view.sprints.find((s) => s.status === "active");
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* First-use coach-mark for the sprint view. */}
+      <FeatureHint
+        id="sprint"
+        titleKey="onboarding.hint.sprint.title"
+        textKey="onboarding.hint.sprint.text"
+        placement="bottom"
+      />
+
       {/* Project selector */}
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-muted-foreground">{t("sprint.project")}:</span>

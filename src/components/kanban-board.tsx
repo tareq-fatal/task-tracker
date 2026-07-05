@@ -20,6 +20,7 @@ import { useT } from "@/components/i18n-provider";
 import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
+import { FeatureHint } from "@/components/onboarding/feature-hint";
 import type { TKey } from "@/lib/i18n";
 
 type BoardTask = TaskCardData & { status: string };
@@ -182,6 +183,16 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
     >
+      {/* First-use coach-mark, anchored to the top-start of the board. */}
+      <div className="relative">
+        <FeatureHint
+          id="kanban"
+          titleKey="onboarding.hint.kanban.title"
+          textKey="onboarding.hint.kanban.text"
+          placement="bottom"
+        />
+      </div>
+
       {/* Mobile column indicator / quick-jump dots (above the board) */}
       <div className="mb-3 flex items-center justify-center gap-2 sm:hidden">
         {BOARD_STATUSES.map((status, i) => (

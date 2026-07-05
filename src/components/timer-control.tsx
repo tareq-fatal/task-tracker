@@ -6,6 +6,7 @@ import { startTimerAction, stopTimerAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/i18n-provider";
+import { FeatureHint } from "@/components/onboarding/feature-hint";
 import { cn } from "@/lib/utils";
 
 function fmtClock(totalSeconds: number): string {
@@ -52,7 +53,13 @@ export function TimerControl({
   const liveSpent = spentHours + runningSeconds / 3600;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+    <div className="relative flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3">
+      <FeatureHint
+        id="timer"
+        titleKey="onboarding.hint.timer.title"
+        textKey="onboarding.hint.timer.text"
+        placement="top"
+      />
       <div className="flex items-center gap-2 text-sm">
         <Clock
           className={cn(
