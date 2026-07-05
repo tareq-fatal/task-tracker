@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
+import { isLocale } from "@/lib/enums";
+import { SITE_URL, SEO_COPY, OG_LOCALE, languageAlternates } from "@/lib/seo";
 import { I18nProvider } from "@/components/i18n-provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import {
@@ -17,16 +20,65 @@ import { ApkDownloadLink } from "@/components/apk-download-link";
 import { SsoButtons } from "@/components/sso-buttons";
 import { configuredProviders } from "@/lib/sso";
 
+type LoginSearchParams = { sso?: string; lang?: string };
+
+// No locale-prefixed routes exist app-wide; `?lang=` gives crawlers a
+// distinct, indexable URL per language (rendered for real below, not just
+// in metadata) so the hreflang alternates point at genuinely different content.
+export function generateMetadata({
+  searchParams,
+}: {
+  searchParams: LoginSearchParams;
+}): Metadata {
+  const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
+  const copy = SEO_COPY[locale];
+  const url = `${SITE_URL}/login`;
+
+  return {
+    title: { absolute: copy.title },
+    description: copy.description,
+    alternates: {
+      canonical: url,
+      languages: languageAlternates("/login"),
+    },
+    robots: { index: true, follow: true },
+    openGraph: {
+      type: "website",
+      url,
+      title: copy.title,
+      description: copy.description,
+      locale: OG_LOCALE[locale],
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: copy.appName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.title,
+      description: copy.description,
+    },
+  };
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { sso?: string };
+  searchParams: LoginSearchParams;
 }) {
   const user = await getCurrentUser();
   if (user) redirect("/");
 
-  const locale = getActiveLocale();
+  const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
   const t = getDictionary(locale);
+  const copy = SEO_COPY[locale];
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: copy.appName,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web, Android",
+    url: `${SITE_URL}/login`,
+    description: copy.description,
+    inLanguage: ["ar", "en", "de"],
+  };
   const providers = configuredProviders();
   const ssoError = Boolean(searchParams?.sso);
   // Demo credentials are hidden by default and NEVER shown in production. Opt in
@@ -35,6 +87,10 @@ export default async function LoginPage({
 
   return (
     <I18nProvider locale={locale}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-pink-50 p-4">
         {/* soft decorative glows */}
         <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl" />

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale } from "@/lib/enums";
+import { SITE_URL, SEO_COPY, OG_LOCALE } from "@/lib/seo";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,20 +17,45 @@ const cairo = Cairo({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "متعقب المهام · Task Tracker",
-  description: "تطبيق خفيف لتتبّع المهام — لوحات ومشاريع وعمل جماعي.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "متعقب المهام",
-  },
-  icons: {
-    icon: "/logo.svg",
-    apple: "/icons/icon-192.png",
-  },
-};
+export function generateMetadata(): Metadata {
+  const locale = getActiveLocale();
+  const copy = SEO_COPY[locale];
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: { default: copy.title, template: `%s · ${copy.appName}` },
+    description: copy.description,
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: copy.appName,
+    },
+    icons: {
+      icon: "/logo.svg",
+      apple: "/icons/icon-192.png",
+    },
+    // Everything except /login lives behind auth — keep it out of indexes by
+    // default; /login opts back in via its own generateMetadata.
+    robots: { index: false, follow: false },
+    openGraph: {
+      type: "website",
+      siteName: copy.appName,
+      title: copy.title,
+      description: copy.description,
+      url: SITE_URL,
+      locale: OG_LOCALE[locale],
+      // Child routes overriding `openGraph` replace this object wholesale,
+      // so each generateMetadata that sets openGraph must repeat `images`.
+      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: copy.appName }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: copy.title,
+      description: copy.description,
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5",
