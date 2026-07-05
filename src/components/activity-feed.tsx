@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type ActivityItem = {
@@ -33,7 +34,7 @@ const DOT: Record<string, string> = {
 };
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [filter, setFilter] = useState<Filter>("all");
 
   const shown = items.filter((it) => {
@@ -88,7 +89,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
                   <span className="text-muted-foreground"> · {it.detail}</span>
                 ) : null}
                 <div className="text-xs text-muted-foreground">
-                  {new Date(it.createdAt).toLocaleString()}
+                  {formatDateTime(it.createdAt, locale)}
                 </div>
               </div>
             </li>

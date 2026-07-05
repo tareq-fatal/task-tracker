@@ -14,7 +14,8 @@ const PALETTE = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6
 
 export default async function RoadmapPage({ searchParams }: { searchParams: { zoom?: string } }) {
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
   const now = Date.now();
   const iso = (d: Date) => d.toISOString();
   const zoom: Zoom = (ZOOMS as string[]).includes(searchParams.zoom ?? "") ? (searchParams.zoom as Zoom) : "auto";
@@ -88,7 +89,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: { zo
           </Link>
         </div>
       ) : (
-        <RoadmapView lanes={lanes} from={from} to={to} now={now} doneLabel={t["roadmap.done"]} />
+        <RoadmapView lanes={lanes} from={from} to={to} now={now} doneLabel={t["roadmap.done"]} locale={locale} />
       )}
     </div>
   );

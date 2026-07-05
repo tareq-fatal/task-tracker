@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
+import { formatDateTime } from "@/lib/format";
 import {
   getNotifications,
   markAllReadAction,
@@ -13,7 +14,7 @@ import {
 } from "@/actions/notifications";
 
 export function NotificationBell() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
@@ -108,7 +109,7 @@ export function NotificationBell() {
                       </div>
                     )}
                     <div className="mt-1 text-[11px] text-muted-foreground">
-                      {new Date(n.createdAt).toLocaleString()}
+                      {formatDateTime(n.createdAt, locale)}
                     </div>
                   </div>
                 );

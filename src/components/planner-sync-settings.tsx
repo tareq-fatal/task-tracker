@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
+import { formatDateTime } from "@/lib/format";
 
 function LinkButton() {
   const { pending } = useFormStatus();
@@ -24,7 +25,7 @@ function LinkButton() {
 }
 
 export function PlannerSyncSettings({ view }: { view: PlannerSyncView }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [state, formAction] = useFormState<PlannerSyncState, FormData>(
     linkPlannerPlanAction,
     {}
@@ -66,7 +67,7 @@ export function PlannerSyncSettings({ view }: { view: PlannerSyncView }) {
                 <span className="text-xs text-muted-foreground">
                   {t("settings.planner.lastSync")}:{" "}
                   {p.sync.lastSyncedAt
-                    ? new Date(p.sync.lastSyncedAt).toLocaleString()
+                    ? formatDateTime(p.sync.lastSyncedAt, locale)
                     : t("settings.planner.never")}
                   {p.sync.lastStatus ? ` — ${p.sync.lastStatus}` : ""}
                 </span>

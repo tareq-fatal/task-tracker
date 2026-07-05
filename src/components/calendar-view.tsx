@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { monthMatrix } from "@/lib/views";
 import { setTaskDueDateAction } from "@/actions/tasks";
 import { useT } from "@/components/i18n-provider";
+import { formatMonthYear } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type ViewTask = {
@@ -82,7 +83,7 @@ function DayCell({ date, day, inMonth, tasks, onCreate }: {
 }
 
 export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
   const now = new Date();
   const [ym, setYm] = useState({ y: now.getUTCFullYear(), m: now.getUTCMonth() });
@@ -106,7 +107,7 @@ export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
     setTaskDueDateAction(id, date);
   }
 
-  const monthLabel = new Date(Date.UTC(ym.y, ym.m, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const monthLabel = formatMonthYear(new Date(ym.y, ym.m, 1), locale);
   const dows = [t("cal.mon"), t("cal.tue"), t("cal.wed"), t("cal.thu"), t("cal.fri"), t("cal.sat"), t("cal.sun")];
 
   return (

@@ -3,6 +3,7 @@ import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
+import { formatDayMonth } from "@/lib/format";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { CalendarView } from "@/components/calendar-view";
@@ -17,7 +18,8 @@ export default async function ViewsPage({
   searchParams: { view?: string; project?: string };
 }) {
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
   const view = ["scrum", "calendar", "gantt", "timeline"].includes(searchParams.view ?? "")
     ? (searchParams.view as "scrum" | "calendar" | "gantt" | "timeline")
     : "calendar";
@@ -52,7 +54,7 @@ export default async function ViewsPage({
   const activeSprint = projectId
     ? await prisma.sprint.findFirst({ where: { tenantId: tenant.id, projectId, status: "active" } })
     : null;
-  const fmt = (d: Date | null) => (d ? d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" }) : "");
+  const fmt = (d: Date | null) => (d ? formatDayMonth(d, locale) : "");
   const sprintHeader = activeSprint
     ? { name: activeSprint.name, range: activeSprint.startDate && activeSprint.endDate ? `${fmt(activeSprint.startDate)} – ${fmt(activeSprint.endDate)}` : "", goal: activeSprint.goal }
     : null;

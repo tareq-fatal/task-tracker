@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { AlertTriangle, Play, Download, Trash2 } from "lucide-react";
 import { runQueryAction, purgeTenantAction, countTenantDataAction, type QueryResult, type AuditEntry, type TenantCounts } from "@/actions/db-admin";
 import { classifyQuery } from "@/lib/sql-guard";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatTime } from "@/lib/format";
 import { useT } from "@/components/i18n-provider";
 import type { TKey } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -128,7 +128,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
                 <li key={a.id} className="flex items-start gap-2 p-2">
                   <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold uppercase", a.mode === "read" ? "bg-emerald-100 text-emerald-700" : a.mode === "purge" ? "bg-rose-200 text-rose-800" : "bg-amber-100 text-amber-700")}>{a.mode}</span>
                   <code className="min-w-0 flex-1 truncate" title={a.sql}>{a.sql}</code>
-                  <span className="shrink-0 text-muted-foreground">{a.error ? "✗" : a.rowCount ?? ""} · {a.userName} · {new Date(a.createdAt).toLocaleTimeString()}</span>
+                  <span className="shrink-0 text-muted-foreground">{a.error ? "✗" : a.rowCount ?? ""} · {a.userName} · {formatTime(a.createdAt, locale)}</span>
                 </li>
               ))}
             </ul>

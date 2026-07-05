@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { quarterTicks, barPct } from "@/lib/roadmap";
+import { formatDate } from "@/lib/format";
+import type { Locale } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
 export type Lane = {
@@ -9,9 +11,9 @@ export type Lane = {
 };
 
 const PRIO_ICON: Record<string, string> = { Critical: "🔴", High: "🟠", Medium: "🟡", Low: "🟢" };
-const fmt = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 
-export function RoadmapView({ lanes, from, to, now, doneLabel }: { lanes: Lane[]; from: number; to: number; now: number; doneLabel: string }) {
+export function RoadmapView({ lanes, from, to, now, doneLabel, locale }: { lanes: Lane[]; from: number; to: number; now: number; doneLabel: string; locale: Locale }) {
+  const fmt = (ms: number) => formatDate(ms, locale);
   const ticks = quarterTicks(from, to);
   const todayPct = to > from && now >= from && now <= to ? ((now - from) / (to - from)) * 100 : null;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useT } from "@/components/i18n-provider";
+import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type AdminActivityItem = {
@@ -36,7 +37,7 @@ const DOT: Record<string, string> = {
 
 // #33/#35 — tenant-wide feed of user changes, filterable by user.
 export function AdminActivityFeed({ items }: { items: AdminActivityItem[] }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [who, setWho] = useState<string>("");
 
   const users = [...new Set(items.map((i) => i.userName))].sort();
@@ -84,7 +85,7 @@ export function AdminActivityFeed({ items }: { items: AdminActivityItem[] }) {
                 <div className="truncate text-muted-foreground">{it.detail}</div>
               ) : null}
               <div className="text-xs text-muted-foreground">
-                {new Date(it.createdAt).toLocaleString()}
+                {formatDateTime(it.createdAt, locale)}
               </div>
             </div>
           </li>
