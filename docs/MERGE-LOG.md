@@ -1,0 +1,32 @@
+# Merge-Log — v3.1 Integration auf main
+
+Basis: main @ `1080704` · Start: 2026-07-05 · Methode: `git merge --no-ff origin/<branch>` + `npm run build`-Gate, Push nur bei grünem Build. Kein Deploy.
+
+| # | Branch | Ergebnis | Notiz |
+|---|--------|----------|-------|
+| 1 | `docs/v3-refresh` | ✅ merged | Build grün, auf main gepusht |
+| 2 | `docs/openapi-spec` | ✅ merged | Build grün, auf main gepusht |
+| 3 | `fix/readonly-hints-subtle` | ✅ merged | Build grün, gepusht (1 Datei, i18n-Cleanup) |
+| 4 | `feat/keyboard-shortcuts` | ✅ merged | Build grün, gepusht |
+| 5 | `feat/task-dependencies` | ✅ merged | Build grün, gepusht |
+| 6 | `feat/custom-fields` | ✅ merged | Build grün, gepusht |
+| 7 | `feat/global-search` | ⚠️ CONFLICT (offen) | app-shell.tsx + i18n.ts + package.json ↔ keyboard-shortcuts (additiv) |
+| 8 | `feat/analytics-umami` | ⚠️ CONFLICT (offen) | tasks.ts + sprints.ts ↔ task-deps/custom-fields (Tracking-Calls) |
+| 9 | `feat/backup-automation` | ✅ merged | Build grün, gepusht |
+| 10 | `feat/sentry-error-tracking` | ✅ merged | Build grün, gepusht |
+| 11 | `chore/docker-optimize` | ✅ merged | tsc+build+vitest grün, gepusht, Prod 307 |
+| 12 | `feat/realtime-updates` | ❌ CONFLICT | 5 Dateien (tasks.ts, (app)/layout.tsx, app-shell.tsx, kanban-board.tsx, i18n.ts) — substanziell, nicht auto-resolved |
+| 13 | `feat/bulk-import` | ✅ merged | tsc+build+vitest grün, gepusht, Prod 307 |
+| 14 | `feat/seo-optimization` | ✅ merged | Konflikt .env.example (Union gelöst), tsc+build+vitest grün, gepusht |
+
+## Phase A — Ergebnis (2026-07-05)
+
+**11/14 gemergt + auf main gepusht** (jeweils tsc --noEmit + next build + vitest run grün, Prod-Liveness 307 nach Push):
+docs/v3-refresh · docs/openapi-spec · fix/readonly-hints-subtle · feat/keyboard-shortcuts · feat/task-dependencies · feat/custom-fields · feat/backup-automation · feat/sentry-error-tracking · chore/docker-optimize · feat/bulk-import · feat/seo-optimization
+
+**3 echte Konflikte — offen, bewusst NICHT auto-resolved (warten auf Entscheidung):**
+- `feat/global-search` — app-shell.tsx, i18n.ts, package.json (↔ keyboard-shortcuts; additiv)
+- `feat/analytics-umami` — src/actions/tasks.ts, src/actions/sprints.ts (↔ task-deps/custom-fields)
+- `feat/realtime-updates` — tasks.ts, (app)/layout.tsx, app-shell.tsx, kanban-board.tsx, i18n.ts (5 Kern-Dateien, substanziell)
+
+Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root (307 = up).
