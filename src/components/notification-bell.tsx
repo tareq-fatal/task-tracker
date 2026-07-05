@@ -25,11 +25,21 @@ export function NotificationBell() {
     setUnread(data.unread);
   }
 
-  // initial + light polling (60s)
+  // #10 — near-realtime: 30s poll + instant catch-up on tab focus / re-visibility
   useEffect(() => {
     refresh();
-    const id = setInterval(refresh, 60000);
-    return () => clearInterval(id);
+    const id = setInterval(refresh, 30000);
+    const onFocus = () => refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   // close on outside click
@@ -44,10 +54,13 @@ export function NotificationBell() {
   async function toggle() {
     const next = !open;
     setOpen(next);
-    if (next && unread > 0) {
-      await markAllReadAction();
-      setUnread(0);
-      setItems((xs) => xs.map((x) => ({ ...x, read: true })));
+    if (next) {
+      await refresh(); // show the freshest list on open
+      if (unread > 0) {
+        await markAllReadAction();
+        setUnread(0);
+        setItems((xs) => xs.map((x) => ({ ...x, read: true })));
+      }
     }
   }
 
