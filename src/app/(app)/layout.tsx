@@ -5,6 +5,7 @@ import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
+import { ScrollProgress } from "@/components/scroll-progress";
 import { WelcomeTour } from "@/components/welcome-tour";
 import { UpdatePrompt } from "@/components/update-prompt";
 import { resolveBranding, brandStyle } from "@/lib/branding";
@@ -27,6 +28,7 @@ export default async function AppLayout({
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
+        <ScrollProgress />
         <AppShell
           user={user}
           locale={locale}

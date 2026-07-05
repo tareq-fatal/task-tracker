@@ -219,3 +219,69 @@
 .tt-rise {
   animation: tt-rise 0.28s ease-out both;
 }
+
+/* ── Material-3 notifications ─────────────────────────────────────────────
+   Touch ripple, Samsung-style badge pop, and the mobile bottom-sheet slide. */
+@keyframes tt-ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+.tt-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  transform: scale(0);
+  background: currentColor;
+  opacity: 0.28;
+  pointer-events: none;
+  animation: tt-ripple 0.55s ease-out forwards;
+}
+
+@keyframes tt-badge-pop {
+  0% {
+    transform: scale(0.3);
+  }
+  55% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.tt-badge-pop {
+  animation: tt-badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes tt-sheet-up {
+  from {
+    transform: translateY(101%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.tt-sheet-up {
+  animation: tt-sheet-up 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes tt-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.tt-scrim-in {
+  animation: tt-scrim-in 0.25s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-ripple,
+  .tt-badge-pop,
+  .tt-sheet-up,
+  .tt-scrim-in {
+    animation-duration: 0.01ms;
+  }
+}

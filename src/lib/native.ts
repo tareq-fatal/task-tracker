@@ -79,6 +79,90 @@ export async function getPref(key: string): Promise<string | null> {
   return value ?? null;
 }
 
+/** Haptic feedback. Uses the Capacitor Haptics plugin on device (crisp, native
+ * taptic patterns) and falls back to the Web Vibration API in the browser. A
+ * no-op where neither exists, so callers never need to guard. */
+export type HapticStyle = "light" | "medium" | "heavy" | "success" | "warning";
+
+export async function vibrate(style: HapticStyle = "light"): Promise<void> {
+  if (!isNativeApp()) {
+    // Web fallback — navigator.vibrate (Android Chrome / the PWA). Durations
+    // roughly mirror the native impact/notification feel.
+    try {
+      const nav = typeof navigator === "undefined" ? undefined : navigator;
+      const pattern =
+        style === "success"
+          ? [12, 40, 18]
+          : style === "warning"
+            ? [20, 60, 20]
+            : style === "heavy"
+              ? 30
+              : style === "medium"
+                ? 18
+                : 10;
+      nav?.vibrate?.(pattern);
+    } catch {
+      /* unsupported — ignore */
+    }
+    return;
+  }
+  try {
+    const { Haptics, ImpactStyle, NotificationType } = await import(
+      "@capacitor/haptics"
+    );
+    if (style === "success" || style === "warning") {
+      await Haptics.notification({
+        type: style === "success" ? NotificationType.Success : NotificationType.Warning,
+      });
+    } else {
+      await Haptics.impact({
+        style:
+          style === "heavy"
+            ? ImpactStyle.Heavy
+            : style === "medium"
+              ? ImpactStyle.Medium
+              : ImpactStyle.Light,
+      });
+    }
+  } catch {
+    /* plugin missing (older APK) — ignore */
+  }
+}
+
+/** Fire a system-tray (heads-up) notification via the Capacitor
+ * LocalNotifications plugin. On web this is a no-op — web push / the in-app bell
+ * cover that surface — so it is only meaningful inside the APK. Best-effort:
+ * silently ignores permission denial or a missing plugin. */
+export async function notifyNative(opts: {
+  title: string;
+  body?: string;
+  id?: number;
+}): Promise<void> {
+  if (!isNativeApp()) return;
+  try {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const perm = await LocalNotifications.checkPermissions();
+    if (perm.display !== "granted") {
+      const req = await LocalNotifications.requestPermissions();
+      if (req.display !== "granted") return;
+    }
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          // Keep ids in a small rotating range so we never overflow int32.
+          id: opts.id ?? Math.floor((Date.now() % 100000) + 1),
+          title: opts.title,
+          body: opts.body ?? "",
+          smallIcon: "ic_stat_icon_config_sample",
+          // Immediate delivery.
+        },
+      ],
+    });
+  } catch {
+    /* plugin missing / not permitted — ignore */
+  }
+}
+
 export type NetState = { connected: boolean; type: string };
 
 /** Network status — uses the native plugin on device, navigator on web. */
