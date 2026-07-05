@@ -8,7 +8,10 @@ import {
   User as UserIcon,
   FileText,
   ImageIcon,
+  Repeat,
 } from "lucide-react";
+import { RecurringControls } from "@/components/recurring-controls";
+import { describeSchedule } from "@/lib/recurring-describe";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
@@ -306,6 +309,74 @@ export default async function TaskDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Recurrence — this task is a series template */}
+      {(task.recurringRule || task.recurringCron) && (
+        <Card className="mb-6 border-indigo-200 dark:border-indigo-500/30">
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Repeat className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {t["recurrence.title"]}
+                </h2>
+              </div>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs font-semibold",
+                  task.recurringPaused
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                    : "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                )}
+              >
+                {task.recurringPaused ? t["recurrence.paused"] : t["recurrence.active"]}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">{t["recurrence.title"]}:</span>
+                <span className="font-medium">
+                  {describeSchedule(task, t as unknown as Record<string, string>)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">{t["recurrence.nextRun"]}:</span>
+                <span className="font-medium tabular-nums">
+                  {task.recurringNextAt
+                    ? format(task.recurringNextAt, "dd.MM.yyyy HH:mm")
+                    : t["common.none"]}
+                  {task.recurringTz ? ` · ${task.recurringTz}` : ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">{t["recurrence.spawned"]}:</span>
+                <span className="font-medium tabular-nums">
+                  {task.recurringCount}
+                  {task.recurringEndCount != null
+                    ? ` ${t["recurrence.of"]} ${task.recurringEndCount}`
+                    : ""}
+                </span>
+              </div>
+              {task.recurringUntil && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">{t["recurrence.end.until"]}:</span>
+                  <span className="font-medium tabular-nums">
+                    {format(task.recurringUntil, "dd.MM.yyyy")}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {canEditContent && (
+              <div className="mt-4 border-t pt-3">
+                <RecurringControls taskId={task.id} paused={task.recurringPaused} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Children (Epic/Story roll-up) */}
       {task.children.length > 0 && (() => {

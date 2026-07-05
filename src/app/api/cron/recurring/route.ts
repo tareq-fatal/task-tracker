@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueRecurring } from "@/lib/recurring-runner";
 
-// Cron entry for recurring tasks. Call every few hours from an external
-// scheduler, guarded by SYNC_SECRET (reused from Planner sync):
-//   0 */6 * * *  curl -H "x-sync-secret: $SYNC_SECRET" https://tasks.coastshield.net/api/cron/recurring
+// Cron entry for recurring tasks. Spawns every due series instance and advances
+// its schedule (honouring pause, end-count, until-date). Guarded by SYNC_SECRET
+// (reused from Planner sync). Call it frequently — every 5 minutes — so custom
+// cron schedules ("0 9 * * 1-5") fire close to their intended minute:
+//   */5 * * * *  curl -H "x-sync-secret: $SYNC_SECRET" https://tasks.coastshield.net/api/cron/recurring
 export async function POST(req: NextRequest) {
   return handle(req);
 }

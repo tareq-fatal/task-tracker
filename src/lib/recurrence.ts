@@ -18,6 +18,45 @@ export function presetToRule(preset: RecurrencePreset): string | null {
   }
 }
 
+// Weekday codes in the order iCal expects them; index === JS Date.getUTCDay().
+export const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
+export type Weekday = (typeof WEEKDAYS)[number];
+
+/**
+ * Build an RRULE from the UI's building blocks. `interval` clamps to ≥1;
+ * `byday` (weekly only) is normalised to the canonical SU…SA order and
+ * de-duplicated. Returns null for the "none" preset.
+ */
+export function buildRule(
+  preset: RecurrencePreset,
+  interval = 1,
+  byday: string[] = []
+): string | null {
+  const base = presetToRule(preset);
+  if (!base) return null;
+  const parts = [base];
+  const iv = Math.max(1, Math.floor(interval) || 1);
+  if (iv > 1) parts.push(`INTERVAL=${iv}`);
+  if (preset === "weekly" && byday.length) {
+    const valid = WEEKDAYS.filter((d) => byday.includes(d));
+    if (valid.length) parts.push(`BYDAY=${valid.join(",")}`);
+  }
+  return parts.join(";");
+}
+
+/** The BYDAY weekday codes of a rule, in canonical order (empty when none). */
+export function ruleWeekdays(rule: string | null | undefined): Weekday[] {
+  if (!rule) return [];
+  const idx = parseRule(rule).byday;
+  return WEEKDAYS.filter((_, i) => idx.includes(i));
+}
+
+/** The INTERVAL of a rule (≥1). */
+export function ruleInterval(rule: string | null | undefined): number {
+  if (!rule) return 1;
+  return parseRule(rule).interval;
+}
+
 type Parsed = { freq?: string; interval: number; byday: number[] };
 
 export function parseRule(rule: string): Parsed {

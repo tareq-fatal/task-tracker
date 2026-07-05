@@ -11,7 +11,7 @@ import { formatDuration } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
 import { canEditTaskContent } from "@/lib/task-access";
 import { TaskForm } from "@/components/task-form";
-import { describeRule } from "@/lib/recurrence";
+import { describeRule, ruleInterval, ruleWeekdays } from "@/lib/recurrence";
 
 export default async function EditTaskPage({
   params,
@@ -73,7 +73,22 @@ export default async function EditTaskPage({
           estimatedHours:
             task.estimatedHours != null ? formatDuration(task.estimatedHours) : "",
           spentHours: task.spentHours > 0 ? formatDuration(task.spentHours) : "",
-          recurrence: describeRule(task.recurringRule),
+          recurrence: task.recurringCron ? "custom" : describeRule(task.recurringRule),
+          recurInterval: String(ruleInterval(task.recurringRule)),
+          recurWeekdays: ruleWeekdays(task.recurringRule),
+          recurCron: task.recurringCron ?? "",
+          recurTz: task.recurringTz ?? undefined,
+          recurEndType:
+            task.recurringEndCount != null
+              ? "count"
+              : task.recurringUntil != null
+                ? "until"
+                : "never",
+          recurEndCount:
+            task.recurringEndCount != null ? String(task.recurringEndCount) : "",
+          recurUntil: task.recurringUntil
+            ? format(task.recurringUntil, "yyyy-MM-dd")
+            : "",
         }}
         submitLabel={t["task.save"]}
       />
