@@ -11,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const TEMPLATES: { label: string; sql: string }[] = [
-  { label: "Tasks per tenant", sql: 'SELECT t.slug, count(*) AS tasks\nFROM "Task" k JOIN "Tenant" t ON t.id = k."tenantId"\nGROUP BY t.slug ORDER BY tasks DESC;' },
-  { label: "Tenants overview", sql: 'SELECT slug, name, "createdAt" FROM "Tenant" ORDER BY "createdAt";' },
-  { label: "Users", sql: 'SELECT username, role, "tenantId" FROM "User" ORDER BY role;' },
-  { label: "Recent tasks", sql: 'SELECT id, title, status, "createdAt" FROM "Task" ORDER BY "createdAt" DESC LIMIT 50;' },
-  { label: "Preview: empty a tenant", sql: 'SELECT count(*) FROM "Task" WHERE "tenantId" = (SELECT id FROM "Tenant" WHERE slug = \'tarek\');' },
+const TEMPLATES: { labelKey: TKey; sql: string }[] = [
+  { labelKey: "db.template.tasksPerTenant", sql: 'SELECT t.slug, count(*) AS tasks\nFROM "Task" k JOIN "Tenant" t ON t.id = k."tenantId"\nGROUP BY t.slug ORDER BY tasks DESC;' },
+  { labelKey: "db.template.tenants", sql: 'SELECT slug, name, "createdAt" FROM "Tenant" ORDER BY "createdAt";' },
+  { labelKey: "db.template.users", sql: 'SELECT username, role, "tenantId" FROM "User" ORDER BY role;' },
+  { labelKey: "db.template.recentTasks", sql: 'SELECT id, title, status, "createdAt" FROM "Task" ORDER BY "createdAt" DESC LIMIT 50;' },
+  { labelKey: "db.template.purgePreview", sql: 'SELECT count(*) FROM "Task" WHERE "tenantId" = (SELECT id FROM "Tenant" WHERE slug = \'tarek\');' },
 ];
 
 function csv(columns: string[], rows: unknown[][]): string {
@@ -25,7 +25,7 @@ function csv(columns: string[], rows: unknown[][]): string {
 }
 
 export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
-  const { locale } = useT();
+  const { t, locale } = useT();
   const [sql, setSql] = useState('SELECT t.slug, count(*) AS tasks\nFROM "Task" k JOIN "Tenant" t ON t.id = k."tenantId"\nGROUP BY t.slug ORDER BY tasks DESC;');
   const [writeMode, setWriteMode] = useState(false);
   const [res, setRes] = useState<QueryResult | null>(null);
@@ -54,16 +54,16 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
       {/* Editor */}
       <div className="rounded-xl border">
         <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2">
-          <select aria-label="SQL templates" onChange={(e) => e.target.value && setSql(e.target.value)} value="" className="h-8 rounded-md border bg-background px-2 text-xs">
-            <option value="">Templates…</option>
-            {TEMPLATES.map((tpl) => <option key={tpl.label} value={tpl.sql}>{tpl.label}</option>)}
+          <select aria-label={t("db.templates")} onChange={(e) => e.target.value && setSql(e.target.value)} value="" className="h-8 rounded-md border bg-background px-2 text-xs">
+            <option value="">{t("db.templates")}</option>
+            {TEMPLATES.map((tpl) => <option key={tpl.labelKey} value={tpl.sql}>{t(tpl.labelKey)}</option>)}
           </select>
           <label className="ms-auto flex items-center gap-1.5 text-xs">
             <input type="checkbox" checked={writeMode} onChange={(e) => setWriteMode(e.target.checked)} className="h-4 w-4 accent-rose-600" />
-            <span className={cn(writeMode && "font-semibold text-rose-600")}>Write mode</span>
+            <span className={cn(writeMode && "font-semibold text-rose-600")}>{t("db.writeMode")}</span>
           </label>
           <Button size="sm" onClick={run} disabled={pending} variant={cls.dangerous ? "destructive" : "default"}>
-            <Play className="me-1 h-4 w-4" /> Run
+            <Play className="me-1 h-4 w-4" /> {t("db.run")}
           </Button>
         </div>
         <textarea
@@ -71,12 +71,12 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
           onChange={(e) => setSql(e.target.value)}
           spellCheck={false}
           rows={6}
-          aria-label="SQL query"
+          aria-label={t("db.sqlQuery")}
           className="w-full resize-y bg-background p-3 font-mono text-sm outline-none"
         />
         {cls.dangerous && (
           <div className="flex items-center gap-2 border-t bg-rose-50 px-3 py-2 text-xs text-rose-700">
-            <AlertTriangle className="h-4 w-4" /> Mutating/DDL query ({cls.firstWord}) — requires <b>Write mode</b>. This changes data.
+            <AlertTriangle className="h-4 w-4" /> {t("db.mutatingWarn", { word: cls.firstWord })}
           </div>
         )}
       </div>
@@ -86,9 +86,9 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
         <div className="rounded-xl border">
           <div className="flex items-center gap-3 border-b bg-muted/40 px-3 py-2 text-xs">
             {res.error ? (
-              <span className="font-medium text-destructive">Error: {res.error}</span>
+              <span className="font-medium text-destructive">{t("db.error", { msg: res.error })}</span>
             ) : (
-              <span>{res.mode === "read" ? `${formatNumber(res.rowCount, locale, 0)} rows` : `${formatNumber(res.rowCount, locale, 0)} affected`}{res.truncated ? " (showing first 1000)" : ""}</span>
+              <span>{res.mode === "read" ? t("db.rows", { n: formatNumber(res.rowCount, locale, 0) }) : t("db.affected", { n: formatNumber(res.rowCount, locale, 0) })}{res.truncated ? ` ${t("db.first1000")}` : ""}</span>
             )}
             {res.rows.length > 0 && (
               <Button size="sm" variant="outline" className="ms-auto" onClick={exportCsv}>
@@ -97,7 +97,7 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
             )}
           </div>
           {res.rows.length > 0 && (
-            <div className="max-h-96 overflow-auto" tabIndex={0} role="region" aria-label="Query results">
+            <div className="max-h-96 overflow-auto" tabIndex={0} role="region" aria-label={t("db.results")}>
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-secondary">
                   <tr>{res.columns.map((c) => <th key={c} className="border-b p-2 text-start font-semibold">{c}</th>)}</tr>
@@ -120,9 +120,9 @@ export function DbConsole({ initialAudit }: { initialAudit: AuditEntry[] }) {
 
       {/* Audit */}
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">Audit log (last 40)</h2>
-        <div className="max-h-60 overflow-auto rounded-lg border text-xs" tabIndex={0} role="region" aria-label="Audit log">
-          {audit.length === 0 ? <p className="p-3 text-muted-foreground">No queries yet.</p> : (
+        <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{t("db.audit")}</h2>
+        <div className="max-h-60 overflow-auto rounded-lg border text-xs" tabIndex={0} role="region" aria-label={t("db.audit")}>
+          {audit.length === 0 ? <p className="p-3 text-muted-foreground">{t("db.noQueries")}</p> : (
             <ul className="divide-y">
               {audit.map((a) => (
                 <li key={a.id} className="flex items-start gap-2 p-2">

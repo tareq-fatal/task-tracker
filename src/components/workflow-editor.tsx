@@ -45,20 +45,20 @@ export function WorkflowEditor({ projectId, initial }: { projectId: string; init
           {initial.map((c, i) => (
             <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2.5" data-testid="wf-col">
               <span className="flex flex-col">
-                <button disabled={pending || i === 0} title="↑" onClick={() => run(() => moveColumnAction(c.id, "up"))} className="text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronUp className="h-4 w-4" /></button>
-                <button disabled={pending || i === initial.length - 1} title="↓" onClick={() => run(() => moveColumnAction(c.id, "down"))} className="text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronDown className="h-4 w-4" /></button>
+                <button disabled={pending || i === 0} title={t("common.moveUp")} aria-label={t("common.moveUp")} onClick={() => run(() => moveColumnAction(c.id, "up"))} className="text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronUp className="h-4 w-4" /></button>
+                <button disabled={pending || i === initial.length - 1} title={t("common.moveDown")} aria-label={t("common.moveDown")} onClick={() => run(() => moveColumnAction(c.id, "down"))} className="text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronDown className="h-4 w-4" /></button>
               </span>
               <input type="color" defaultValue={c.color} title={c.name}
                 onBlur={(e) => e.target.value !== c.color && run(() => updateColumnAction(c.id, { color: e.target.value }))}
                 className="h-7 w-7 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0" />
-              <Input defaultValue={c.name} aria-label="column name" className="h-8 w-40"
+              <Input defaultValue={c.name} aria-label={t("workflow.addPlaceholder")} className="h-8 w-40"
                 onBlur={(e) => e.target.value.trim() && e.target.value !== c.name && run(() => updateColumnAction(c.id, { name: e.target.value }))} />
               <select defaultValue={c.status} title={t("workflow.wip")} className="h-8 rounded-md border bg-background px-1.5 text-xs"
                 onChange={(e) => run(() => updateColumnAction(c.id, { status: e.target.value }))}>
                 {STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s}` as never)}</option>)}
               </select>
               <label className="flex items-center gap-1 text-xs" title={t("workflow.wip")}>
-                WIP
+                {t("workflow.wip")}
                 <Input type="number" min={0} defaultValue={c.wipLimit ?? ""} className="h-8 w-16"
                   onBlur={(e) => { const v = e.target.value ? Number(e.target.value) : null; if (v !== c.wipLimit) run(() => updateColumnAction(c.id, { wipLimit: v })); }} />
               </label>

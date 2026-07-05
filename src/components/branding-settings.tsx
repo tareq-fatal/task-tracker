@@ -103,7 +103,7 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
             )}
           </div>
           <div className="space-y-3 p-4">
-            <button className="rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: cols.primary }}>Primary</button>
+            <button className="rounded-md px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: cols.primary }}>{t("brand.primary")}</button>
             <div className="flex gap-2">
               <span className="h-6 w-6 rounded-full" style={{ backgroundColor: cols.primary }} />
               <span className="h-6 w-6 rounded-full" style={{ backgroundColor: cols.secondary }} />
