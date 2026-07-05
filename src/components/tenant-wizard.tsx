@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Check } from "lucide-react";
 import { createTenantAction } from "@/actions/tenants";
 import { useT } from "@/components/i18n-provider";
+import { useErrorText } from "@/components/error-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-"
 
 export function TenantWizard() {
   const { t } = useT();
+  const errText = useErrorText();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [f, setF] = useState({ name: "", slug: "", primaryColor: "#4f46e5", ownerName: "", ownerUsername: "", ownerEmail: "", ownerPassword: "" });
@@ -29,7 +31,7 @@ export function TenantWizard() {
         router.push("/");
         router.refresh();
       } else {
-        setMsg({ ok: false, text: `✗ ${r.error}` });
+        setMsg({ ok: false, text: `✗ ${errText(r.error)}` });
       }
     });
   }

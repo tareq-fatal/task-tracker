@@ -6,6 +6,7 @@ import { Plus, Trash2, FileStack, PlayCircle } from "lucide-react";
 import { addTemplateAction, deleteTemplateAction, createFromTemplateAction, type TemplateLite } from "@/actions/templates";
 import { TASK_TYPES, TASK_PRIORITIES } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -95,7 +96,7 @@ export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
         <textarea value={form.subtasksText} onChange={set("subtasksText")} placeholder={t("tpl.subtasks")} rows={3} className="w-full rounded-md border bg-background p-2 text-sm" />
         <div className="flex items-center gap-2">
           <Button onClick={add} disabled={pending || !form.name.trim() || !form.title.trim()}><Plus className="me-1 h-4 w-4" /> {t("tpl.add")}</Button>
-          {err && <span className="text-xs font-medium text-destructive">{err}</span>}
+          <ErrorText code={err} className="text-xs font-medium text-destructive" />
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { addFieldDefAction, deleteFieldDefAction, toggleRequiredAction, type FieldDefLite } from "@/actions/custom-fields";
 import { FIELD_TYPES } from "@/lib/custom-fields";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -71,7 +72,7 @@ export function CustomFieldsManager({ initial }: { initial: FieldDefLite[] }) {
           </label>
         )}
         <Button onClick={add} disabled={pending || !name.trim()}><Plus className="me-1 h-4 w-4" /> {t("cf.add")}</Button>
-        {err && <span className="text-xs font-medium text-destructive">{err}</span>}
+        <ErrorText code={err} className="text-xs font-medium text-destructive" />
       </div>
     </div>
   );

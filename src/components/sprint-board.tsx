@@ -14,6 +14,7 @@ import { SprintBurndown, SprintVelocity } from "@/components/sprint-charts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { cn } from "@/lib/utils";
 
 function CreateBtn() {
@@ -103,7 +104,7 @@ export function SprintBoard({ view }: { view: SprintsView }) {
               <Input name="goal" aria-label={t("sprint.goal")} placeholder={t("sprint.goal")} />
             </div>
             <CreateBtn />
-            {state.error && <span className="text-xs text-destructive">{state.error}</span>}
+            <ErrorText code={state.error} className="text-xs text-destructive" />
           </form>
 
           {view.sprints.length === 0 && (

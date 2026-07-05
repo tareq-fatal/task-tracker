@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setFieldValueAction } from "@/actions/custom-fields";
 import type { FieldType } from "@/lib/custom-fields";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { Input } from "@/components/ui/input";
 
 export type TaskField = { id: string; name: string; type: FieldType; options: string[]; required: boolean; value: string };
@@ -53,7 +54,7 @@ export function TaskCustomFields({ taskId, fields, canEdit }: { taskId: string; 
                   className="h-9"
                 />
               )}
-              {err[f.id] && <p className="mt-1 text-xs text-destructive">{err[f.id]}</p>}
+              <ErrorText code={err[f.id]} className="mt-1 text-xs text-destructive" />
             </dd>
           </div>
         ))}

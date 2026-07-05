@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { formatDateTime } from "@/lib/format";
 
 function LinkButton() {
@@ -52,7 +53,7 @@ export function PlannerSyncSettings({ view }: { view: PlannerSyncView }) {
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">{t("settings.planner.desc")}</p>
       {msg && <p className="text-sm text-indigo-600">{msg}</p>}
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      <ErrorText code={state.error} className="text-sm text-destructive" />
 
       <div className="divide-y rounded-md border">
         {view.projects.map((p) => (

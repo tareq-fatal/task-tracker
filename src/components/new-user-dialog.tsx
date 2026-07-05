@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { ROLES } from "@/lib/enums";
 
 const selectClass =
@@ -94,9 +95,7 @@ export function NewUserDialog() {
             <Input id="password" name="password" type="text" minLength={6} placeholder={t("admin.users.passwordOptional")} />
             <p className="text-xs text-muted-foreground">{t("admin.users.passwordHint")}</p>
           </div>
-          {state.error && (
-            <p className="text-sm font-medium text-destructive">{state.error}</p>
-          )}
+          <ErrorText code={state.error} />
           {state.tempPassword ? (
             <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm dark:border-emerald-500/40 dark:bg-emerald-500/10">
               <p className="mb-1 font-semibold text-emerald-800 dark:text-emerald-300">

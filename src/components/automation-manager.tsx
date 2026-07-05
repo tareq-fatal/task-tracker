@@ -7,6 +7,7 @@ import { addRuleAction, toggleRuleAction, deleteRuleAction, type RuleLite } from
 import { TRIGGER_TYPES, ACTION_TYPES } from "@/lib/automation";
 import { TASK_STATUSES, TASK_PRIORITIES } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -82,7 +83,7 @@ export function AutomationManager({ initial }: { initial: RuleLite[] }) {
           </select>
           <Button onClick={add} disabled={pending || !name.trim()}><Plus className="me-1 h-4 w-4" /> {t("auto.add")}</Button>
         </div>
-        {err && <span className="text-xs font-medium text-destructive">{err}</span>}
+        <ErrorText code={err} className="text-xs font-medium text-destructive" />
       </div>
     </div>
   );

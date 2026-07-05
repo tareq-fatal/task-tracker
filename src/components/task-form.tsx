@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_TYPES } from "@/lib/enums";
 import type { TaskFormState } from "@/actions/tasks";
 import type { TKey } from "@/lib/i18n";
@@ -289,11 +290,7 @@ export function TaskForm({
         )}
       </div>
 
-      {state.error && (
-        <p className="text-sm font-medium text-destructive">
-          {state.error === "BLOCKED" ? t("task.blocked") : state.error}
-        </p>
-      )}
+      <ErrorText code={state.error} />
 
       <div className="flex gap-2">
         <Submit label={submitLabel} />

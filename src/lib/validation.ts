@@ -19,7 +19,7 @@ export const loginSchema = z.object({
 });
 
 export const taskSchema = z.object({
-  title: z.string().trim().min(1, "Title is required").max(200),
+  title: z.string().trim().min(1, "EMPTY").max(200, "INVALID"),
   description: z.string().trim().max(5000).optional().default(""),
   status: z.enum(TASK_STATUSES).default("Todo"),
   priority: z.enum(TASK_PRIORITIES).default("Medium"),
@@ -51,42 +51,42 @@ export const progressSchema = z.object({
 });
 
 export const projectSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
+  name: z.string().trim().min(1, "EMPTY").max(120, "INVALID"),
   description: z.string().trim().max(2000).optional().default(""),
   color: z
     .string()
     .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color")
+    .regex(/^#[0-9a-fA-F]{6}$/, "INVALID")
     .default("#6366f1"),
 });
 
 export const teamSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
+  name: z.string().trim().min(1, "EMPTY").max(120, "INVALID"),
   description: z.string().trim().max(2000).optional().default(""),
   color: z
     .string()
     .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "Must be a hex color")
+    .regex(/^#[0-9a-fA-F]{6}$/, "INVALID")
     .default("#4f46e5"),
 });
 
 export const userSchema = z.object({
-  name: z.string().trim().min(1).max(120),
+  name: z.string().trim().min(1, "EMPTY").max(120, "INVALID"),
   username: z
     .string()
     .trim()
-    .min(3)
-    .max(40)
-    .regex(/^[a-zA-Z0-9_.-]+$/, "Only letters, numbers, . _ -"),
+    .min(3, "BAD_USERNAME")
+    .max(40, "BAD_USERNAME")
+    .regex(/^[a-zA-Z0-9_.-]+$/, "BAD_USERNAME"),
   // #31 — email optional (empty = no email); password optional (empty = generate
   // a temporary one). Both accept "" so the form can omit them.
-  email: z.union([z.literal(""), z.string().trim().email()]).default(""),
-  password: z.union([z.literal(""), z.string().min(6, "At least 6 characters")]).default(""),
+  email: z.union([z.literal(""), z.string().trim().email("BAD_EMAIL")]).default(""),
+  password: z.union([z.literal(""), z.string().min(6, "WEAK_PASSWORD")]).default(""),
   role: z.enum(ROLES).default("User"),
 });
 
 export const commentSchema = z.object({
-  content: z.string().trim().min(1).max(4000),
+  content: z.string().trim().min(1, "EMPTY").max(4000, "INVALID"),
 });
 
 export const settingsSchema = z.object({
@@ -96,7 +96,7 @@ export const settingsSchema = z.object({
     .optional()
     .transform((v) => (v && v.length > 0 ? v : undefined))
     .refine((v) => v === undefined || v.length >= 6, {
-      message: "At least 6 characters",
+      message: "WEAK_PASSWORD",
     }),
 });
 

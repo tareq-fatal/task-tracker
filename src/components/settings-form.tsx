@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 import { LOCALES } from "@/lib/enums";
 
 const selectClass =
@@ -65,9 +66,7 @@ export function SettingsForm({ locale, minimal = false }: { locale: string; mini
         </p>
       </div>
 
-      {state.error && (
-        <p className="text-sm font-medium text-destructive">{state.error}</p>
-      )}
+      <ErrorText code={state.error} />
       {state.ok && (
         <p className="text-sm font-medium text-emerald-600">
           {t("settings.saved")} ✓

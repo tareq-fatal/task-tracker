@@ -5,12 +5,7 @@ import { Paperclip, Loader2 } from "lucide-react";
 import { uploadAttachmentAction } from "@/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/i18n-provider";
-
-const ERRORS: Record<string, string> = {
-  NO_FILE: "Keine Datei ausgewählt · No file selected",
-  TOO_LARGE: "Datei zu groß (max 10 MB) · File too large (max 10 MB)",
-  BAD_TYPE: "Bilder, PDF & Office · Images, PDF & Office",
-};
+import { ErrorText } from "@/components/error-text";
 
 export function AttachmentUpload({ taskId }: { taskId: string }) {
   const { t } = useT();
@@ -26,7 +21,7 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
     fd.append("file", file);
     startTransition(async () => {
       const res = await uploadAttachmentAction(taskId, fd);
-      if (res.error) setError(ERRORS[res.error] ?? res.error);
+      if (res.error) setError(res.error);
       if (inputRef.current) inputRef.current.value = "";
     });
   }
@@ -54,7 +49,7 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
         )}
         {t("task.upload")}
       </Button>
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+      <ErrorText code={error} className="mt-1 text-xs text-destructive" />
     </div>
   );
 }

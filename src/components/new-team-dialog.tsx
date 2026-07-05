@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { ErrorText } from "@/components/error-text";
 
 const COLORS = [
   "#0ea5e9",
@@ -88,9 +89,7 @@ export function NewTeamDialog() {
               ))}
             </div>
           </div>
-          {state.error && (
-            <p className="text-sm font-medium text-destructive">{state.error}</p>
-          )}
+          <ErrorText code={state.error} />
           <div className="flex justify-end">
             <Submit label={t("teams.create")} />
           </div>
