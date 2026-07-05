@@ -38,6 +38,7 @@ export function CommentForm({ taskId }: { taskId: string }) {
         required
         rows={2}
         placeholder={t("task.addComment")}
+        aria-label={t("task.addComment")}
       />
       <div className="flex justify-end">
         <Submit label={t("task.send")} />

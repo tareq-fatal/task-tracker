@@ -111,6 +111,12 @@ export function AppShell({
 
   return (
     <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-sky-700 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        {t("nav.skipToContent")}
+      </a>
       {/* Desktop sidebar */}
       <aside
         data-tour="sidebar"
@@ -154,7 +160,7 @@ export function AppShell({
           <div className="flex items-center gap-3 rounded-xl px-2 py-2">
             <Link href="/settings">
               <Avatar className="h-9 w-9 border">
-                <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+                <AvatarFallback className="bg-gradient-to-br from-sky-700 to-teal-700 text-xs text-white">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -221,7 +227,7 @@ export function AppShell({
                 className="md:hidden"
               >
                 <Avatar className="h-9 w-9 border">
-                  <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-sky-700 to-teal-700 text-xs text-white">
                     {initials(user.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -261,7 +267,7 @@ export function AppShell({
           )}
         </header>
 
-        <main className="flex-1 pb-20 md:pb-8">{children}</main>
+        <main id="main-content" className="flex-1 pb-20 md:pb-8">{children}</main>
       </div>
 
       {/* Mobile bottom nav */}
@@ -292,9 +298,10 @@ export function AppShell({
         })}
         <Link
           href="/tasks/new"
+          aria-label={t("nav.newTask")}
           className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-sky-600"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-md">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-sky-700 to-teal-700 text-white shadow-md">
             <Plus className="h-4 w-4" />
           </span>
         </Link>

@@ -45,7 +45,7 @@ export default async function AdminUsersPage() {
               className="flex min-w-0 flex-1 items-center gap-3"
             >
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-white">
+                <AvatarFallback className="bg-gradient-to-br from-sky-700 to-teal-700 text-white">
                   {initials(u.name)}
                 </AvatarFallback>
               </Avatar>

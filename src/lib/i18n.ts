@@ -11,6 +11,7 @@ export const dictionaries = {
     "nav.settings": "الإعدادات",
     "nav.logout": "تسجيل الخروج",
     "nav.newTask": "مهمة جديدة",
+    "nav.skipToContent": "تخطَّ إلى المحتوى الرئيسي",
 
     "login.title": "تسجيل الدخول",
     "login.subtitle": "سجّل الدخول لإدارة مهامك",
@@ -241,6 +242,7 @@ export const dictionaries = {
     "nav.settings": "Einstellungen",
     "nav.logout": "Abmelden",
     "nav.newTask": "Neue Task",
+    "nav.skipToContent": "Zum Hauptinhalt springen",
 
     "login.title": "Anmelden",
     "login.subtitle": "Melde dich an, um deine Tasks zu verwalten",
@@ -471,6 +473,7 @@ export const dictionaries = {
     "nav.settings": "Settings",
     "nav.logout": "Log out",
     "nav.newTask": "New Task",
+    "nav.skipToContent": "Skip to main content",
 
     "login.title": "Sign in",
     "login.subtitle": "Sign in to manage your tasks",

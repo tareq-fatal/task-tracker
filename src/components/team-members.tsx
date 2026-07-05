@@ -24,7 +24,7 @@ function MemberRow({ teamId, member }: { teamId: string; member: Member }) {
   return (
     <div className="flex items-center gap-3 py-2">
       <Avatar className="h-9 w-9">
-        <AvatarFallback className="bg-gradient-to-br from-sky-500 to-teal-500 text-xs text-white">
+        <AvatarFallback className="bg-gradient-to-br from-sky-700 to-teal-700 text-xs text-white">
           {initials(member.name)}
         </AvatarFallback>
       </Avatar>
@@ -89,7 +89,13 @@ export function TeamMembers({
           }}
           className="flex items-center gap-2 pt-1"
         >
-          <select name="userId" required defaultValue="" className={selectClass}>
+          <select
+            name="userId"
+            required
+            defaultValue=""
+            aria-label={t("teams.addMember")}
+            className={selectClass}
+          >
             <option value="" disabled>
               {t("teams.addMember")}…
             </option>

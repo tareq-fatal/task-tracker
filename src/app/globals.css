@@ -32,7 +32,7 @@
     --accent-foreground: 0 0% 100%;
 
     /* Rose for destructive / overdue */
-    --destructive: 350 89% 60%; /* #F43F5E rose-500 */
+    --destructive: 347 77% 50%; /* #E11D48 rose-600 — rose-500 fails 4.5:1 text contrast with white */
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%; /* slate-200 */

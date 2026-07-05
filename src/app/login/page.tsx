@@ -39,6 +39,7 @@ export default async function LoginPage({
         <div className="absolute end-4 top-4">
           <LocaleSwitcher current={locale} />
         </div>
+        <h1 className="sr-only">{t["app.name"]}</h1>
         <Card className="w-full max-w-sm overflow-hidden shadow-xl">
           <div className="h-1.5 w-full bg-gradient-to-r from-sky-500 to-teal-500" />
           <CardHeader className="items-center pt-6 text-center">

@@ -117,9 +117,16 @@ export function SubtaskList({
           required
           maxLength={200}
           placeholder={t("task.addSubtask")}
+          aria-label={t("task.addSubtask")}
           className="h-9"
         />
-        <Button type="submit" size="icon" variant="outline" className="h-9 w-9 shrink-0">
+        <Button
+          type="submit"
+          size="icon"
+          variant="outline"
+          aria-label={t("task.addSubtask")}
+          className="h-9 w-9 shrink-0"
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </form>

@@ -104,6 +104,7 @@ export function FilterBar({
       <>
         {show("project") && (
           <select
+            aria-label={t("nav.projects")}
             className={selectClass}
             value={current.project ?? ""}
             onChange={(e) => apply({ project: e.target.value || undefined })}
@@ -119,6 +120,7 @@ export function FilterBar({
 
         {show("team") && (
           <select
+            aria-label={t("teams.title")}
             className={selectClass}
             value={current.team ?? ""}
             onChange={(e) => apply({ team: e.target.value || undefined })}
@@ -178,6 +180,7 @@ export function FilterBar({
 
         {show("status") && (
           <select
+            aria-label={t("task.status")}
             className={selectClass}
             value={current.status ?? ""}
             onChange={(e) => apply({ status: (e.target.value || undefined) as any })}
@@ -193,6 +196,7 @@ export function FilterBar({
 
         {show("priority") && (
           <select
+            aria-label={t("task.priority")}
             className={selectClass}
             value={current.priority ?? ""}
             onChange={(e) => apply({ priority: e.target.value || undefined })}
@@ -208,6 +212,7 @@ export function FilterBar({
 
         {show("date") && (
           <select
+            aria-label={t("filter.date.label")}
             className={selectClass}
             value={current.date ?? ""}
             onChange={(e) =>
@@ -313,6 +318,7 @@ export function FilterBar({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t("common.search")}
+              aria-label={t("common.search")}
               className="ps-9"
             />
           </div>
