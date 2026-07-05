@@ -8,6 +8,12 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === "development",
   workboxOptions: {
     disableDevLogs: true,
+    // A new SW must take over immediately and control open tabs right away —
+    // otherwise a stale worker keeps serving cached assets until every tab
+    // with the old version is closed, which is what caused the "still on the
+    // old version after deploy" reports.
+    skipWaiting: true,
+    clientsClaim: true,
   },
 });
 
