@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck } from "lucide-react";
@@ -53,7 +54,8 @@ export default async function TaskDetailPage({
   params: { id: string };
 }) {
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
 
   const task = await prisma.task.findUnique({
     where: { id: params.id },
@@ -268,7 +270,7 @@ export default async function TaskDetailPage({
                 className={cn("font-medium", overdue && "text-rose-600")}
               >
                 {task.dueDate
-                  ? format(task.dueDate, "dd.MM.yyyy")
+                  ? formatDate(task.dueDate, locale)
                   : t["common.none"]}
               </span>
             </div>
@@ -296,7 +298,7 @@ export default async function TaskDetailPage({
                   ? t["task.origin.self"]
                   : `${t["task.origin.assigned"]} ${task.createdBy.name}`}
                 {" · "}
-                {format(task.createdAt, "dd.MM.yyyy")}
+                {formatDate(task.createdAt, locale)}
               </span>
               {isAdminRole(user.role) && (
                 <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
@@ -450,7 +452,7 @@ export default async function TaskDetailPage({
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{c.user.name}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      {format(c.createdAt, "dd.MM.yyyy HH:mm")}
+                      {formatDateTime(c.createdAt, locale)}
                       {mine &&
                         (readByAll ? (
                           <CheckCheck className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />
