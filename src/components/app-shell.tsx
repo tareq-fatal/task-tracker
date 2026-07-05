@@ -20,6 +20,7 @@ import {
   Zap,
   FileStack,
   Map,
+  GanttChartSquare,
   Target,
   Table2,
   Palette,
@@ -61,6 +62,7 @@ const MAIN: NavItem[] = [
   { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true },
   { href: "/list", label: "nav.list", icon: Table2 },
   { href: "/views", label: "nav.views", icon: CalendarDays },
+  { href: "/gantt", label: "nav.gantt", icon: GanttChartSquare },
   { href: "/roadmap", label: "nav.roadmap", icon: Map },
   { href: "/projects", label: "nav.projects", icon: FolderKanban },
 ];

@@ -366,6 +366,7 @@ model Task {
   status      String    @default("Todo") // Todo | InProgress | Done | Archived
   priority    String    @default("Medium") // Low | Medium | High | Critical
   position    Int       @default(0) // ordering within a status column
+  startDate   DateTime? // Gantt schedule start (planned). Null → derived from createdAt.
   dueDate     DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
