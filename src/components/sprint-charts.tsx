@@ -29,6 +29,7 @@ export function SprintBurndown({
   if (data.length === 0)
     return <p className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</p>;
   return (
+    <div dir="ltr">
     <ResponsiveContainer width="100%" height={240}>
       <ComposedChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: -18 }}>
         <defs>
@@ -46,6 +47,7 @@ export function SprintBurndown({
         <Area type="monotone" dataKey="remaining" name={labels.remaining} stroke={INDIGO} strokeWidth={2.5} fill="url(#sprint-burn)" connectNulls={false} />
       </ComposedChart>
     </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -59,6 +61,7 @@ export function SprintVelocity({
   if (data.length === 0)
     return <p className="py-10 text-center text-sm text-muted-foreground">{labels.empty}</p>;
   return (
+    <div dir="ltr">
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data} margin={{ top: 5, right: 8, bottom: 0, left: -18 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -70,5 +73,6 @@ export function SprintVelocity({
         <Bar dataKey="completed" name={labels.completed} fill={EMERALD} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
+    </div>
   );
 }

@@ -40,7 +40,9 @@ export function ReportsCharts({
   labels: Labels;
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    // Charts keep an LTR time/value axis in every locale (recharts tooltips
+    // and legend offsets assume LTR); labels themselves are already localized.
+    <div dir="ltr" className="grid gap-6 lg:grid-cols-2">
       <section className="rounded-lg border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">{labels.burndown}</h2>
         <ResponsiveContainer width="100%" height={260}>

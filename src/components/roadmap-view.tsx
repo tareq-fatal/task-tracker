@@ -18,7 +18,9 @@ export function RoadmapView({ lanes, from, to, now, doneLabel, locale }: { lanes
   const todayPct = to > from && now >= from && now <= to ? ((now - from) / (to - from)) * 100 : null;
 
   return (
-    <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm">
+    // Time axes read left→right in every locale; pin the widget to LTR so the
+    // percentage-based bar/tick math stays correct under an RTL document.
+    <div dir="ltr" className="overflow-x-auto rounded-2xl border bg-card shadow-sm">
       <div className="min-w-[720px]">
         {/* Quarter header */}
         <div className="relative h-8 border-b bg-muted/40">

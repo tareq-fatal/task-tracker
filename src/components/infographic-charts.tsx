@@ -31,7 +31,7 @@ export function DonutChart({
 }) {
   const total = data.reduce((a, s) => a + s.value, 0);
   return (
-    <div className="relative" style={{ height }}>
+    <div dir="ltr" className="relative" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie data={data} dataKey="value" nameKey="name" innerRadius="62%" outerRadius="100%" paddingAngle={2} stroke="none">
@@ -65,6 +65,7 @@ export function GradientArea({
 }) {
   const id = `grad-${dataKey}-${color.replace("#", "")}`;
   return (
+    <div dir="ltr">
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
         <defs>
@@ -79,6 +80,7 @@ export function GradientArea({
         <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2.5} fill={`url(#${id})`} />
       </AreaChart>
     </ResponsiveContainer>
+    </div>
   );
 }
 

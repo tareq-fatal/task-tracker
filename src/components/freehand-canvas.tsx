@@ -65,7 +65,7 @@ export function FreehandCanvas({ onClose }: { onClose: () => void }) {
         onPointerLeave={up}
         className="absolute inset-0 z-30 cursor-crosshair touch-none"
       />
-      <div className="glass absolute start-1/2 top-2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg">
+      <div className="glass absolute start-1/2 top-2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border px-3 py-1.5 shadow-lg rtl:translate-x-1/2">
         {COLORS.map((c) => (
           <button key={c} onClick={() => setColor(c)} className="h-5 w-5 rounded-full ring-2 ring-offset-1" style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : "none" }} aria-label={t("draw.color")} />
         ))}

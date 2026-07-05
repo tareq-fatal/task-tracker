@@ -52,7 +52,9 @@ export function GanttChart({
   const labelW = mode === "timeline" ? 150 : 190;
 
   return (
-    <div className="overflow-x-auto">
+    // Time axes read left→right in every locale; pin the chart to LTR so the
+    // percentage math and dependency arrows stay correct under an RTL document.
+    <div dir="ltr" className="overflow-x-auto">
       <div className="min-w-[680px]">
         {/* tick header */}
         <div className="flex">
