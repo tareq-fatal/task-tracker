@@ -52,7 +52,7 @@ export function TaskCard({
   task: TaskCardData;
   showStatus?: boolean;
 }) {
-  const { t, locale } = useT();
+  const { t, tp, locale } = useT();
   const done = task.status === "Done" || task.status === "Archived";
   const subtaskCount = task._count?.subtasks ?? 0;
   const showBar = task.progress > 0 || subtaskCount > 0;
@@ -120,7 +120,7 @@ export function TaskCard({
           {waitingOn > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
               <AlertTriangle className="h-3 w-3" />
-              {t("links.waiting", { n: waitingOn })}
+              {tp("links.waiting", waitingOn)}
             </span>
           )}
         </div>

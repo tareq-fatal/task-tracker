@@ -27,7 +27,7 @@ export type TimeInfo = {
 };
 
 export function TimeBadge({ task }: { task: TimeInfo }) {
-  const { t, locale } = useT();
+  const { t, tp, locale } = useT();
   const dateLocale = DATE_LOCALES[locale];
 
   // Done → "✅ Done X ago"
@@ -68,7 +68,7 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
       {task.dueDate && overdue && (
         <span className="inline-flex animate-pulse items-center gap-1 rounded px-1.5 py-0.5 font-medium text-rose-700 bg-rose-100">
           <AlertTriangle className="h-3 w-3" />
-          {t("time.overdueBy", { n: overdueDaysCount(task.dueDate) })}
+          {tp("time.overdueBy", overdueDaysCount(task.dueDate))}
         </span>
       )}
 
@@ -82,7 +82,7 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
       {task.dueDate && !overdue && !dueToday && (
         <span className="inline-flex items-center gap-1 text-muted-foreground">
           <CalendarDays className="h-3 w-3" />
-          {t("time.daysLeft", { n: daysUntil(task.dueDate) })}
+          {tp("time.daysLeft", daysUntil(task.dueDate))}
         </span>
       )}
     </span>

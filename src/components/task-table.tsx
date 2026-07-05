@@ -22,7 +22,7 @@ type Row = {
 const DUE_COLOR = { overdue: "text-rose-600", today: "text-orange-600", week: "text-sky-600", far: "text-muted-foreground" };
 
 export function TaskTable({ rows }: { rows: Row[] }) {
-  const { t, locale } = useT();
+  const { t, tp, locale } = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [sortKey, setSortKey] = useState<SortKey>("priority");
@@ -105,7 +105,7 @@ export function TaskTable({ rows }: { rows: Row[] }) {
       {/* Bulk toolbar */}
       {sel.size > 0 && (
         <div className="fixed inset-x-0 bottom-4 z-20 mx-auto flex w-fit items-center gap-3 rounded-full border bg-card px-4 py-2 shadow-lg">
-          <span className="text-sm font-medium">{t("list.selected", { n: sel.size })}</span>
+          <span className="text-sm font-medium">{tp("list.selected", sel.size)}</span>
           <select
             aria-label={t("list.setStatus")} defaultValue="" disabled={pending}
             onChange={(e) => { if (e.target.value) run(() => bulkSetStatusAction([...sel], e.target.value)); }}
@@ -115,7 +115,7 @@ export function TaskTable({ rows }: { rows: Row[] }) {
             {TASK_STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s}` as never)}</option>)}
           </select>
           <Button size="sm" variant="destructive" disabled={pending}
-            onClick={() => { if (confirm(t("list.deleteConfirm", { n: sel.size }))) run(() => bulkDeleteAction([...sel])); }}>
+            onClick={() => { if (confirm(tp("list.deleteConfirm", sel.size))) run(() => bulkDeleteAction([...sel])); }}>
             <Trash2 className="me-1 h-4 w-4" /> {t("list.delete")}
           </Button>
           <button aria-label="clear selection" onClick={() => setSel(new Set())} className="rounded-full p-1 hover:bg-muted"><X className="h-4 w-4" /></button>

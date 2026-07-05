@@ -10,16 +10,16 @@ const weekdayName = (weekday: number, locale: string) =>
   new Intl.DateTimeFormat(locale, { weekday: "long" }).format(new Date(Date.UTC(2023, 0, 1 + weekday)));
 
 export function NarrativeInsights({ items }: { items: Narrative[] }) {
-  const { t, locale } = useT();
+  const { t, tp, locale } = useT();
   if (items.length === 0) return null;
 
   const line = (n: Narrative): string => {
     switch (n.kind) {
-      case "streak": return t("nar.streak", { n: n.days });
+      case "streak": return tp("nar.streak", n.days);
       case "bestDay": return t("nar.bestDay", { day: weekdayName(n.weekday, locale) });
       case "trend": return n.up ? t("nar.trendUp", { pct: n.deltaPct }) : t("nar.trendDown", { pct: n.deltaPct });
-      case "forecast": return n.early ? t("nar.forecastEarly", { n: n.deltaDays }) : t("nar.forecastLate", { n: n.deltaDays });
-      case "recommend": return t("nar.recommend", { n: n.overdue, p: n.priority });
+      case "forecast": return n.early ? tp("nar.forecastEarly", n.deltaDays) : tp("nar.forecastLate", n.deltaDays);
+      case "recommend": return tp("nar.recommend", n.overdue, { p: n.priority });
     }
   };
 
