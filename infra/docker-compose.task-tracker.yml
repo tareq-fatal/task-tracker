@@ -24,11 +24,19 @@ services:
     container_name: task-tracker
     restart: unless-stopped
     env_file:
-      - .env.task-tracker # secrets + DATABASE_URL (NOT committed; see .env.task-tracker.example)
+      - .env.task-tracker # non-secret config + DATABASE_URL (NOT committed; see .env.task-tracker.example)
     environment:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: 0.0.0.0
+      # OPTIONAL — Docker secrets instead of plaintext env. The entrypoint expands
+      # any <VAR>_FILE into <VAR>, so uncomment these + the `secrets:` block below
+      # (and drop SESSION_SECRET / DATABASE_URL from .env.task-tracker):
+      # SESSION_SECRET_FILE: /run/secrets/tt_session_secret
+      # DATABASE_URL_FILE: /run/secrets/tt_database_url
+    # secrets:
+    #   - tt_session_secret
+    #   - tt_database_url
     volumes:
       # Persist uploaded attachments across redeploys.
       - task_tracker_uploads:/app/public/uploads
@@ -57,6 +65,13 @@ services:
 volumes:
   task_tracker_uploads:
     name: task_tracker_uploads
+
+# OPTIONAL — Docker secrets (see the commented `secrets:`/`*_FILE` block above).
+# secrets:
+#   tt_session_secret:
+#     file: ./secrets/session_secret.txt   # gitignored; `openssl rand -hex 32`
+#   tt_database_url:
+#     file: ./secrets/database_url.txt      # postgresql://tasktracker:…@postgres:5432/tasktracker
 
 # These networks already exist in the Coast-Shield stack — mark them external so
 # this fragment joins them instead of creating new ones. Replace the names with
