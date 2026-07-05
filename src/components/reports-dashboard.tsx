@@ -42,7 +42,15 @@ function Card({ title, children, className = "" }: { title?: string; children: R
   );
 }
 
-export function ReportsDashboard({ data, labels: L }: { data: Data; labels: Labels }) {
+export function ReportsDashboard({
+  data,
+  labels: L,
+  actions,
+}: {
+  data: Data;
+  labels: Labels;
+  actions?: React.ReactNode;
+}) {
   const k = data.kpis;
   return (
     <div className="container py-6">
@@ -55,6 +63,7 @@ export function ReportsDashboard({ data, labels: L }: { data: Data; labels: Labe
               {L.infographics}
             </Link>
           </Button>
+          {actions}
           <ExportButtons targetId="report-capture" filename="task-tracker-report" />
         </div>
       </div>

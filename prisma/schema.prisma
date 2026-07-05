@@ -519,6 +519,38 @@ model DbAuditLog {
   @@index([createdAt])
 }
 
+// Async export job. Small exports (≤ EXPORT_SYNC_LIMIT tasks) are generated
+// inline in the request; larger ones are queued here and produced by the
+// /api/cron/exports runner, which emails the requester an unguessable download
+// link (see src/lib/export-runner.ts). Plain string ids (no relations) mirror
+// DbAuditLog — the row outlives the task/sprint it was generated from.
+model ExportJob {
+  id          String    @id @default(cuid())
+  token       String    @unique // unguessable download token used in the emailed link
+  tenantId    String
+  userId      String
+  userName    String
+  userEmail   String? // recipient for the "ready" email (null → no email)
+  locale      String    @default("ar") // ar | en | de — controls file language
+  kind        String // tasks-excel | sprint-pdf | activity-pdf | kanban-pdf
+  format      String // xlsx | pdf
+  params      String    @default("{}") // JSON: filters / selection / includeLogo
+  status      String    @default("pending") // pending | processing | done | error
+  taskCount   Int       @default(0)
+  fileName    String? // human filename, e.g. "tasks-objektus-2026-07-05.xlsx"
+  filePath    String? // public path, e.g. /uploads/exports/<id>.xlsx
+  sizeBytes   Int?
+  error       String?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([userId])
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   taskId    String
