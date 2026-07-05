@@ -1,7 +1,9 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Ban } from "lucide-react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   createSprintAction,
@@ -140,9 +142,11 @@ export function SprintBoard({ view }: { view: SprintsView }) {
               </div>
               {s.goal && <p className="mb-1 text-xs text-muted-foreground">🎯 {s.goal}</p>}
               <ul className="space-y-1">
-                {s.tasks.map((tk) => (
+                {s.tasks.filter((tk) => !tk.blocked).map((tk) => (
                   <li key={tk.id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate">{tk.title}</span>
+                    <Link href={`/tasks/${tk.id}`} className="truncate hover:underline">
+                      {tk.title}
+                    </Link>
                     <button
                       onClick={() => act(() => setTaskSprintAction(tk.id, null))}
                       className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
@@ -155,6 +159,34 @@ export function SprintBoard({ view }: { view: SprintsView }) {
                   <li className="text-xs text-muted-foreground">{t("sprint.emptyTasks")}</li>
                 )}
               </ul>
+              {/* Blocked tasks live in their own group so the team sees at a
+                  glance what can't move until its blockers are done. */}
+              {s.tasks.some((tk) => tk.blocked) && (
+                <div
+                  data-testid="sprint-blocked-group"
+                  className="mt-2 rounded-md border border-amber-200 bg-amber-50/60 p-2 dark:border-amber-500/30 dark:bg-amber-500/10"
+                >
+                  <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    <Ban className="h-3 w-3" />
+                    {t("sprint.blockedSection")} ({s.tasks.filter((tk) => tk.blocked).length})
+                  </div>
+                  <ul className="space-y-1">
+                    {s.tasks.filter((tk) => tk.blocked).map((tk) => (
+                      <li key={tk.id} className="flex items-center justify-between gap-2 text-sm">
+                        <Link href={`/tasks/${tk.id}`} className="truncate text-amber-900 hover:underline dark:text-amber-200">
+                          {tk.title}
+                        </Link>
+                        <button
+                          onClick={() => act(() => setTaskSprintAction(tk.id, null))}
+                          className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          {t("sprint.remove")}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -165,7 +197,17 @@ export function SprintBoard({ view }: { view: SprintsView }) {
           <ul className="space-y-1">
             {view.backlog.map((tk) => (
               <li key={tk.id} className="flex items-center justify-between gap-2 text-sm">
-                <span className="truncate">{tk.title}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <Link href={`/tasks/${tk.id}`} className="truncate hover:underline">
+                    {tk.title}
+                  </Link>
+                  {tk.blocked && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                      <Ban className="h-2.5 w-2.5" />
+                      {t("sprint.blockedSection")}
+                    </span>
+                  )}
+                </span>
                 {view.targetSprintId && (
                   <button
                     onClick={() => act(() => setTaskSprintAction(tk.id, view.targetSprintId))}

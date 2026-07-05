@@ -47,6 +47,7 @@ test("admin can link two tasks (dependency)", async ({ page }) => {
   await expect(addBtn).toBeEnabled();
   await addBtn.click();
 
-  // the linked task appears in the Links section
-  await expect(page.getByRole("link", { name: aTitle })).toBeVisible();
+  // the linked task appears in the Links section (and once more as a
+  // blocked-banner chip, since the dependency is open — hence .first())
+  await expect(page.getByRole("link", { name: aTitle }).first()).toBeVisible();
 });

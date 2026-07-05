@@ -73,10 +73,20 @@ export default async function ViewsPage({
   }));
   const ids = new Set(scheduled.map((x) => x.id));
   const links = view === "calendar" ? [] : await prisma.taskLink.findMany({
-    where: { type: "DependsOn", taskId: { in: [...ids] }, linkedTaskId: { in: [...ids] } },
-    select: { taskId: true, linkedTaskId: true },
+    where: { type: { in: ["DependsOn", "Blocks"] }, taskId: { in: [...ids] }, linkedTaskId: { in: [...ids] } },
+    select: { taskId: true, linkedTaskId: true, type: true },
   });
-  const deps = links.map((l) => ({ taskId: l.taskId, dependsOnId: l.linkedTaskId }));
+  // Normalize both spellings of the same relationship ("A DependsOn B" ≙
+  // "B Blocks A") into waits-for edges, deduped.
+  const depSet = new Map<string, { taskId: string; dependsOnId: string }>();
+  for (const l of links) {
+    const e =
+      l.type === "DependsOn"
+        ? { taskId: l.taskId, dependsOnId: l.linkedTaskId }
+        : { taskId: l.linkedTaskId, dependsOnId: l.taskId };
+    depSet.set(`${e.taskId}→${e.dependsOnId}`, e);
+  }
+  const deps = [...depSet.values()];
 
   const ganttWindow = { from: new Date(now.getTime() - 30 * DAY).toISOString(), to: new Date(now.getTime() + 90 * DAY).toISOString() };
   const timelineWindow = { from: new Date(now.getTime() - 60 * DAY).toISOString(), to: new Date(now.getTime() + 300 * DAY).toISOString() };

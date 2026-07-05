@@ -16,9 +16,14 @@ export const taskCardSelect = {
   assignedTo: { select: { name: true, avatar: true } },
   project: { select: { name: true, color: true } },
   _count: { select: { comments: true, attachments: true, subtasks: true } },
-  // Outgoing "DependsOn" links → used for the "waiting on N" card badge.
+  // Blockers for the "waiting on N" card badge: outgoing "DependsOn" plus
+  // incoming "Blocks" (the same relationship written from the other end).
   linksFrom: {
     where: { type: "DependsOn" },
     select: { linkedTask: { select: { status: true } } },
+  },
+  linksTo: {
+    where: { type: "Blocks" },
+    select: { task: { select: { status: true } } },
   },
 } satisfies Prisma.TaskSelect;

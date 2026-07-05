@@ -28,6 +28,7 @@ const DOT: Record<string, string> = {
   timer: "bg-emerald-500",
   attachment: "bg-cyan-500",
   escalated: "bg-rose-600",
+  unblocked: "bg-lime-500",
   assist: "bg-indigo-600",
   coaching: "bg-amber-500",
 };

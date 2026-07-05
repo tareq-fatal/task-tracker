@@ -50,6 +50,11 @@ export function TaskLinks({
       if (res.ok) {
         toast(t("common.saved"));
         setLinkedTaskId("");
+      } else {
+        toast(
+          t(res.error === "CYCLE" ? "links.err.cycle" : "links.err.generic"),
+          "error"
+        );
       }
     });
   }
