@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
+import { headers } from "next/headers";
 import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale } from "@/lib/enums";
 import "./globals.css";
@@ -48,6 +49,7 @@ export default function RootLayout({
   const locale = getActiveLocale();
   const dir = dirForLocale(locale);
   const fontClass = locale === "ar" ? "font-cairo" : "font-sans";
+  const nonce = headers().get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -57,8 +59,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Apply the saved theme before paint (no flash). */}
+        {/* Apply the saved theme before paint (no flash). Nonce satisfies the
+            script-src CSP set in middleware.ts. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html:
               "(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();",

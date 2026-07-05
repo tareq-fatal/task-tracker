@@ -47,7 +47,9 @@ export function LoginForm() {
         />
       </div>
       {state.error && (
-        <p className="text-sm font-medium text-destructive">{t("login.error")}</p>
+        <p className="text-sm font-medium text-destructive">
+          {t(state.error === "RATE_LIMITED" ? "login.rateLimited" : "login.error")}
+        </p>
       )}
       <SubmitButton />
     </form>

@@ -5,6 +5,7 @@ import {
   isProviderConfigured,
   isSsoProvider,
 } from "@/lib/sso";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const STATE_COOKIE = "tt_sso_state";
 
@@ -16,6 +17,14 @@ export async function GET(
   const provider = params.provider;
   if (!isSsoProvider(provider) || !isProviderConfigured(provider)) {
     return NextResponse.redirect(new URL("/login?sso=unavailable", req.url));
+  }
+
+  const limited = rateLimit(`sso-start:${clientIp(req)}`, {
+    limit: 20,
+    windowSeconds: 60,
+  });
+  if (!limited.ok) {
+    return NextResponse.redirect(new URL("/login?sso=rate_limited", req.url));
   }
 
   const state = randomBytes(16).toString("hex");

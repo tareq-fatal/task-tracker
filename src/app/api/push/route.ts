@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`push-sub:${user.id}`, { limit: 30, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   const sub = await req.json().catch(() => null);
   const endpoint = sub?.endpoint;
@@ -26,6 +32,11 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`push-sub:${user.id}`, { limit: 30, windowSeconds: 60 });
+  if (!limited.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   const body = await req.json().catch(() => null);
   const endpoint = body?.endpoint;

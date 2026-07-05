@@ -10,9 +10,16 @@ import { TASK_STATUSES, TASK_PRIORITIES, isAdminRole } from "@/lib/enums";
 
 const PROJECT_COLOR = "#1d4ed8"; // SAP blue
 
+// The `xlsx` package has known ReDoS / prototype-pollution CVEs with no fix
+// available upstream (GHSA-4r6h-8v6p-xvw6, GHSA-5pgg-2g8v-p4x9). Access here
+// is already admin-only, but cap the upload size to bound worst-case parse
+// cost from a crafted workbook.
+const MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+
 async function readWorkbook(formData: FormData): Promise<ParsedWorkbook> {
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) throw new Error("NO_FILE");
+  if (file.size > MAX_IMPORT_FILE_BYTES) throw new Error("FILE_TOO_LARGE");
   if (
     !file.name.toLowerCase().endsWith(".xlsx") &&
     !file.type.includes("spreadsheet")

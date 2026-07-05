@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueRecurring } from "@/lib/recurring-runner";
+import { requireSyncSecret } from "@/lib/cron-auth";
 
 // Cron entry for recurring tasks. Call every few hours from an external
 // scheduler, guarded by SYNC_SECRET (reused from Planner sync):
@@ -12,13 +13,8 @@ export async function GET(req: NextRequest) {
 }
 
 async function handle(req: NextRequest) {
-  const secret = process.env.SYNC_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "disabled (no SYNC_SECRET)" }, { status: 503 });
-  }
-  if (req.headers.get("x-sync-secret") !== secret) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = requireSyncSecret(req, "cron-recurring");
+  if (denied) return denied;
   const result = await runDueRecurring();
   return NextResponse.json({ ok: true, ...result });
 }

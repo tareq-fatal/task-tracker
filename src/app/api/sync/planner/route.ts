@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueSyncs } from "@/lib/planner-sync-runner";
+import { requireSyncSecret } from "@/lib/cron-auth";
 
 // Cron entry point for continuous Planner sync. Call this every few minutes from
 // an external scheduler (system cron / GitHub Actions / uptime pinger), e.g.:
@@ -13,13 +14,8 @@ export async function GET(req: NextRequest) {
 }
 
 async function handle(req: NextRequest) {
-  const secret = process.env.SYNC_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "sync disabled (no SYNC_SECRET)" }, { status: 503 });
-  }
-  if (req.headers.get("x-sync-secret") !== secret) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = requireSyncSecret(req, "sync-planner");
+  if (denied) return denied;
   const result = await runDueSyncs();
   return NextResponse.json({ ok: true, ...result });
 }

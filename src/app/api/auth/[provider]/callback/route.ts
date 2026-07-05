@@ -11,6 +11,7 @@ import {
   isSsoProvider,
   type SsoProvider,
 } from "@/lib/sso";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const STATE_COOKIE = "tt_sso_state";
 
@@ -38,6 +39,12 @@ async function handle(
   if (!isSsoProvider(provider) || !isProviderConfigured(provider)) {
     return fail(req, "unavailable");
   }
+
+  const limited = rateLimit(`sso-callback:${clientIp(req)}`, {
+    limit: 20,
+    windowSeconds: 60,
+  });
+  if (!limited.ok) return fail(req, "rate_limited");
 
   const { code, state } = await readParams(req);
   const stateCookie = req.cookies.get(STATE_COOKIE)?.value ?? "";

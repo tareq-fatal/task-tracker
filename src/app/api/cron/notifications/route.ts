@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueReminders } from "@/lib/notification-cron";
+import { requireSyncSecret } from "@/lib/cron-auth";
 
 // Daily reminder cron (due-soon + overdue), SYNC_SECRET-guarded:
 //   0 7 * * *  curl -H "x-sync-secret: $SYNC_SECRET" https://tasks.coastshield.net/api/cron/notifications
@@ -11,11 +12,8 @@ export async function GET(req: NextRequest) {
 }
 
 async function handle(req: NextRequest) {
-  const secret = process.env.SYNC_SECRET;
-  if (!secret) return NextResponse.json({ error: "disabled (no SYNC_SECRET)" }, { status: 503 });
-  if (req.headers.get("x-sync-secret") !== secret) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = requireSyncSecret(req, "cron-notifications");
+  if (denied) return denied;
   const result = await runDueReminders();
   return NextResponse.json({ ok: true, ...result });
 }
