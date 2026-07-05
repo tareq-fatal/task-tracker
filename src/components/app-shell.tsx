@@ -12,6 +12,7 @@ import {
   Users2,
   ListChecks,
   FileUp,
+  FileSpreadsheet,
   BarChart3,
   Rocket,
   Database,
@@ -80,6 +81,7 @@ const ADMIN: NavItem[] = [
   { href: "/settings/branding", label: "nav.branding", icon: Palette },
   { href: "/settings/integrations", label: "nav.integrations", icon: Plug },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
+  { href: "/admin/bulk-import", label: "nav.admin.bulkImport", icon: FileSpreadsheet },
 ];
 
 const SUPER: NavItem[] = [
