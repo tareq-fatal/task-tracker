@@ -227,13 +227,14 @@ Im Browser `https://fsm.coastshield.net` öffnen → FSM-PWA lädt, installierba
 
 ## Persistenz / Backup
 
-- **Uploads**: Docker-Volume `task_tracker_uploads` (gemountet auf
-  `/app/public/uploads`). In die VPS-Backups aufnehmen.
-- **Datenbank**: `tasktracker`-DB in die bestehende Postgres-Backup-Routine
-  aufnehmen, z. B.:
-  ```bash
-  docker exec <postgres-container> pg_dump -U tasktracker tasktracker > tasktracker_$(date +%F).sql
-  ```
+Automatisiertes tägliches Backup (Postgres-Dump + Uploads-Volume →
+S3-kompatibles Object-Storage, 30-Tage-Retention, Slack-/E-Mail-Alert bei
+Fehlern) ist unter **`infra/backup.sh`** / **`infra/restore.sh`**
+implementiert, per systemd-Timer (`infra/systemd/task-tracker-backup.*`) oder
+Docker-Compose-Sidecar (`infra/docker-compose.backup.yml`) einplanbar.
+
+Vollständige Anleitung (B2/MinIO-Einrichtung, Installation, Restore,
+Troubleshooting): **[`docs/BACKUP-RESTORE.md`](./BACKUP-RESTORE.md)**.
 
 ## Troubleshooting
 
