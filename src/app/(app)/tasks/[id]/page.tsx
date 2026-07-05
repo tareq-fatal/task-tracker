@@ -26,6 +26,10 @@ import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges"
 import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
+import { VoiceRecorder } from "@/components/voice-recorder";
+import { VoiceNotePlayer } from "@/components/voice-note-player";
+import { addVoiceNoteAction, addVoiceCommentAction } from "@/actions/tasks";
+import { parseWaveform } from "@/lib/voice";
 import { DeleteTaskButton } from "@/components/delete-task-button";
 import { ChangeCreator } from "@/components/change-creator";
 import { ProgressControl } from "@/components/progress-control";
@@ -69,11 +73,16 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "asc" },
       },
       comments: {
-        include: { user: { select: { name: true } } },
+        include: { user: { select: { name: true } }, voiceNote: true },
         orderBy: { createdAt: "asc" },
       },
       commentReads: { select: { userId: true, lastReadAt: true } },
       attachments: { orderBy: { uploadedAt: "desc" } },
+      voiceNotes: {
+        where: { commentId: null },
+        include: { user: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
       subtasks: { orderBy: { order: "asc" } },
       customValues: true,
       linksFrom: {
@@ -427,6 +436,38 @@ export default async function TaskDetailPage({
         )}
       </section>
 
+      {/* Voice notes (MediaRecorder, max 2 min) */}
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {t["voice.title"]} ({task.voiceNotes.length})
+          </h2>
+          <VoiceRecorder action={addVoiceNoteAction.bind(null, task.id)} />
+        </div>
+        {task.voiceNotes.length > 0 && (
+          <div className="space-y-2">
+            {task.voiceNotes.map((v) => (
+              <div key={v.id} className="flex items-center gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-secondary text-xs">
+                    {initials(v.user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <VoiceNotePlayer
+                  src={`/download/voice/${v.id}`}
+                  peaks={parseWaveform(v.waveform)}
+                  durationSec={v.durationSec}
+                  transcript={v.transcript}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {format(v.createdAt, "dd.MM.yyyy HH:mm")}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Comments */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -460,13 +501,26 @@ export default async function TaskDetailPage({
                         ))}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm">{c.content}</p>
+                  {c.voiceNote ? (
+                    <VoiceNotePlayer
+                      src={`/download/voice/${c.voiceNote.id}`}
+                      peaks={parseWaveform(c.voiceNote.waveform)}
+                      durationSec={c.voiceNote.durationSec}
+                      transcript={c.voiceNote.transcript}
+                      compact
+                    />
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm">{c.content}</p>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
         <CommentForm taskId={task.id} />
+        <div className="mt-2">
+          <VoiceRecorder action={addVoiceCommentAction.bind(null, task.id)} />
+        </div>
         <MarkCommentsRead taskId={task.id} />
       </section>
 

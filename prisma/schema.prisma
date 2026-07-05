@@ -138,6 +138,7 @@ model User {
   notifications     Notification[]
   notifyPrefs       NotificationPreference[]
   notifyDevices     NotificationDevice[]
+  voiceNotes        VoiceNote[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -432,6 +433,7 @@ model Task {
 
   comments     TaskComment[]
   attachments  TaskAttachment[]
+  voiceNotes   VoiceNote[]
   subtasks     Subtask[]
   customValues CustomFieldValue[]
   linksFrom   TaskLink[]       @relation("LinksFrom")
@@ -540,6 +542,8 @@ model TaskComment {
   content   String
   createdAt DateTime @default(now())
 
+  voiceNote VoiceNote?
+
   @@index([taskId])
 }
 
@@ -552,6 +556,29 @@ model TaskAttachment {
   mimeType   String
   sizeBytes  Int
   uploadedAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+// Voice note (max 2 min, MediaRecorder). Attached to a task directly, or — when
+// commentId is set — recorded as a voice comment. Stored like attachments
+// (public/uploads + DB row). `waveform` is a JSON array of 0-100 peak ints
+// captured while recording, so playback can render bars without decoding audio.
+model VoiceNote {
+  id          String       @id @default(cuid())
+  taskId      String
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  commentId   String?      @unique
+  comment     TaskComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filePath    String // public path, e.g. /uploads/xxxx.webm
+  mimeType    String
+  sizeBytes   Int
+  durationSec Float
+  waveform    String // JSON int[] (0-100 peaks)
+  transcript  String? // filled by optional Whisper transcription (ENV opt-in)
+  createdAt   DateTime     @default(now())
 
   @@index([taskId])
 }

@@ -14,7 +14,17 @@ import {
   progressSchema,
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
+  ALLOWED_AUDIO_MIME,
+  MAX_VOICE_SECONDS,
 } from "@/lib/validation";
+import {
+  normalizeAudioMime,
+  audioExtension,
+  parseWaveform,
+  serializeWaveform,
+  formatSeconds,
+} from "@/lib/voice";
+import { transcribeVoiceNote } from "@/lib/transcription";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
 import { canEditTaskContent } from "@/lib/task-access";
 import { applyAutomations } from "@/lib/automation-run";
@@ -643,6 +653,116 @@ export async function uploadAttachmentAction(
   });
   await logActivity(taskId, user.id, "attachment", file.name);
   await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${file.name}`);
+
+  revalidatePath(`/tasks/${taskId}`);
+  return {};
+}
+
+/* ------------------------------------------------------------------ */
+/* Voice notes                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Validate + persist a recorded voice blob (same storage as attachments:
+ * public/uploads + DB row). Expects `file`, `durationSec` and `waveform`
+ * (JSON int[] 0-100) in the FormData — all produced by <VoiceRecorder>.
+ */
+async function saveVoiceUpload(formData: FormData): Promise<
+  | { error: string }
+  | { filePath: string; mimeType: string; sizeBytes: number; durationSec: number; waveform: string }
+> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "NO_FILE" };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: "TOO_LARGE" };
+  const mimeType = normalizeAudioMime(file.type);
+  if (!ALLOWED_AUDIO_MIME.includes(mimeType)) return { error: "BAD_TYPE" };
+  const durationSec = Number(formData.get("durationSec"));
+  // +2s grace: the recorder stops itself at the limit, but the final chunk flush
+  // can land slightly past it.
+  if (!Number.isFinite(durationSec) || durationSec <= 0 || durationSec > MAX_VOICE_SECONDS + 2) {
+    return { error: "TOO_LONG" };
+  }
+  // Re-serialize through the parser so only clamped 0-100 ints reach the DB.
+  const waveform = serializeWaveform(parseWaveform(String(formData.get("waveform") ?? "")));
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const safeName = `${randomBytes(12).toString("hex")}${audioExtension(mimeType)}`;
+  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, safeName), bytes);
+
+  return {
+    filePath: `/uploads/${safeName}`,
+    mimeType,
+    sizeBytes: file.size,
+    durationSec: Math.round(durationSec * 10) / 10,
+    waveform,
+  };
+}
+
+/** Voice note attached directly to the task (parallel to file attachments). */
+export async function addVoiceNoteAction(
+  taskId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const { user, tenant } = await requireTenant();
+  const task = await assertCanEdit(taskId, user, tenant.id);
+
+  const saved = await saveVoiceUpload(formData);
+  if ("error" in saved) return { error: saved.error };
+
+  const note = await prisma.voiceNote.create({
+    data: { taskId, userId: user.id, ...saved },
+  });
+  await logActivity(taskId, user.id, "voice_note", formatSeconds(saved.durationSec));
+  await notifyAdminsOfChange(user, task, `🎤 Sprachnotiz (${formatSeconds(saved.durationSec)})`);
+  // Optional Whisper transcription (ENV opt-in) — fire and forget.
+  transcribeVoiceNote(note.id).catch(() => {});
+
+  revalidatePath(`/tasks/${taskId}`);
+  return {};
+}
+
+/** Voice note recorded as a comment — an empty comment row carries the audio. */
+export async function addVoiceCommentAction(
+  taskId: string,
+  formData: FormData
+): Promise<{ error?: string }> {
+  const { user, tenant } = await requireTenant();
+  await assertCanEdit(taskId, user, tenant.id);
+
+  const saved = await saveVoiceUpload(formData);
+  if ("error" in saved) return { error: saved.error };
+
+  const comment = await prisma.taskComment.create({
+    data: { taskId, userId: user.id, content: "" },
+  });
+  const note = await prisma.voiceNote.create({
+    data: { taskId, commentId: comment.id, userId: user.id, ...saved },
+  });
+  const fmt = formatSeconds(saved.durationSec);
+  await logActivity(taskId, user.id, "comment", `🎤 ${fmt}`);
+
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { id: true, tenantId: true, title: true, assignedToUserId: true, createdByUserId: true },
+  });
+  if (task) {
+    const watchers = [task.assignedToUserId, task.createdByUserId].filter(
+      (x): x is string => Boolean(x)
+    );
+    await notifyMany(watchers, {
+      tenantId: task.tenantId,
+      type: "comment",
+      title: "Neuer Kommentar",
+      body: `${task.title}: 🎤 Sprachnotiz (${fmt})`,
+      url: `/tasks/${taskId}`,
+      taskId,
+      actorUserId: user.id,
+    });
+    await notifyAdminsOfChange(user, task, `🎤 Sprachnotiz (${fmt})`);
+  }
+  transcribeVoiceNote(note.id).catch(() => {});
 
   revalidatePath(`/tasks/${taskId}`);
   return {};
