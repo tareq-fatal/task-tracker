@@ -50,6 +50,35 @@ export async function saveToDevice(
   return res.uri;
 }
 
+/** Persistent key/value — Capacitor Preferences on device, localStorage on web.
+ * Survives app restarts on native (localStorage in the webview would too, but
+ * Preferences is the platform-blessed store and is backed up with the app). */
+export async function setPref(key: string, value: string): Promise<void> {
+  if (!isNativeApp()) {
+    try {
+      window.localStorage.setItem(key, value);
+    } catch {
+      /* private mode / SSR — ignore */
+    }
+    return;
+  }
+  const { Preferences } = await import("@capacitor/preferences");
+  await Preferences.set({ key, value });
+}
+
+export async function getPref(key: string): Promise<string | null> {
+  if (!isNativeApp()) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  }
+  const { Preferences } = await import("@capacitor/preferences");
+  const { value } = await Preferences.get({ key });
+  return value ?? null;
+}
+
 export type NetState = { connected: boolean; type: string };
 
 /** Network status — uses the native plugin on device, navigator on web. */

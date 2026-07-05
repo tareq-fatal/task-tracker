@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale } from "@/lib/enums";
+import { NativeInit } from "@/components/native-init";
 import "./globals.css";
 
 const inter = Inter({
@@ -65,7 +66,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`min-h-screen antialiased ${fontClass}`}>{children}</body>
+      <body className={`min-h-screen antialiased ${fontClass}`}>
+        <NativeInit />
+        {children}
+      </body>
     </html>
   );
 }
