@@ -8,6 +8,7 @@ import { formatNumber } from "@/lib/format";
 import { useT } from "@/components/i18n-provider";
 import type { TKey } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -165,19 +166,20 @@ function PurgeTenant() {
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <Input value={slug} onChange={(e) => preview(e.target.value)} aria-label={t("db.danger.slug")} placeholder={t("db.danger.slug")} className="w-48" title={t("db.danger.slug")} />
         <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} aria-label={t("db.danger.reconfirm")} placeholder={t("db.danger.reconfirm")} className="w-48" title={t("db.danger.reconfirm")} />
-        <Button
-          size="sm"
-          variant="destructive"
-          title={t("db.danger.button")}
-          disabled={pending || !slug || confirm !== slug}
-          onClick={() => start(async () => {
-            const r = await purgeTenantAction(slug, confirm);
-            setMsg(r.ok ? `✓ ${r.summary}` : `✗ ${t(ERR[r.error ?? ""] ?? "error.notFound")}`);
-            setSlug(""); setConfirm(""); setCounts(null);
-          })}
-        >
-          {t("db.danger.button")}
-        </Button>
+        <TooltipHelp textKey="tooltip.delete_tenant">
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={pending || !slug || confirm !== slug}
+            onClick={() => start(async () => {
+              const r = await purgeTenantAction(slug, confirm);
+              setMsg(r.ok ? `✓ ${r.summary}` : `✗ ${t(ERR[r.error ?? ""] ?? "error.notFound")}`);
+              setSlug(""); setConfirm(""); setCounts(null);
+            })}
+          >
+            {t("db.danger.button")}
+          </Button>
+        </TooltipHelp>
       </div>
       {counts && (counts.tasks + counts.projects + counts.teams + counts.sprints > 0) && (
         <p className="mt-2 text-xs font-semibold text-rose-700">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Globe, Check } from "lucide-react";
 import { setLocaleAction } from "@/actions/locale";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -34,14 +35,16 @@ export function LocaleSwitcher({ current }: { current: Locale }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Language"
-          disabled={pending}
-        >
-          <Globe className="h-4 w-4" />
-        </Button>
+        <TooltipHelp textKey="tooltip.language">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Language"
+            disabled={pending}
+          >
+            <Globe className="h-4 w-4" />
+          </Button>
+        </TooltipHelp>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {LOCALES.map((l) => (

@@ -14,6 +14,7 @@ import {
 } from "@/actions/sprints";
 import { SprintBurndown, SprintVelocity } from "@/components/sprint-charts";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
@@ -129,14 +130,18 @@ export function SprintBoard({ view }: { view: SprintsView }) {
                 </div>
                 <div className="flex gap-1">
                   {s.status !== "active" && s.status !== "closed" && (
-                    <Button size="sm" variant="secondary" onClick={() => act(() => setSprintStatusAction(s.id, "active"))}>
-                      {t("sprint.activate")}
-                    </Button>
+                    <TooltipHelp textKey="tooltip.start_sprint">
+                      <Button size="sm" variant="secondary" onClick={() => act(() => setSprintStatusAction(s.id, "active"))}>
+                        {t("sprint.activate")}
+                      </Button>
+                    </TooltipHelp>
                   )}
                   {s.status === "active" && (
-                    <Button size="sm" variant="ghost" onClick={() => act(() => setSprintStatusAction(s.id, "closed"))}>
-                      {t("sprint.close")}
-                    </Button>
+                    <TooltipHelp textKey="tooltip.close_sprint">
+                      <Button size="sm" variant="ghost" onClick={() => act(() => setSprintStatusAction(s.id, "closed"))}>
+                        {t("sprint.close")}
+                      </Button>
+                    </TooltipHelp>
                   )}
                 </div>
               </div>
@@ -209,12 +214,14 @@ export function SprintBoard({ view }: { view: SprintsView }) {
                   )}
                 </span>
                 {view.targetSprintId && (
-                  <button
-                    onClick={() => act(() => setTaskSprintAction(tk.id, view.targetSprintId))}
-                    className="shrink-0 rounded-md border px-2 py-0.5 text-xs text-indigo-600 hover:bg-indigo-50"
-                  >
-                    {t("sprint.add")}
-                  </button>
+                  <TooltipHelp textKey="tooltip.add_to_sprint">
+                    <button
+                      onClick={() => act(() => setTaskSprintAction(tk.id, view.targetSprintId))}
+                      className="shrink-0 rounded-md border px-2 py-0.5 text-xs text-indigo-600 hover:bg-indigo-50"
+                    >
+                      {t("sprint.add")}
+                    </button>
+                  </TooltipHelp>
                 )}
               </li>
             ))}

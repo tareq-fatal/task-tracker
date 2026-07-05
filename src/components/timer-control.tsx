@@ -5,6 +5,7 @@ import { Play, Square, Clock } from "lucide-react";
 import { startTimerAction, stopTimerAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { useT } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
@@ -77,32 +78,36 @@ export function TimerControl({
       </div>
 
       {running ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="destructive"
-          disabled={pending}
-          onClick={() => {
-            setLocalStart(null); // optimistic stop
-            startTransition(async () => { await stopTimerAction(taskId); });
-          }}
-        >
-          <Square className="me-1 h-4 w-4" />
-          {t("task.stopTimer")}
-        </Button>
+        <TooltipHelp textKey="tooltip.timer_stop">
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            disabled={pending}
+            onClick={() => {
+              setLocalStart(null); // optimistic stop
+              startTransition(async () => { await stopTimerAction(taskId); });
+            }}
+          >
+            <Square className="me-1 h-4 w-4" />
+            {t("task.stopTimer")}
+          </Button>
+        </TooltipHelp>
       ) : (
-        <Button
-          type="button"
-          size="sm"
-          disabled={pending}
-          onClick={() => {
-            setLocalStart(Date.now()); // optimistic start
-            startTransition(async () => { await startTimerAction(taskId); });
-          }}
-        >
-          <Play className="me-1 h-4 w-4" />
-          {t("task.startTimer")}
-        </Button>
+        <TooltipHelp textKey="tooltip.timer_start">
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending}
+            onClick={() => {
+              setLocalStart(Date.now()); // optimistic start
+              startTransition(async () => { await startTimerAction(taskId); });
+            }}
+          >
+            <Play className="me-1 h-4 w-4" />
+            {t("task.startTimer")}
+          </Button>
+        </TooltipHelp>
       )}
     </div>
   );

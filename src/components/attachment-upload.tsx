@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { Paperclip, Loader2 } from "lucide-react";
 import { uploadAttachmentAction } from "@/actions/tasks";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { useT } from "@/components/i18n-provider";
 
 const ERRORS: Record<string, string> = {
@@ -40,20 +41,22 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
         className="hidden"
         onChange={onChange}
       />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={pending}
-        onClick={() => inputRef.current?.click()}
-      >
-        {pending ? (
-          <Loader2 className="me-1 h-4 w-4 animate-spin" />
-        ) : (
-          <Paperclip className="me-1 h-4 w-4" />
-        )}
-        {t("task.upload")}
-      </Button>
+      <TooltipHelp textKey="tooltip.attach">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {pending ? (
+            <Loader2 className="me-1 h-4 w-4 animate-spin" />
+          ) : (
+            <Paperclip className="me-1 h-4 w-4" />
+          )}
+          {t("task.upload")}
+        </Button>
+      </TooltipHelp>
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );

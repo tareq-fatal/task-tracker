@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import {
   getNotifications,
   markAllReadAction,
@@ -66,18 +67,20 @@ export function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button
-        onClick={toggle}
-        aria-label={t("notif.title")}
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-      >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-1 text-[10px] font-bold text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </button>
+      <TooltipHelp textKey="tooltip.notifications" disabled={open}>
+        <button
+          onClick={toggle}
+          aria-label={t("notif.title")}
+          className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-1 text-[10px] font-bold text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </TooltipHelp>
 
       {open && (
         <div className="glass absolute end-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border border-white/40 shadow-xl">

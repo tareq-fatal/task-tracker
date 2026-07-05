@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
 import { useT } from "@/components/i18n-provider";
+import { TooltipHelp } from "@/components/ui/tooltip";
+import type { TKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Mode = "light" | "dark" | "system";
@@ -35,27 +37,28 @@ export function ThemeToggle() {
     apply(m);
   }
 
-  const opts: { m: Mode; icon: typeof Sun; key: string }[] = [
-    { m: "light", icon: Sun, key: "theme.light" },
-    { m: "dark", icon: Moon, key: "theme.dark" },
-    { m: "system", icon: Monitor, key: "theme.system" },
+  const opts: { m: Mode; icon: typeof Sun; key: string; tip: TKey }[] = [
+    { m: "light", icon: Sun, key: "theme.light", tip: "tooltip.theme_light" },
+    { m: "dark", icon: Moon, key: "theme.dark", tip: "tooltip.theme_dark" },
+    { m: "system", icon: Monitor, key: "theme.system", tip: "tooltip.theme_system" },
   ];
 
   return (
     <div className="inline-flex rounded-lg border bg-muted p-1" role="group" aria-label={t("settings.theme")}>
       {opts.map((o) => (
-        <button
-          key={o.m}
-          onClick={() => set(o.m)}
-          aria-pressed={mode === o.m}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            mode === o.m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <o.icon className="h-4 w-4" />
-          {t(o.key as never)}
-        </button>
+        <TooltipHelp key={o.m} textKey={o.tip}>
+          <button
+            onClick={() => set(o.m)}
+            aria-pressed={mode === o.m}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              mode === o.m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <o.icon className="h-4 w-4" />
+            {t(o.key as never)}
+          </button>
+        </TooltipHelp>
       ))}
     </div>
   );

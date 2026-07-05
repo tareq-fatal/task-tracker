@@ -4,6 +4,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { isAdminRole } from "@/lib/enums";
 import { SettingsForm } from "@/components/settings-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TooltipToggle } from "@/components/tooltip-toggle";
 import { PushToggle } from "@/components/push-toggle";
 import { RestartTourButton } from "@/components/restart-tour-button";
 import { SsoSettings } from "@/components/sso-settings";
@@ -36,6 +37,16 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <ThemeToggle />
+        </CardContent>
+      </Card>
+
+      {/* Help tooltips — everyone gets this too */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t["settings.tooltips"]}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TooltipToggle />
         </CardContent>
       </Card>
 

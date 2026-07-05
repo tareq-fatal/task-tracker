@@ -43,6 +43,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import type { SessionUser } from "@/lib/auth";
 import type { TKey } from "@/lib/i18n";
 import { isAdminRole } from "@/lib/enums";
@@ -55,16 +56,17 @@ type NavItem = {
   icon: React.ElementType;
   tour?: string;
   adminOnly?: boolean;
+  tip?: TKey;
 };
 
 const MAIN: NavItem[] = [
-  { href: "/", label: "nav.dashboard", icon: LayoutDashboard },
-  { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board" },
-  { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true },
-  { href: "/list", label: "nav.list", icon: Table2 },
-  { href: "/views", label: "nav.views", icon: CalendarDays },
-  { href: "/roadmap", label: "nav.roadmap", icon: Map },
-  { href: "/projects", label: "nav.projects", icon: FolderKanban },
+  { href: "/", label: "nav.dashboard", icon: LayoutDashboard, tip: "tooltip.dashboard" },
+  { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board", tip: "tooltip.board" },
+  { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true, tip: "tooltip.focus" },
+  { href: "/list", label: "nav.list", icon: Table2, tip: "tooltip.list" },
+  { href: "/views", label: "nav.views", icon: CalendarDays, tip: "tooltip.views" },
+  { href: "/roadmap", label: "nav.roadmap", icon: Map, tip: "tooltip.roadmap" },
+  { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
 ];
 
 const ADMIN: NavItem[] = [
@@ -72,8 +74,8 @@ const ADMIN: NavItem[] = [
   { href: "/admin/teams", label: "nav.admin.teams", icon: Users2, tour: "nav-teams" },
   { href: "/admin/tasks", label: "nav.admin.tasks", icon: ListChecks },
   { href: "/admin/activity", label: "nav.activity", icon: Activity },
-  { href: "/sprints", label: "nav.sprints", icon: Rocket },
-  { href: "/reports", label: "nav.reports", icon: BarChart3 },
+  { href: "/sprints", label: "nav.sprints", icon: Rocket, tip: "tooltip.sprints" },
+  { href: "/reports", label: "nav.reports", icon: BarChart3, tip: "tooltip.reports" },
   { href: "/reports/insights", label: "nav.insights", icon: Sparkles },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
@@ -105,7 +107,7 @@ function NavLink({
 }) {
   const { t } = useT();
   const Icon = item.icon;
-  return (
+  const link = (
     <Link
       href={item.href}
       onClick={onClick}
@@ -123,6 +125,13 @@ function NavLink({
       <Icon className={cn("h-5 w-5", active && "text-indigo-600")} />
       {t(item.label)}
     </Link>
+  );
+  return item.tip ? (
+    <TooltipHelp textKey={item.tip} side="right">
+      {link}
+    </TooltipHelp>
+  ) : (
+    link
   );
 }
 
@@ -239,9 +248,11 @@ export function AppShell({
                 {t(roleLabelKey(user.role))}
               </p>
             </div>
-            <Button asChild variant="ghost" size="icon" aria-label={t("nav.logout")} title={t("nav.logout")}>
-              <a href="/logout"><LogOut className="h-4 w-4" /></a>
-            </Button>
+            <TooltipHelp textKey="tooltip.logout">
+              <Button asChild variant="ghost" size="icon" aria-label={t("nav.logout")}>
+                <a href="/logout"><LogOut className="h-4 w-4" /></a>
+              </Button>
+            </TooltipHelp>
           </div>
         </div>
       </aside>
@@ -251,15 +262,17 @@ export function AppShell({
         {/* Top header */}
         <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className="flex h-14 items-center gap-2 px-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setOpen((o) => !o)}
-              aria-label="Menu"
-            >
-              {open ? <X /> : <Menu />}
-            </Button>
+            <TooltipHelp textKey="tooltip.menu">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => setOpen((o) => !o)}
+                aria-label="Menu"
+              >
+                {open ? <X /> : <Menu />}
+              </Button>
+            </TooltipHelp>
             <Link href="/" className="flex items-center gap-2 md:hidden">
               <Logo size={24} />
               <span className="font-semibold">{t("app.name")}</span>
@@ -280,25 +293,29 @@ export function AppShell({
             )}
 
             <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
-              <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
-                <Link href="/tasks/new">
-                  <Plus className="me-1 h-4 w-4" />
-                  {t("nav.newTask")}
-                </Link>
-              </Button>
+              <TooltipHelp textKey="tooltip.new_task">
+                <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
+                  <Link href="/tasks/new">
+                    <Plus className="me-1 h-4 w-4" />
+                    {t("nav.newTask")}
+                  </Link>
+                </Button>
+              </TooltipHelp>
               <NotificationBell />
               <LocaleSwitcher current={locale} />
-              <Link
-                href="/settings"
-                aria-label={t("nav.settings")}
-                className="md:hidden"
-              >
-                <Avatar className="h-9 w-9 border">
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
-                    {initials(user.name)}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
+              <TooltipHelp textKey="tooltip.profile">
+                <Link
+                  href="/settings"
+                  aria-label={t("nav.settings")}
+                  className="md:hidden"
+                >
+                  <Avatar className="h-9 w-9 border">
+                    <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
+                      {initials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              </TooltipHelp>
             </div>
           </div>
 
