@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import { getActiveTenant, listTenants } from "@/lib/tenant";
 import { getActiveLocale } from "@/lib/locale";
 import { isSuperAdmin } from "@/lib/enums";
@@ -7,6 +8,7 @@ import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
 import { WelcomeTour } from "@/components/welcome-tour";
 import { UpdatePrompt } from "@/components/update-prompt";
+import { SentryUserContext } from "@/components/sentry-user-context";
 import { resolveBranding, brandStyle } from "@/lib/branding";
 
 export default async function AppLayout({
@@ -18,6 +20,11 @@ export default async function AppLayout({
   if (!ctx) redirect("/login");
   const { user, tenant } = ctx;
 
+  Sentry.setUser({ id: user.id, username: user.username });
+  Sentry.setTag("tenantId", user.tenantId);
+  Sentry.setTag("tenantSlug", user.tenantSlug);
+  Sentry.setTag("role", user.role);
+
   const locale = getActiveLocale();
   const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
   const branding = resolveBranding(tenant);
@@ -27,6 +34,7 @@ export default async function AppLayout({
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
+        <SentryUserContext user={user} />
         <AppShell
           user={user}
           locale={locale}
