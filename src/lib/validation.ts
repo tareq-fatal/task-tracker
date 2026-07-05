@@ -20,7 +20,8 @@ export const loginSchema = z.object({
 
 export const taskSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200),
-  description: z.string().trim().max(5000).optional().default(""),
+  // Rich text (HTML) — markup inflates the length, hence the generous cap.
+  description: z.string().trim().max(20000).optional().default(""),
   status: z.enum(TASK_STATUSES).default("Todo"),
   priority: z.enum(TASK_PRIORITIES).default("Medium"),
   assignedToUserId: optionalId,
@@ -86,7 +87,8 @@ export const userSchema = z.object({
 });
 
 export const commentSchema = z.object({
-  content: z.string().trim().min(1).max(4000),
+  // Rich text (HTML) — markup inflates the length, hence the generous cap.
+  content: z.string().trim().min(1).max(20000),
 });
 
 export const settingsSchema = z.object({

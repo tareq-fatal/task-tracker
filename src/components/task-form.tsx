@@ -4,7 +4,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { useT } from "@/components/i18n-provider";
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_TYPES } from "@/lib/enums";
 import type { TaskFormState } from "@/actions/tasks";
@@ -86,12 +86,11 @@ export function TaskForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">{t("task.description")}</Label>
-        <Textarea
-          id="description"
+        <Label>{t("task.description")}</Label>
+        <RichTextEditor
           name="description"
           defaultValue={d.description}
-          rows={4}
+          placeholder={t("editor.placeholder")}
         />
       </div>
 

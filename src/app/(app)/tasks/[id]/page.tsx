@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
+import { RichTextContent } from "@/components/rich-text-content";
 import { AttachmentUpload } from "@/components/attachment-upload";
 import { DeleteTaskButton } from "@/components/delete-task-button";
 import { ChangeCreator } from "@/components/change-creator";
@@ -236,7 +237,7 @@ export default async function TaskDetailPage({
       <Card className="mb-6">
         <CardContent className="space-y-4 p-5">
           {task.description ? (
-            <p className="whitespace-pre-wrap text-sm">{task.description}</p>
+            <RichTextContent content={task.description} />
           ) : (
             <p className="text-sm text-muted-foreground">{t["common.none"]}</p>
           )}
@@ -460,7 +461,7 @@ export default async function TaskDetailPage({
                         ))}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap text-sm">{c.content}</p>
+                  <RichTextContent content={c.content} />
                 </div>
               </div>
             );

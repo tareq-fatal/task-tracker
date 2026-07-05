@@ -22,7 +22,8 @@ import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
-import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
+import { type NotificationEvent } from "@/lib/notifications-core";
+import { sanitizeRichText, htmlToPlainText, extractMentions } from "@/lib/richtext";
 import { isBlockedByOpenDeps } from "@/lib/task-links";
 import {
   presetToRule,
@@ -268,7 +269,7 @@ export async function createTaskAction(
   const task = await prisma.task.create({
     data: {
       title: d.title,
-      description: d.description || null,
+      description: sanitizeRichText(d.description) || null,
       status: d.status,
       priority: d.priority,
       type: hier.type,
@@ -331,6 +332,7 @@ export async function updateTaskAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
   const d = parsed.data;
+  const description = sanitizeRichText(d.description) || null;
 
   const becameDone = d.status === "Done" && existing.status !== "Done";
   const leftDone = d.status !== "Done" && existing.status === "Done";
@@ -351,7 +353,7 @@ export async function updateTaskAction(
     where: { id: taskId },
     data: {
       title: d.title,
-      description: d.description || null,
+      description,
       status: d.status,
       priority: d.priority,
       type: hier.type,
@@ -376,7 +378,7 @@ export async function updateTaskAction(
   // #35 — detect every meaningful field change; log each + tell admins.
   const changes: { type: string; detail: string }[] = [];
   if (existing.title !== d.title) changes.push({ type: "renamed", detail: `„${existing.title}" → „${d.title}"` });
-  if ((existing.description ?? "") !== (d.description ?? "")) changes.push({ type: "description", detail: "Beschreibung geändert" });
+  if ((existing.description ?? "") !== (description ?? "")) changes.push({ type: "description", detail: "Beschreibung geändert" });
   if (existing.status !== d.status) changes.push({ type: leftDone ? "reopened" : "status", detail: `Status: ${existing.status} → ${d.status}` });
   if (existing.priority !== d.priority) changes.push({ type: "priority", detail: `Priorität: ${existing.priority} → ${d.priority}` });
   if ((existing.storyPoints ?? null) !== (hier.storyPoints ?? null)) changes.push({ type: "storyPoints", detail: `Story Points: ${existing.storyPoints ?? "—"} → ${hier.storyPoints ?? "—"}` });
@@ -538,11 +540,16 @@ export async function addCommentAction(
   await assertCanEdit(taskId, user, tenant.id);
   const parsed = commentSchema.safeParse({ content: formData.get("content") });
   if (!parsed.success) return { error: "INVALID" };
+  // Editor output is HTML — sanitize before storing; keep a plain-text version
+  // for the activity log and notification previews.
+  const content = sanitizeRichText(parsed.data.content);
+  if (!content) return { error: "INVALID" };
+  const plain = htmlToPlainText(content);
 
   await prisma.taskComment.create({
-    data: { taskId, userId: user.id, content: parsed.data.content },
+    data: { taskId, userId: user.id, content },
   });
-  await logActivity(taskId, user.id, "comment", parsed.data.content.slice(0, 80));
+  await logActivity(taskId, user.id, "comment", plain.slice(0, 80));
 
   // Notify: @mentions (within the tenant) get a mention; watchers get a comment.
   const task = await prisma.task.findUnique({
@@ -550,7 +557,7 @@ export async function addCommentAction(
     select: { id: true, tenantId: true, title: true, assignedToUserId: true, createdByUserId: true },
   });
   if (task) {
-    const mentionNames = parseMentions(parsed.data.content);
+    const mentionNames = extractMentions(content);
     const mentioned = mentionNames.length
       ? await prisma.user.findMany({
           where: { username: { in: mentionNames }, tenantId: task.tenantId },
@@ -563,7 +570,7 @@ export async function addCommentAction(
         tenantId: task.tenantId,
         type: "mention",
         title: "Du wurdest erwähnt",
-        body: parsed.data.content.slice(0, 140),
+        body: plain.slice(0, 140),
         url: `/tasks/${taskId}`,
         taskId,
         actorUserId: user.id,
@@ -577,12 +584,12 @@ export async function addCommentAction(
       tenantId: task.tenantId,
       type: "comment",
       title: "Neuer Kommentar",
-      body: `${task.title}: ${parsed.data.content.slice(0, 120)}`,
+      body: `${task.title}: ${plain.slice(0, 120)}`,
       url: `/tasks/${taskId}`,
       taskId,
       actorUserId: user.id,
     });
-    await notifyAdminsOfChange(user, task, `Kommentar: ${parsed.data.content.slice(0, 80)}`);
+    await notifyAdminsOfChange(user, task, `Kommentar: ${plain.slice(0, 80)}`);
   }
 
   revalidatePath(`/tasks/${taskId}`);
