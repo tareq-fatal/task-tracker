@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setFieldValueAction } from "@/actions/custom-fields";
-import type { FieldType } from "@/lib/custom-fields";
+import { displayValue, type FieldType } from "@/lib/custom-fields";
 import { useT } from "@/components/i18n-provider";
 import { Input } from "@/components/ui/input";
 
 export type TaskField = { id: string; name: string; type: FieldType; options: string[]; required: boolean; value: string };
+type UserOpt = { id: string; name: string };
 
-export function TaskCustomFields({ taskId, fields, canEdit }: { taskId: string; fields: TaskField[]; canEdit: boolean }) {
+export function TaskCustomFields({
+  taskId, fields, users, canEdit,
+}: {
+  taskId: string;
+  fields: TaskField[];
+  users: UserOpt[];
+  canEdit: boolean;
+}) {
   const { t } = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<Record<string, string>>({});
+  const userNames = useMemo(() => Object.fromEntries(users.map((u) => [u.id, u.name])), [users]);
 
   function save(fieldId: string, raw: string) {
     start(async () => {
@@ -36,11 +45,16 @@ export function TaskCustomFields({ taskId, fields, canEdit }: { taskId: string; 
             </dt>
             <dd>
               {!canEdit ? (
-                <span className="text-sm">{f.type === "checkbox" ? (f.value === "true" ? "✓" : "—") : f.value || "—"}</span>
+                <span className="text-sm">{displayValue(f.type, f.value, userNames)}</span>
               ) : f.type === "select" ? (
                 <select defaultValue={f.value} disabled={pending} onChange={(e) => save(f.id, e.target.value)} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
                   <option value="">—</option>
                   {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : f.type === "user" ? (
+                <select defaultValue={f.value} disabled={pending} onChange={(e) => save(f.id, e.target.value)} className="h-9 w-full rounded-md border bg-background px-2 text-sm">
+                  <option value="">—</option>
+                  {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               ) : f.type === "checkbox" ? (
                 <input type="checkbox" defaultChecked={f.value === "true"} disabled={pending} onChange={(e) => save(f.id, e.target.checked ? "true" : "false")} className="h-5 w-5 accent-indigo-600" />

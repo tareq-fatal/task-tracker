@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateValue, parseOptions, displayValue, isFieldType } from "./custom-fields";
+import { validateValue, parseOptions, displayValue, isFieldType, sortKeyFor } from "./custom-fields";
 
 describe("validateValue", () => {
   it("text: trims + caps length", () => {
@@ -23,6 +23,10 @@ describe("validateValue", () => {
     expect(validateValue("checkbox", "true").value).toBe("true");
     expect(validateValue("checkbox", "0").value).toBe("false");
   });
+  it("user: must be a known member id", () => {
+    expect(validateValue("user", "u1", ["u1", "u2"])).toEqual({ ok: true, value: "u1" });
+    expect(validateValue("user", "ghost", ["u1", "u2"])).toEqual({ ok: false, error: "NOT_A_USER" });
+  });
   it("empty value clears regardless of type", () => {
     expect(validateValue("number", "")).toEqual({ ok: true, value: "" });
     expect(validateValue("select", "  ", ["A"])).toEqual({ ok: true, value: "" });
@@ -42,8 +46,30 @@ describe("displayValue / isFieldType", () => {
     expect(displayValue("checkbox", "true")).toBe("✓");
     expect(displayValue("text", "")).toBe("—");
   });
+  it("resolves user id → name, falls back to id", () => {
+    expect(displayValue("user", "u1", { u1: "Alice" })).toBe("Alice");
+    expect(displayValue("user", "u9", { u1: "Alice" })).toBe("u9");
+  });
   it("guards field type", () => {
     expect(isFieldType("select")).toBe(true);
+    expect(isFieldType("user")).toBe(true);
     expect(isFieldType("bogus")).toBe(false);
+  });
+});
+
+describe("sortKeyFor", () => {
+  it("numbers + dates sort numerically", () => {
+    expect(sortKeyFor("number", "10")).toBe(10);
+    expect(sortKeyFor("date", "2026-01-01")).toBe(Date.parse("2026-01-01"));
+  });
+  it("empty sorts last: +Inf for numeric, high sentinel for strings", () => {
+    expect(sortKeyFor("number", "")).toBe(Number.POSITIVE_INFINITY);
+    expect(sortKeyFor("text", "")).toBe("￿");
+  });
+  it("user sorts by resolved name (lower-cased)", () => {
+    expect(sortKeyFor("user", "u1", { u1: "Bob" })).toBe("bob");
+  });
+  it("checkbox: checked before unchecked ascending", () => {
+    expect(sortKeyFor("checkbox", "true") < sortKeyFor("checkbox", "false")).toBe(true);
   });
 });

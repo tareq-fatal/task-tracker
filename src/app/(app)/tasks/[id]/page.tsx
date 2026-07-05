@@ -151,16 +151,23 @@ export default async function TaskDetailPage({
     ? await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } })
     : [];
 
-  // Custom fields: tenant-wide definitions + this task's values
+  // Custom fields: tenant-wide (projectId null) + this task's project, then values.
   const fieldDefs = await prisma.customFieldDef.findMany({
-    where: { tenantId: tenant.id, projectId: null },
-    orderBy: { order: "asc" },
+    where: {
+      tenantId: tenant.id,
+      OR: [{ projectId: null }, ...(task.projectId ? [{ projectId: task.projectId }] : [])],
+    },
+    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
   });
   const valueMap = new Map(task.customValues.map((v) => [v.fieldId, v.value]));
   const customFields = fieldDefs.map((d) => ({
     id: d.id, name: d.name, type: d.type as FieldType, options: parseOptions(d.options), required: d.required,
     value: valueMap.get(d.id) ?? "",
   }));
+  // Options for `user`-type fields — all tenant members (id + name).
+  const cfUsers = fieldDefs.some((d) => d.type === "user")
+    ? await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } })
+    : [];
 
   // Candidate tasks to link (visible to the user, excluding this one)
   const linkCandidates = await prisma.task.findMany({
@@ -449,7 +456,7 @@ export default async function TaskDetailPage({
             </CardContent>
           </Card>
 
-          <TaskCustomFields taskId={task.id} fields={customFields} canEdit={canEditContent} />
+          <TaskCustomFields taskId={task.id} fields={customFields} users={cfUsers} canEdit={canEditContent} />
         </>
       )}
 
