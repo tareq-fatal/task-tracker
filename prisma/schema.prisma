@@ -131,6 +131,7 @@ model User {
   teamMemberships   TeamMember[]
   projectMemberships ProjectMember[]
   taskAssignments   TaskAssignee[]
+  commentReads      TaskCommentRead[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -407,6 +408,8 @@ model Task {
   // #24 — admin support: when set, the task is flagged as escalated (needs help).
   escalatedAt DateTime?
 
+  commentReads TaskCommentRead[]
+
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
 
@@ -459,6 +462,21 @@ model TaskAssignee {
   @@unique([taskId, userId])
   @@index([userId])
   @@index([taskId])
+}
+
+// #12 — per-user "read up to now" marker for a task's comment thread. A comment
+// counts as read by user X when X's lastReadAt >= the comment's createdAt.
+// Drives Telegram-style ✓ (sent) / ✓✓ (read by all other watchers) receipts.
+model TaskCommentRead {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }
 
 model TaskLink {

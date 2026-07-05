@@ -13,7 +13,9 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
-import { initials, isOverdue } from "@/lib/tasks";
+import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
+import { MarkCommentsRead } from "@/components/mark-comments-read";
+import { Check, CheckCheck } from "lucide-react";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
@@ -70,6 +72,7 @@ export default async function TaskDetailPage({
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
+      commentReads: { select: { userId: true, lastReadAt: true } },
       attachments: { orderBy: { uploadedAt: "desc" } },
       subtasks: { orderBy: { order: "asc" } },
       customValues: true,
@@ -113,6 +116,16 @@ export default async function TaskDetailPage({
   const isAdmin = isAdminRole(user.role);
   const escalated = task.escalatedAt != null;
   const isAssisting = task.assignees.some((a) => a.userId === user.id);
+
+  // #12 — read-receipts: watchers = all assignees + creator; a comment I wrote is
+  // ✓✓ once every OTHER watcher has read past it.
+  const watcherIds = new Set<string>([
+    ...task.assignees.map((a) => a.userId),
+    task.createdByUserId,
+  ]);
+  const readsMap: Record<string, number> = {};
+  for (const r of task.commentReads) readsMap[r.userId] = r.lastReadAt.getTime();
+  const otherWatchers = [...watcherIds].filter((id) => id !== user.id);
 
   // Admin-only: users of this tenant, for the "change creator" control
   const tenantUsers = isAdminRole(user.role)
@@ -423,26 +436,38 @@ export default async function TaskDetailPage({
           {task.comments.length === 0 && (
             <p className="text-sm text-muted-foreground">{t["task.noComments"]}</p>
           )}
-          {task.comments.map((c) => (
-            <div key={c.id} className="flex gap-3">
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarFallback className="bg-secondary text-xs">
-                  {initials(c.user.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 rounded-lg border bg-card p-3">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{c.user.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {format(c.createdAt, "dd.MM.yyyy HH:mm")}
-                  </span>
+          {task.comments.map((c) => {
+            // #12 — receipts on MY own comments: ✓ sent, ✓✓ read by all others
+            const mine = c.userId === user.id;
+            const readByAll = mine && commentReadByAll(c.createdAt.getTime(), otherWatchers, readsMap);
+            return (
+              <div key={c.id} className="flex gap-3">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-secondary text-xs">
+                    {initials(c.user.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 rounded-lg border bg-card p-3">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{c.user.name}</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      {format(c.createdAt, "dd.MM.yyyy HH:mm")}
+                      {mine &&
+                        (readByAll ? (
+                          <CheckCheck className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />
+                        ) : (
+                          <Check className="h-3.5 w-3.5 text-muted-foreground" aria-label={t["receipt.sent"]} />
+                        ))}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm">{c.content}</p>
                 </div>
-                <p className="whitespace-pre-wrap text-sm">{c.content}</p>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <CommentForm taskId={task.id} />
+        <MarkCommentsRead taskId={task.id} />
       </section>
 
       {/* Activity */}

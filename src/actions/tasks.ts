@@ -589,6 +589,24 @@ export async function addCommentAction(
   return {};
 }
 
+/**
+ * #12 — mark this task's comment thread as read up to now for the current user.
+ * Called when they open the task detail. Best-effort; drives ✓✓ receipts.
+ */
+export async function markCommentsReadAction(taskId: string): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true } });
+  if (!task || task.tenantId !== tenant.id) return { ok: false };
+  await prisma.taskCommentRead
+    .upsert({
+      where: { taskId_userId: { taskId, userId: user.id } },
+      create: { taskId, userId: user.id, lastReadAt: new Date() },
+      update: { lastReadAt: new Date() },
+    })
+    .catch(() => {});
+  return { ok: true };
+}
+
 export async function uploadAttachmentAction(
   taskId: string,
   formData: FormData
