@@ -64,6 +64,13 @@ export async function markReadAction(id: string): Promise<{ ok: boolean }> {
   return { ok: true };
 }
 
+/** Swipe-to-dismiss: remove a single notification (own rows only). */
+export async function deleteNotificationAction(id: string): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  await prisma.notification.deleteMany({ where: { id, userId: user.id } });
+  return { ok: true };
+}
+
 export type NotificationPrefsView = {
   events: Array<{ event: string } & ChannelPrefs>;
   quietHoursStart: number | null;
