@@ -2,6 +2,8 @@ import "server-only";
 import { prisma } from "./prisma";
 import { notifyUser as webPush } from "./push";
 import { sendEmail, basicEmailTemplate } from "./email";
+import { translate, type TKey } from "./i18n";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "./enums";
 import {
   defaultPrefs,
   resolveChannels,
@@ -13,7 +15,10 @@ export type NotifyInput = {
   recipientUserId: string;
   tenantId: string;
   type: NotificationEvent;
-  title: string;
+  /** Literal title — only for dynamic content (e.g. "Actor: Task"). Prefer titleKey. */
+  title?: string;
+  /** Dictionary key, translated into each recipient's own locale. */
+  titleKey?: TKey;
   body?: string;
   url?: string;
   taskId?: string;
@@ -24,12 +29,12 @@ export type NotifyInput = {
 export async function notify(input: NotifyInput): Promise<void> {
   if (input.actorUserId && input.actorUserId === input.recipientUserId) return;
 
-  let user: { email: string | null; quietHoursStart: number | null; quietHoursEnd: number | null } | null;
+  let user: { email: string | null; locale: string; quietHoursStart: number | null; quietHoursEnd: number | null } | null;
   let prefRow: ChannelPrefs | null = null;
   try {
     user = await prisma.user.findUnique({
       where: { id: input.recipientUserId },
-      select: { email: true, quietHoursStart: true, quietHoursEnd: true },
+      select: { email: true, locale: true, quietHoursStart: true, quietHoursEnd: true },
     });
     if (!user) return;
     const row = await prisma.notificationPreference.findUnique({
@@ -47,6 +52,10 @@ export async function notify(input: NotifyInput): Promise<void> {
     quietEnd: user.quietHoursEnd,
   });
 
+  // Render the title in the recipient's language (stored per user).
+  const locale: Locale = isLocale(user.locale) ? user.locale : DEFAULT_LOCALE;
+  const title = input.titleKey ? translate(locale, input.titleKey) : input.title ?? "";
+
   if (ch.inApp) {
     await prisma.notification
       .create({
@@ -54,7 +63,7 @@ export async function notify(input: NotifyInput): Promise<void> {
           userId: input.recipientUserId,
           tenantId: input.tenantId,
           type: input.type,
-          title: input.title,
+          title,
           body: input.body ?? null,
           url: input.url ?? null,
           taskId: input.taskId ?? null,
@@ -63,17 +72,17 @@ export async function notify(input: NotifyInput): Promise<void> {
       .catch(() => {});
   }
   if (ch.webPush) {
-    await webPush(input.recipientUserId, { title: input.title, body: input.body ?? "", url: input.url });
+    await webPush(input.recipientUserId, { title, body: input.body ?? "", url: input.url });
   }
   if (ch.email && user.email && user.email.includes("@")) {
     await sendEmail({
       to: user.email,
-      subject: input.title,
-      html: basicEmailTemplate(input.title, input.body ?? "", input.url),
+      subject: title,
+      html: basicEmailTemplate(title, input.body ?? "", input.url, locale),
     }).catch(() => false);
   }
   if (ch.native) {
-    await sendNative(input.recipientUserId, input).catch(() => {});
+    await sendNative(input.recipientUserId, { ...input, title }).catch(() => {});
   }
 }
 

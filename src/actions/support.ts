@@ -43,12 +43,12 @@ export async function escalateTaskAction(taskId: string, escalate: boolean): Pro
       ...(escalate && task.priority !== "Critical" ? { priority: "Critical" } : {}),
     },
   });
-  await log(taskId, user.id, "escalated", escalate ? "eskaliert" : "deeskaliert");
+  await log(taskId, user.id, escalate ? "escalated" : "deescalated");
   if (escalate) {
     await notifyMany(await assigneeIds(taskId), {
       tenantId: tenant.id,
       type: "status",
-      title: "Aufgabe eskaliert",
+      titleKey: "notifmsg.escalated",
       body: task.title,
       url: `/tasks/${taskId}`,
       taskId,
@@ -73,7 +73,7 @@ export async function assistTaskAction(taskId: string): Promise<SupportState> {
       update: {},
     })
     .catch(() => {});
-  await log(taskId, user.id, "assist", `${user.name} unterstützt`);
+  await log(taskId, user.id, "assist");
   revalidatePath(`/tasks/${taskId}`);
   return { ok: true };
 }
@@ -94,7 +94,7 @@ export async function coachingNoteAction(taskId: string, note: string): Promise<
   await notifyMany(await assigneeIds(taskId), {
     tenantId: tenant.id,
     type: "comment",
-    title: "Coaching-Hinweis",
+    titleKey: "notifmsg.coaching",
     body: `${task.title}: ${clean.slice(0, 120)}`,
     url: `/tasks/${taskId}`,
     taskId,

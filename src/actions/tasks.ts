@@ -22,6 +22,7 @@ import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
+import type { TKey } from "@/lib/i18n";
 import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
 import { isBlockedByOpenDeps } from "@/lib/task-links";
 import {
@@ -35,7 +36,7 @@ async function notifyWatchers(
   task: { id: string; tenantId: string; assignedToUserId: string | null; createdByUserId: string; title: string },
   actorUserId: string,
   type: NotificationEvent,
-  title: string,
+  titleKey: TKey,
   body?: string
 ): Promise<void> {
   const ids = [task.assignedToUserId, task.createdByUserId].filter(
@@ -44,7 +45,7 @@ async function notifyWatchers(
   await notifyMany(ids, {
     tenantId: task.tenantId,
     type,
-    title,
+    titleKey,
     body,
     url: `/tasks/${task.id}`,
     taskId: task.id,
@@ -303,7 +304,7 @@ export async function createTaskAction(
     await notifyMany(notifyIds, {
       tenantId: tenant.id,
       type: "assigned",
-      title: "Neue Aufgabe zugewiesen",
+      titleKey: "notifmsg.assignedNew",
       body: d.title,
       url: `/tasks/${task.id}`,
       taskId: task.id,
@@ -374,18 +375,20 @@ export async function updateTaskAction(
   await syncAssignees(taskId, [assignee, ...extraAssignees]);
 
   // #35 — detect every meaningful field change; log each + tell admins.
-  const changes: { type: string; detail: string }[] = [];
+  // Details stay language-neutral (values + arrows only) — the activity type is
+  // translated per viewer via t(`activity.<type>`), the detail is shown verbatim.
+  const changes: { type: string; detail: string | null }[] = [];
   if (existing.title !== d.title) changes.push({ type: "renamed", detail: `„${existing.title}" → „${d.title}"` });
-  if ((existing.description ?? "") !== (d.description ?? "")) changes.push({ type: "description", detail: "Beschreibung geändert" });
-  if (existing.status !== d.status) changes.push({ type: leftDone ? "reopened" : "status", detail: `Status: ${existing.status} → ${d.status}` });
-  if (existing.priority !== d.priority) changes.push({ type: "priority", detail: `Priorität: ${existing.priority} → ${d.priority}` });
-  if ((existing.storyPoints ?? null) !== (hier.storyPoints ?? null)) changes.push({ type: "storyPoints", detail: `Story Points: ${existing.storyPoints ?? "—"} → ${hier.storyPoints ?? "—"}` });
-  if ((existing.dueDate?.getTime() ?? 0) !== (d.dueDate?.getTime() ?? 0)) changes.push({ type: "due", detail: `Fälligkeit: ${existing.dueDate ? existing.dueDate.toISOString().slice(0, 10) : "—"} → ${d.dueDate ? d.dueDate.toISOString().slice(0, 10) : "—"}` });
-  if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) changes.push({ type: "assigned", detail: assignee ? "Hauptkopf geändert" : "Nicht mehr zugewiesen" });
+  if ((existing.description ?? "") !== (d.description ?? "")) changes.push({ type: "description", detail: null });
+  if (existing.status !== d.status) changes.push({ type: leftDone ? "reopened" : "status", detail: `${existing.status} → ${d.status}` });
+  if (existing.priority !== d.priority) changes.push({ type: "priority", detail: `${existing.priority} → ${d.priority}` });
+  if ((existing.storyPoints ?? null) !== (hier.storyPoints ?? null)) changes.push({ type: "storyPoints", detail: `${existing.storyPoints ?? "—"} → ${hier.storyPoints ?? "—"}` });
+  if ((existing.dueDate?.getTime() ?? 0) !== (d.dueDate?.getTime() ?? 0)) changes.push({ type: "due", detail: `${existing.dueDate ? existing.dueDate.toISOString().slice(0, 10) : "—"} → ${d.dueDate ? d.dueDate.toISOString().slice(0, 10) : "—"}` });
+  if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) changes.push({ type: "assigned", detail: null });
 
   for (const c of changes) await logActivity(taskId, user.id, c.type, c.detail);
   if (changes.length) {
-    await notifyAdminsOfChange(user, { id: taskId, tenantId: tenant.id, title: d.title }, changes.map((c) => c.detail).join(" · "));
+    await notifyAdminsOfChange(user, { id: taskId, tenantId: tenant.id, title: d.title }, changes.map((c) => c.detail).filter(Boolean).join(" · "));
   }
 
   // Notifications: newly-assigned people, status change to watchers, blockers freed.
@@ -396,7 +399,7 @@ export async function updateTaskAction(
     await notifyMany(newlyAssigned, {
       tenantId: tenant.id,
       type: "assigned",
-      title: "Aufgabe zugewiesen",
+      titleKey: "notifmsg.assigned",
       body: d.title,
       url: `/tasks/${taskId}`,
       taskId,
@@ -408,8 +411,8 @@ export async function updateTaskAction(
       { ...existing, assignedToUserId: assignee, title: d.title },
       user.id,
       "status",
-      `Status: ${d.title}`,
-      `${existing.status} → ${d.status}`
+      "notifmsg.statusChanged",
+      `${d.title}: ${existing.status} → ${d.status}`
     );
   }
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
@@ -440,7 +443,7 @@ async function notifyBlockerResolved(
       recipientUserId: dep.assignedToUserId,
       tenantId,
       type: "blocker_resolved",
-      title: "Blocker erledigt",
+      titleKey: "notifmsg.blockerResolved",
       body: dep.title,
       url: `/tasks/${dep.id}`,
       taskId: dep.id,
@@ -492,8 +495,8 @@ export async function updateTaskStatusAction(
   });
 
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
-  await notifyWatchers(existing, user.id, "status", `Status: ${existing.title}`, `${existing.status} → ${status}`);
-  await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
+  await notifyWatchers(existing, user.id, "status", "notifmsg.statusChanged", `${existing.title}: ${existing.status} → ${status}`);
+  await notifyAdminsOfChange(user, existing, `${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
   revalidateTaskViews(taskId);
@@ -562,7 +565,7 @@ export async function addCommentAction(
       await notifyMany([...mentionedIds], {
         tenantId: task.tenantId,
         type: "mention",
-        title: "Du wurdest erwähnt",
+        titleKey: "notifmsg.mention",
         body: parsed.data.content.slice(0, 140),
         url: `/tasks/${taskId}`,
         taskId,
@@ -576,13 +579,13 @@ export async function addCommentAction(
     await notifyMany(watchers, {
       tenantId: task.tenantId,
       type: "comment",
-      title: "Neuer Kommentar",
+      titleKey: "notifmsg.comment",
       body: `${task.title}: ${parsed.data.content.slice(0, 120)}`,
       url: `/tasks/${taskId}`,
       taskId,
       actorUserId: user.id,
     });
-    await notifyAdminsOfChange(user, task, `Kommentar: ${parsed.data.content.slice(0, 80)}`);
+    await notifyAdminsOfChange(user, task, `💬 ${parsed.data.content.slice(0, 80)}`);
   }
 
   revalidatePath(`/tasks/${taskId}`);
@@ -642,7 +645,7 @@ export async function uploadAttachmentAction(
     },
   });
   await logActivity(taskId, user.id, "attachment", file.name);
-  await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${file.name}`);
+  await notifyAdminsOfChange(user, task, `📎 ${file.name}`);
 
   revalidatePath(`/tasks/${taskId}`);
   return {};

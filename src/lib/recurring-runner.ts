@@ -38,7 +38,7 @@ export async function runDueRecurring(now = new Date()): Promise<{ created: numb
         recipientUserId: t.assignedToUserId,
         tenantId: t.tenantId,
         type: "recurring",
-        title: "Wiederkehrende Aufgabe",
+        titleKey: "notifmsg.recurring",
         body: t.title,
         url: `/tasks/${instance.id}`,
         taskId: instance.id,
