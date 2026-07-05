@@ -668,8 +668,14 @@ export async function uploadAttachmentAction(
   const ext = path.extname(file.name) || "";
   const safeName = `${randomBytes(12).toString("hex")}${ext}`;
   const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, safeName), bytes);
+  try {
+    await mkdir(uploadDir, { recursive: true });
+    await writeFile(path.join(uploadDir, safeName), bytes);
+  } catch {
+    // e.g. read-only/ephemeral filesystem or missing volume — surface a clear
+    // message instead of an unhandled 500 that looks like "nothing happened".
+    return { error: "WRITE_FAILED" };
+  }
 
   await prisma.taskAttachment.create({
     data: {
