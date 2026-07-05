@@ -18,6 +18,7 @@ import {
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
 import { canEditTaskContent } from "@/lib/task-access";
 import { applyAutomations } from "@/lib/automation-run";
+import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
@@ -294,6 +295,12 @@ export async function createTaskAction(
 
   await logActivity(task.id, user.id, "created");
   await applyAutomations(tenant.id, task.id, { type: "created", projectId: task.projectId });
+  await dispatchWebhookEvent({
+    tenantId: tenant.id,
+    tenantSlug: tenant.slug,
+    event: "task.created",
+    data: { id: task.id, title: task.title, status: task.status, priority: task.priority, projectId: task.projectId },
+  });
 
   // Notify every assignee (except the creator) of the new task.
   const notifyIds = [assignee, ...extraAssignees].filter(
@@ -496,6 +503,14 @@ export async function updateTaskStatusAction(
   await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
+  if (becameDone) {
+    await dispatchWebhookEvent({
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      event: "task.completed",
+      data: { id: taskId, title: existing.title, status, projectId: existing.projectId },
+    });
+  }
   revalidateTaskViews(taskId);
   return { ok: true };
 }
@@ -550,6 +565,17 @@ export async function addCommentAction(
     select: { id: true, tenantId: true, title: true, assignedToUserId: true, createdByUserId: true },
   });
   if (task) {
+    await dispatchWebhookEvent({
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      event: "comment.added",
+      data: {
+        taskId: task.id,
+        taskTitle: task.title,
+        author: user.name,
+        excerpt: parsed.data.content.slice(0, 140),
+      },
+    });
     const mentionNames = parseMentions(parsed.data.content);
     const mentioned = mentionNames.length
       ? await prisma.user.findMany({

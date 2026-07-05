@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { sprintBurndown, velocity, averageVelocity, type BurndownPoint } from "@/lib/sprints";
+import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 
 export type SprintState = { ok?: boolean; error?: string };
 
@@ -143,6 +144,13 @@ export async function setSprintStatusAction(
     await prisma.task.updateMany({
       where: { sprintId, status: { notIn: ["Done", "Archived"] } },
       data: { sprintId: null },
+    });
+    const project = await prisma.project.findUnique({ where: { id: sprint.projectId }, select: { name: true } });
+    await dispatchWebhookEvent({
+      tenantId: tenant.id,
+      tenantSlug: tenant.slug,
+      event: "sprint.closed",
+      data: { id: sprint.id, name: sprint.name, projectId: sprint.projectId, projectName: project?.name ?? null },
     });
   }
   revalidatePath("/sprints");
