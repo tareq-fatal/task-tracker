@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale } from "@/lib/enums";
+import { AnalyticsScript } from "@/components/analytics-script";
 import "./globals.css";
 
 const inter = Inter({
@@ -64,6 +65,7 @@ export default function RootLayout({
               "(function(){try{var t=localStorage.getItem('theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);}catch(e){}})();",
           }}
         />
+        <AnalyticsScript />
       </head>
       <body className={`min-h-screen antialiased ${fontClass}`}>{children}</body>
     </html>
