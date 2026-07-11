@@ -49,13 +49,14 @@ import {
 } from "@/lib/recurrence";
 import { isValidCron, nextCronOccurrence } from "@/lib/cron";
 import { DEFAULT_RECUR_TZ } from "@/lib/recurring-config";
+import type { TKey } from "@/lib/i18n";
 
 /** Notify a task's watchers (assignee + creator), skipping the actor. */
 async function notifyWatchers(
   task: { id: string; tenantId: string; assignedToUserId: string | null; createdByUserId: string; title: string },
   actorUserId: string,
   type: NotificationEvent,
-  title: string,
+  titleKey: TKey,
   body?: string
 ): Promise<void> {
   const ids = [task.assignedToUserId, task.createdByUserId].filter(
@@ -64,7 +65,7 @@ async function notifyWatchers(
   await notifyMany(ids, {
     tenantId: task.tenantId,
     type,
-    title,
+    titleKey,
     body,
     url: `/tasks/${task.id}`,
     taskId: task.id,
@@ -424,7 +425,7 @@ export async function createTaskAction(
     await notifyMany(notifyIds, {
       tenantId: tenant.id,
       type: "assigned",
-      title: "Neue Aufgabe zugewiesen",
+      titleKey: "notif.t.assignedNew",
       body: d.title,
       url: `/tasks/${task.id}`,
       taskId: task.id,
@@ -523,7 +524,7 @@ export async function updateTaskAction(
     await notifyMany(newlyAssigned, {
       tenantId: tenant.id,
       type: "assigned",
-      title: "Aufgabe zugewiesen",
+      titleKey: "notif.t.assigned",
       body: d.title,
       url: `/tasks/${taskId}`,
       taskId,
@@ -535,8 +536,8 @@ export async function updateTaskAction(
       { ...existing, assignedToUserId: assignee, title: d.title },
       user.id,
       "status",
-      `Status: ${d.title}`,
-      `${existing.status} → ${d.status}`
+      "notif.t.status",
+      `${d.title}: ${existing.status} → ${d.status}`
     );
   }
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
@@ -585,7 +586,7 @@ async function notifyBlockerResolved(
       recipientUserId: dep.assignedToUserId,
       tenantId,
       type: "blocker_resolved",
-      title: "Blocker erledigt",
+      titleKey: "notif.t.blockerResolved",
       body: dep.title,
       url: `/tasks/${dep.id}`,
       taskId: dep.id,
@@ -670,7 +671,7 @@ export async function updateTaskStatusAction(
   });
 
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
-  await notifyWatchers(existing, user.id, "status", `Status: ${existing.title}`, `${existing.status} → ${status}`);
+  await notifyWatchers(existing, user.id, "status", "notif.t.status", `${existing.title}: ${existing.status} → ${status}`);
   await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
@@ -760,7 +761,7 @@ export async function addCommentAction(
       await notifyMany([...mentionedIds], {
         tenantId: task.tenantId,
         type: "mention",
-        title: "Du wurdest erwähnt",
+        titleKey: "notif.t.mention",
         body: parsed.data.content.slice(0, 140),
         url: `/tasks/${taskId}`,
         taskId,
@@ -774,7 +775,7 @@ export async function addCommentAction(
     await notifyMany(watchers, {
       tenantId: task.tenantId,
       type: "comment",
-      title: "Neuer Kommentar",
+      titleKey: "notif.t.comment",
       body: `${task.title}: ${parsed.data.content.slice(0, 120)}`,
       url: `/tasks/${taskId}`,
       taskId,
@@ -948,7 +949,7 @@ export async function addVoiceCommentAction(
     await notifyMany(watchers, {
       tenantId: task.tenantId,
       type: "comment",
-      title: "Neuer Kommentar",
+      titleKey: "notif.t.comment",
       body: `${task.title}: 🎤 Sprachnotiz (${fmt})`,
       url: `/tasks/${taskId}`,
       taskId,
