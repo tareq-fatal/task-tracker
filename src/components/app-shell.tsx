@@ -30,6 +30,8 @@ import {
   Sparkles,
   Activity,
   Repeat,
+  Clock,
+  Timer,
   Settings,
   LogOut,
   Plus,
@@ -46,6 +48,7 @@ import { NotificationBell } from "@/components/notification-bell";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { GlobalSearch } from "@/components/global-search";
+import { RunningTimer } from "@/components/running-timer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { TooltipHelp } from "@/components/ui/tooltip";
@@ -71,6 +74,7 @@ const MAIN: NavItem[] = [
   { href: "/list", label: "nav.list", icon: Table2, tip: "tooltip.list" },
   { href: "/views", label: "nav.views", icon: CalendarDays, tip: "tooltip.views" },
   { href: "/gantt", label: "nav.gantt", icon: GanttChartSquare },
+  { href: "/time", label: "nav.time", icon: Clock },
   { href: "/roadmap", label: "nav.roadmap", icon: Map, tip: "tooltip.roadmap" },
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
 ];
@@ -83,6 +87,7 @@ const ADMIN: NavItem[] = [
   { href: "/sprints", label: "nav.sprints", icon: Rocket, tip: "tooltip.sprints" },
   { href: "/reports", label: "nav.reports", icon: BarChart3, tip: "tooltip.reports" },
   { href: "/reports/insights", label: "nav.insights", icon: Sparkles },
+  { href: "/reports/time", label: "nav.timeReports", icon: Timer },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
   { href: "/admin/webhooks", label: "nav.webhooks", icon: Webhook },
@@ -303,6 +308,7 @@ export function AppShell({
 
             <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
               <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
+              <RunningTimer />
               <TooltipHelp textKey="tooltip.new_task">
                 <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
                   <Link href="/tasks/new">

@@ -141,6 +141,7 @@ model User {
   notifyPrefs       NotificationPreference[]
   notifyDevices     NotificationDevice[]
   voiceNotes        VoiceNote[]
+  timeEntries       TaskTimeEntry[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -461,6 +462,7 @@ model Task {
   linksFrom   TaskLink[]       @relation("LinksFrom")
   linksTo     TaskLink[]       @relation("LinksTo")
   activity    ActivityLog[]
+  timeEntries TaskTimeEntry[]
 
   @@index([status])
   @@index([assignedToUserId])
@@ -573,6 +575,26 @@ model ExportJob {
   @@index([tenantId])
   @@index([status])
   @@index([userId])
+}
+
+model TaskTimeEntry {
+  id        String    @id @default(cuid())
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime? // null = running
+  minutes   Int       @default(0) // computed on stop / set manually
+  note      String?
+  billable  Boolean   @default(true) // invoiceable time (toggle per entry)
+  source    String    @default("timer") // timer | manual | pomodoro
+  createdAt DateTime  @default(now())
+
+  @@index([taskId])
+  @@index([userId, endedAt])
+  @@index([tenantId])
 }
 
 model ActivityLog {

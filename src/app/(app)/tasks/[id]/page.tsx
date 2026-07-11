@@ -38,7 +38,8 @@ import { DeleteTaskButton } from "@/components/delete-task-button";
 import { ChangeCreator } from "@/components/change-creator";
 import { ProgressControl } from "@/components/progress-control";
 import { SubtaskList } from "@/components/subtask-list";
-import { TimerControl } from "@/components/timer-control";
+import { TimeTracking } from "@/components/time-tracking";
+import { totalMinutes } from "@/lib/time-tracking";
 import { TaskLinks } from "@/components/task-links";
 import { ActivityFeed } from "@/components/activity-feed";
 import { TaskCustomFields } from "@/components/task-custom-fields";
@@ -106,6 +107,11 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "desc" },
         take: 50,
       },
+      timeEntries: {
+        include: { user: { select: { name: true } } },
+        orderBy: { startedAt: "desc" },
+        take: 50,
+      },
     },
   });
 
@@ -119,6 +125,12 @@ export default async function TaskDetailPage({
   // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
   const canEditContent = canEditTaskContent(user, task);
   const overdue = isOverdue(task.dueDate, task.status as any);
+  const timeTotal = totalMinutes(task.timeEntries, new Date());
+  const running = await prisma.taskTimeEntry.findFirst({
+    where: { userId: user.id, endedAt: null },
+    select: { taskId: true },
+  });
+  const runningOnThisTask = running?.taskId === task.id;
 
   // #13 — co-assignees are everyone assigned except the Hauptkopf (primary)
   const coAssignees = task.assignees
@@ -488,15 +500,30 @@ export default async function TaskDetailPage({
         );
       })()}
 
-      {/* Timer */}
-      <div className="mb-6">
-        <TimerControl
-          taskId={task.id}
-          spentHours={task.spentHours}
-          estimatedHours={task.estimatedHours}
-          timerStartedAt={task.timerStartedAt}
-        />
-      </div>
+      {/* Time tracking */}
+      <Card className="mb-6">
+        <CardContent className="p-5">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            {t["time.title"]}
+          </h2>
+          <TimeTracking
+            taskId={task.id}
+            taskTitle={task.title}
+            runningOnThisTask={runningOnThisTask}
+            totalMinutes={timeTotal}
+            entries={task.timeEntries.map((e) => ({
+              id: e.id,
+              userName: e.user.name,
+              minutes: e.minutes,
+              startedAt: e.startedAt.toISOString(),
+              endedAt: e.endedAt?.toISOString() ?? null,
+              note: e.note,
+              billable: e.billable,
+              source: e.source,
+            }))}
+          />
+        </CardContent>
+      </Card>
 
       {/* Progress + Subtasks + Links — content, so creator/admin only (#36) */}
       {canEditContent && (
