@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { sprintBurndown, velocity, averageVelocity, type BurndownPoint } from "@/lib/sprints";
+import { trackServerEvent, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 export type SprintState = { ok?: boolean; error?: string };
 
@@ -187,6 +188,7 @@ export async function setSprintStatusAction(
       where: { sprintId, status: { notIn: ["Done", "Archived"] } },
       data: { sprintId: null },
     });
+    trackServerEvent(ANALYTICS_EVENTS.SPRINT_CLOSED, { projectId: sprint.projectId });
   }
   revalidatePath("/sprints");
   return { ok: true };

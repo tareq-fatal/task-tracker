@@ -29,6 +29,7 @@ import {
   wouldCreateDependencyCycle,
   type DirectedLink,
 } from "@/lib/task-links";
+import { trackServerEvent, ANALYTICS_EVENTS } from "@/lib/analytics";
 import {
   presetToRule,
   nextOccurrence,
@@ -315,6 +316,7 @@ export async function createTaskAction(
 
   await logActivity(task.id, user.id, "created");
   await applyAutomations(tenant.id, task.id, { type: "created", projectId: task.projectId });
+  trackServerEvent(ANALYTICS_EVENTS.TASK_CREATED, { priority: task.priority, type: task.type });
 
   // Notify every assignee (except the creator) of the new task.
   const notifyIds = [assignee, ...extraAssignees].filter(
@@ -535,6 +537,7 @@ export async function updateTaskStatusAction(
   await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
+  if (becameDone) trackServerEvent(ANALYTICS_EVENTS.TASK_COMPLETED, { priority: existing.priority });
   revalidateTaskViews(taskId);
   return { ok: true };
 }

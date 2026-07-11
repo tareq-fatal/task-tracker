@@ -1,0 +1,79 @@
+# =============================================================================
+# Umami — self-hosted, privacy-friendly analytics for Task Tracker.
+#
+# GDPR-friendly by design: no cookies, no cross-site tracking, no personal
+# data collected. That means NO cookie-consent banner is required for the
+# page-view / custom-event tracking this stack enables.
+#
+# This is a MERGE FRAGMENT, same pattern as docker-compose.task-tracker.yml.
+# Copy the `umami` + `umami-db` services into:
+#     /home/marisight/marisight/infra/prod/docker-compose.prod.yml
+#
+# Or run it standalone from this file on the VPS:
+#     docker compose -f docker-compose.umami.yml --env-file .env.umami up -d
+#
+# >>> CONFIRM THE PLACEHOLDERS MARKED `# CONFIRM:` AGAINST THE EXISTING STACK <<<
+#   - the external network Caddy lives on (so Caddy can reach :3000)
+# =============================================================================
+
+services:
+  umami-db:
+    image: postgres:16-alpine
+    container_name: umami-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env.umami}
+    volumes:
+      - umami_db_data:/var/lib/postgresql/data
+    networks:
+      - umami-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    container_name: umami
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in .env.umami}@umami-db:5432/umami
+      # Signs Umami's own session cookies (admin dashboard login only — not
+      # used for visitor tracking). Generate with: openssl rand -hex 32
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in .env.umami}
+      # Umami never sets tracking cookies and only stores hashed/salted
+      # visitor identifiers, so no consent banner is needed regardless of
+      # this setting — it's an extra hardening knob, not what makes it legal.
+      TRACKER_SCRIPT_NAME: script.js
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    networks:
+      - proxy # CONFIRM: the network Caddy uses to reach upstreams
+      - umami-internal
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/heartbeat').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  umami_db_data:
+    name: umami_db_data
+
+networks:
+  proxy:
+    external: true
+    name: coastshield_proxy # CONFIRM
+  umami-internal:
+    name: umami_internal
