@@ -591,6 +591,39 @@ export async function setTaskDueDateAction(
   return { ok: true };
 }
 
+/**
+ * Used by the Gantt view (drag-to-move / drag-to-resize a bar). Sets both the
+ * planned `startDate` and `dueDate` from yyyy-mm-dd strings. Rejects an inverted
+ * range so a resize can never push the end before the start.
+ */
+export async function setTaskScheduleAction(
+  taskId: string,
+  startStr: string,
+  endStr: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { user, tenant } = await requireTenant();
+  await assertCanEditContent(taskId, user, tenant.id); // #36 dates = content
+  const startDate = new Date(startStr + "T00:00:00Z");
+  const dueDate = new Date(endStr + "T00:00:00Z");
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(dueDate.getTime())) {
+    return { ok: false, error: "INVALID" };
+  }
+  if (dueDate.getTime() < startDate.getTime()) {
+    return { ok: false, error: "INVALID_RANGE" };
+  }
+  await prisma.task.update({ where: { id: taskId }, data: { startDate, dueDate } });
+  await logActivity(
+    taskId,
+    user.id,
+    "scheduled",
+    `Zeitplan: ${startStr} → ${endStr}`
+  );
+  revalidateTaskViews(taskId);
+  revalidatePath("/gantt");
+  revalidatePath("/views");
+  return { ok: true };
+}
+
 /** Used by the Kanban board drag&drop. */
 export async function updateTaskStatusAction(
   taskId: string,

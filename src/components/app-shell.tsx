@@ -21,6 +21,7 @@ import {
   Zap,
   FileStack,
   Map,
+  GanttChartSquare,
   Target,
   Table2,
   Palette,
@@ -68,6 +69,7 @@ const MAIN: NavItem[] = [
   { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true, tip: "tooltip.focus" },
   { href: "/list", label: "nav.list", icon: Table2, tip: "tooltip.list" },
   { href: "/views", label: "nav.views", icon: CalendarDays, tip: "tooltip.views" },
+  { href: "/gantt", label: "nav.gantt", icon: GanttChartSquare },
   { href: "/roadmap", label: "nav.roadmap", icon: Map, tip: "tooltip.roadmap" },
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
 ];
