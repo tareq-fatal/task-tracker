@@ -39,3 +39,4 @@ Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root 
 | 23 | `feat/bulk-actions` | ⏸️ deferred | Echter Integrations-Konflikt: task-table.tsx/list refaktoriert inkompatibel ggü. custom-fields (Selection-Modell + Filter-UI). Braucht manuelle Integration, nicht gebotcht. |
 | 24 | `feat/voice-notes` | ✅ merged | Migration; .env+page.tsx Union-Konflikt gelöst; Gate grün |
 | 26 | `feat/time-tracking-reports` | ✅ merged | 2 Migr.; schema(ExportJob-Brace-Fix)+app-shell gelöst; Gate grün |
+| 27 | `fix/notifications-trilingual` | ✅ merged | NEU (Tarek-Auftrag): Notif-Titel trilingual in Empfänger-Locale, keine Migration; Gate grün |
