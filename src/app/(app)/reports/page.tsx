@@ -14,13 +14,14 @@ import {
   currentStreak,
 } from "@/lib/infographics";
 import { ReportsDashboard } from "@/components/reports-dashboard";
+import { ExportDialog } from "@/components/export-dialog";
 
 export default async function ReportsPage() {
   const { user, tenant } = await requireTenant();
   if (!isAdminRole(user.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
 
-  const [rows, users] = await Promise.all([
+  const [rows, users, projects, sprints] = await Promise.all([
     prisma.task.findMany({
       where: { tenantId: tenant.id },
       select: {
@@ -33,7 +34,13 @@ export default async function ReportsPage() {
         project: { select: { name: true } },
       },
     }),
-    prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    prisma.sprint.findMany({
+      where: { tenantId: tenant.id },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const now = new Date();
@@ -88,6 +95,14 @@ export default async function ReportsPage() {
 
   return (
     <ReportsDashboard
+      actions={
+        <ExportDialog
+          hasLogo={Boolean(tenant.logo)}
+          projects={projects}
+          users={users}
+          sprints={sprints}
+        />
+      }
       labels={{
         title: t["reports.title"],
         total: t["reports.kpi.total"],

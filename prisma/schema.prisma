@@ -35,6 +35,7 @@ model Tenant {
   authProviders TenantAuthProvider[]
   plannerSyncs  PlannerSync[]
   sprints       Sprint[]
+  webhooks      Webhook[]
 }
 
 model Sprint {
@@ -542,6 +543,38 @@ model DbAuditLog {
   @@index([createdAt])
 }
 
+// Async export job. Small exports (≤ EXPORT_SYNC_LIMIT tasks) are generated
+// inline in the request; larger ones are queued here and produced by the
+// /api/cron/exports runner, which emails the requester an unguessable download
+// link (see src/lib/export-runner.ts). Plain string ids (no relations) mirror
+// DbAuditLog — the row outlives the task/sprint it was generated from.
+model ExportJob {
+  id          String    @id @default(cuid())
+  token       String    @unique // unguessable download token used in the emailed link
+  tenantId    String
+  userId      String
+  userName    String
+  userEmail   String? // recipient for the "ready" email (null → no email)
+  locale      String    @default("ar") // ar | en | de — controls file language
+  kind        String // tasks-excel | sprint-pdf | activity-pdf | kanban-pdf
+  format      String // xlsx | pdf
+  params      String    @default("{}") // JSON: filters / selection / includeLogo
+  status      String    @default("pending") // pending | processing | done | error
+  taskCount   Int       @default(0)
+  fileName    String? // human filename, e.g. "tasks-objektus-2026-07-05.xlsx"
+  filePath    String? // public path, e.g. /uploads/exports/<id>.xlsx
+  sizeBytes   Int?
+  error       String?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([userId])
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   taskId    String
@@ -615,4 +648,43 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Outbound webhooks: admins register a URL per event; on each matching event we
+// POST a signed JSON payload with retries. Every attempt is recorded in
+// WebhookDelivery for debugging (the event log).
+model Webhook {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  secret    String // HMAC-SHA256 signing secret (sent as X-Webhook-Signature)
+  events    String // comma-separated event types (task.created, task.completed, sprint.closed, comment.added)
+  preset    String   @default("generic") // generic | slack | teams | discord
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+}
+
+// One row per delivery attempt-set (a single event → single webhook). `attempts`
+// counts how many HTTP tries were made; the final outcome is in status/statusCode.
+model WebhookDelivery {
+  id          String    @id @default(cuid())
+  webhookId   String
+  webhook     Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event       String
+  payload     String // the JSON body we sent (pretty-printed for the log)
+  status      String    @default("pending") // pending | success | failed
+  statusCode  Int? // last HTTP status received (null if the request never completed)
+  attempts    Int       @default(0)
+  error       String? // last error/response snippet (truncated)
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime? // when it finally succeeded (or gave up)
+
+  @@index([webhookId])
+  @@index([createdAt])
 }
