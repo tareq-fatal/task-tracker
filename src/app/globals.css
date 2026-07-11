@@ -226,3 +226,28 @@ a[data-kbd-selected] {
 .tt-rise {
   animation: tt-rise 0.28s ease-out both;
 }
+
+/* Material-style tap ripple for notification rows */
+@keyframes notif-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.notif-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  pointer-events: none;
+  animation: notif-ripple 0.5s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-ripple {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -40,6 +40,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { TenantSwitcher } from "@/components/tenant-switcher";
 import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
+import { ScrollProgress } from "@/components/scroll-progress";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen">
+      <ScrollProgress />
       <KeyboardShortcuts isAdmin={isAdmin} />
       {/* Desktop sidebar */}
       <aside
