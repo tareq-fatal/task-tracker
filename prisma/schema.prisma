@@ -385,10 +385,29 @@ model Task {
   // ready-for-golive). Null → derived from status. Independent of `bucket`.
   scrumColumn String?
 
-  // Recurrence (iCal RRULE subset, e.g. "FREQ=WEEKLY;BYDAY=MO,WE"). When set, a
-  // cron spawns the next instance at recurringNextAt.
-  recurringRule  String?
+  // Recurrence. A task with a rule OR a cron expression acts as a *series
+  // template*: the recurring-runner spawns a fresh instance each time
+  // recurringNextAt comes due, copying the template's content (title,
+  // description, priority, assignees, project, team, …). Spawned instances
+  // carry no recurrence of their own, so they never recurse.
+  //
+  //  - recurringRule   iCal-RRULE subset, e.g. "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE"
+  //  - recurringCron   5-field cron ("min hour dom mon dow"), evaluated in
+  //                    recurringTz. When set, it takes precedence over the rule
+  //                    and enables arbitrary schedules ("0 9 * * 1-5").
+  //  - recurringTz     IANA zone the cron/preset is anchored to (default UTC),
+  //                    so "every day at 09:00" stays 09:00 across DST.
+  //  - end conditions  recurringUntil (stop after a date) and recurringEndCount
+  //                    (stop after N spawns); recurringCount tracks spawns so far.
+  //  - recurringPaused temporarily suspends spawning without losing the series.
+  recurringRule   String?
+  recurringCron   String?
+  recurringTz     String?
   recurringNextAt DateTime?
+  recurringUntil    DateTime?
+  recurringEndCount Int?
+  recurringCount    Int       @default(0)
+  recurringPaused   Boolean   @default(false)
 
   // Progress (0-100). Auto-derived from subtasks when any exist, else manual.
   progress Int @default(0)
@@ -446,6 +465,7 @@ model Task {
   @@index([parentId])
   @@index([tenantId])
   @@index([workflowColumnId])
+  @@index([recurringNextAt])
 }
 
 // #13 — every user assigned to a task (co-workers). The "Hauptkopf" (primary) is

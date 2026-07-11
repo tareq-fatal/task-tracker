@@ -31,10 +31,13 @@ import {
 } from "@/lib/task-links";
 import { trackServerEvent, ANALYTICS_EVENTS } from "@/lib/analytics";
 import {
-  presetToRule,
+  buildRule,
   nextOccurrence,
+  WEEKDAYS,
   type RecurrencePreset,
 } from "@/lib/recurrence";
+import { isValidCron, nextCronOccurrence } from "@/lib/cron";
+import { DEFAULT_RECUR_TZ } from "@/lib/recurring-config";
 
 /** Notify a task's watchers (assignee + creator), skipping the actor. */
 async function notifyWatchers(
@@ -153,18 +156,97 @@ async function isTaskBlocked(taskId: string): Promise<boolean> {
   return isBlockedByLinks(links);
 }
 
-/** Resolve the recurrence rule + next spawn time from a form's preset field. */
+export type RecurrenceFields = {
+  recurringRule: string | null;
+  recurringCron: string | null;
+  recurringTz: string | null;
+  recurringNextAt: Date | null;
+  recurringUntil: Date | null;
+  recurringEndCount: number | null;
+};
+
+const NO_RECURRENCE: RecurrenceFields = {
+  recurringRule: null,
+  recurringCron: null,
+  recurringTz: null,
+  recurringNextAt: null,
+  recurringUntil: null,
+  recurringEndCount: null,
+};
+
+/**
+ * Resolve the full recurrence configuration from the task form:
+ *   recurrence    none | daily | weekly | monthly | custom
+ *   recurInterval every N days/weeks/months (presets)
+ *   recurWeekday  MO,TU,… checkboxes (weekly)
+ *   recurCron     5-field cron expression (custom)
+ *   recurTz       IANA zone anchoring cron/preset
+ *   recurEndType  never | count | until
+ *   recurEndCount stop after N spawns
+ *   recurUntil    stop after this date (yyyy-MM-dd, inclusive to end of day)
+ *
+ * The first recurringNextAt is the next occurrence after `dueDate` (presets)
+ * or after now (cron). Invalid/empty schedules collapse to "no recurrence".
+ */
 function recurrenceFromForm(
   formData: FormData,
-  dueDate: Date | null
-): { recurringRule: string | null; recurringNextAt: Date | null } {
-  const preset = (formData.get("recurrence")?.toString() ??
-    "none") as RecurrencePreset;
-  const recurringRule = presetToRule(preset);
-  const recurringNextAt = recurringRule
-    ? nextOccurrence(recurringRule, dueDate ?? new Date())
-    : null;
-  return { recurringRule, recurringNextAt };
+  dueDate: Date | null,
+  now: Date = new Date()
+): RecurrenceFields {
+  const preset = (formData.get("recurrence")?.toString() ?? "none") as
+    | RecurrencePreset
+    | "custom";
+  if (preset === "none") return NO_RECURRENCE;
+
+  const tz = (formData.get("recurTz")?.toString() || DEFAULT_RECUR_TZ).trim();
+
+  // End condition (never / after N spawns / until a date).
+  const endType = formData.get("recurEndType")?.toString() ?? "never";
+  let recurringEndCount: number | null = null;
+  let recurringUntil: Date | null = null;
+  if (endType === "count") {
+    const n = parseInt(formData.get("recurEndCount")?.toString() ?? "", 10);
+    recurringEndCount = Number.isFinite(n) && n > 0 ? n : null;
+  } else if (endType === "until") {
+    const raw = formData.get("recurUntil")?.toString();
+    if (raw) {
+      const d = new Date(`${raw}T23:59:59.999Z`);
+      if (!Number.isNaN(d.getTime())) recurringUntil = d;
+    }
+  }
+
+  if (preset === "custom") {
+    const cron = formData.get("recurCron")?.toString().trim() ?? "";
+    if (!cron || !isValidCron(cron)) return NO_RECURRENCE;
+    const recurringNextAt = nextCronOccurrence(cron, now, tz);
+    if (!recurringNextAt) return NO_RECURRENCE;
+    return {
+      recurringRule: null,
+      recurringCron: cron,
+      recurringTz: tz,
+      recurringNextAt,
+      recurringUntil,
+      recurringEndCount,
+    };
+  }
+
+  // Preset (daily / weekly / monthly) with interval + optional weekdays.
+  const interval = parseInt(formData.get("recurInterval")?.toString() ?? "1", 10);
+  const byday = formData
+    .getAll("recurWeekday")
+    .map((v) => v.toString())
+    .filter((v) => (WEEKDAYS as readonly string[]).includes(v));
+  const recurringRule = buildRule(preset, interval, byday);
+  if (!recurringRule) return NO_RECURRENCE;
+  const recurringNextAt = nextOccurrence(recurringRule, dueDate ?? now);
+  return {
+    recurringRule,
+    recurringCron: null,
+    recurringTz: tz,
+    recurringNextAt,
+    recurringUntil,
+    recurringEndCount,
+  };
 }
 
 /** Resolve hierarchy fields from the form, validating parent type + no cycles. */
@@ -284,7 +366,7 @@ export async function createTaskAction(
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
   // #13 — admins may add co-assignees; the primary above is the Hauptkopf.
   const extraAssignees = isAdminRole(user.role) ? additionalAssigneeIds(formData) : [];
-  const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
+  const recur = recurrenceFromForm(formData, d.dueDate);
   const hier = await hierarchyFromForm(formData, tenant.id);
 
   const task = await prisma.task.create({
@@ -302,8 +384,7 @@ export async function createTaskAction(
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
-      recurringRule,
-      recurringNextAt,
+      ...recur,
       progress: d.status === "Done" ? 100 : 0,
       completedAt: d.status === "Done" ? new Date() : null,
       createdByUserId: user.id,
@@ -367,7 +448,13 @@ export async function updateTaskAction(
   // Whoever reaches here (creator or admin) may set the primary + co-assignees (#13).
   const assignee = d.assignedToUserId || null;
   const extraAssignees = additionalAssigneeIds(formData);
-  const { recurringRule, recurringNextAt } = recurrenceFromForm(formData, d.dueDate);
+  const recur = recurrenceFromForm(formData, d.dueDate);
+  // Reset the spawn counter + pause flag when the schedule itself changes (a new
+  // series starts fresh); keep them when the schedule is unchanged so an edit to
+  // title/desc doesn't quietly restart a running series.
+  const scheduleChanged =
+    (existing.recurringRule ?? null) !== recur.recurringRule ||
+    (existing.recurringCron ?? null) !== recur.recurringCron;
   const hier = await hierarchyFromForm(formData, tenant.id, taskId);
 
   await prisma.task.update({
@@ -386,8 +473,8 @@ export async function updateTaskAction(
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
-      recurringRule,
-      recurringNextAt,
+      ...recur,
+      ...(scheduleChanged ? { recurringCount: 0, recurringPaused: false } : {}),
       ...(becameDone ? { completedAt: new Date() } : {}),
       ...(leftDone ? { completedAt: null } : {}),
       // Mark fully complete when manually set to Done (only when no subtasks drive it)

@@ -4,7 +4,34 @@ import {
   presetToRule,
   describeRule,
   nextOccurrence,
+  buildRule,
+  ruleWeekdays,
+  ruleInterval,
 } from "./recurrence";
+
+describe("buildRule / ruleWeekdays / ruleInterval", () => {
+  it("builds presets with interval and weekdays", () => {
+    expect(buildRule("none")).toBeNull();
+    expect(buildRule("daily")).toBe("FREQ=DAILY");
+    expect(buildRule("daily", 3)).toBe("FREQ=DAILY;INTERVAL=3");
+    expect(buildRule("weekly", 2, ["MO", "WE"])).toBe("FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE");
+    // weekdays only apply to weekly and are normalised to canonical order
+    expect(buildRule("weekly", 1, ["FR", "MO"])).toBe("FREQ=WEEKLY;BYDAY=MO,FR");
+    expect(buildRule("monthly", 1, ["MO"])).toBe("FREQ=MONTHLY");
+  });
+
+  it("clamps interval to >= 1", () => {
+    expect(buildRule("daily", 0)).toBe("FREQ=DAILY");
+    expect(buildRule("daily", -5)).toBe("FREQ=DAILY");
+  });
+
+  it("reads weekdays and interval back out of a rule", () => {
+    expect(ruleWeekdays("FREQ=WEEKLY;BYDAY=WE,MO")).toEqual(["MO", "WE"]);
+    expect(ruleWeekdays("FREQ=DAILY")).toEqual([]);
+    expect(ruleInterval("FREQ=WEEKLY;INTERVAL=4")).toBe(4);
+    expect(ruleInterval(null)).toBe(1);
+  });
+});
 
 describe("parseRule / presetToRule / describeRule", () => {
   it("maps presets to rules and back", () => {

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { RecurrenceField } from "@/components/recurrence-field";
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_TYPES } from "@/lib/enums";
 import type { TaskFormState } from "@/actions/tasks";
 import type { TKey } from "@/lib/i18n";
@@ -24,15 +25,20 @@ export type TaskDefaults = {
   dueDate?: string | null; // yyyy-MM-dd
   estimatedHours?: string; // shorthand e.g. "4h" / "1d"
   spentHours?: string;
-  recurrence?: string; // none | daily | weekly | monthly
+  recurrence?: string; // none | daily | weekly | monthly | custom
+  recurInterval?: string; // every N periods (presets)
+  recurWeekdays?: string[]; // MO,TU,… (weekly)
+  recurCron?: string; // 5-field cron (custom)
+  recurTz?: string; // IANA zone
+  recurEndType?: string; // never | count | until
+  recurEndCount?: string; // stop after N spawns
+  recurUntil?: string; // yyyy-MM-dd
   type?: string; // Epic | Story | Task | Subtask | Bug
   storyPoints?: string;
   parentId?: string | null;
 };
 
 type ParentOption = { id: string; title: string };
-
-const RECURRENCE_PRESETS = ["none", "daily", "weekly", "monthly"] as const;
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
@@ -247,21 +253,7 @@ export function TaskForm({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="recurrence">{t("task.recurrence")}</Label>
-          <select
-            id="recurrence"
-            name="recurrence"
-            defaultValue={d.recurrence ?? "none"}
-            className={selectClass}
-          >
-            {RECURRENCE_PRESETS.map((r) => (
-              <option key={r} value={r}>
-                {t(`recurrence.${r}` as TKey)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <RecurrenceField d={d} />
 
         <div className="space-y-2">
           <Label htmlFor="estimatedHours">{t("task.planned")}</Label>
