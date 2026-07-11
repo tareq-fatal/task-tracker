@@ -48,7 +48,7 @@ export async function escalateTaskAction(taskId: string, escalate: boolean): Pro
     await notifyMany(await assigneeIds(taskId), {
       tenantId: tenant.id,
       type: "status",
-      title: "Aufgabe eskaliert",
+      titleKey: "notif.t.escalated",
       body: task.title,
       url: `/tasks/${taskId}`,
       taskId,
@@ -94,7 +94,7 @@ export async function coachingNoteAction(taskId: string, note: string): Promise<
   await notifyMany(await assigneeIds(taskId), {
     tenantId: tenant.id,
     type: "comment",
-    title: "Coaching-Hinweis",
+    titleKey: "notif.t.coaching",
     body: `${task.title}: ${clean.slice(0, 120)}`,
     url: `/tasks/${taskId}`,
     taskId,
