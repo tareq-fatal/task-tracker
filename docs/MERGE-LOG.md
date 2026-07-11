@@ -34,3 +34,4 @@ Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root 
 | 16 | `claude/apk-notif-scroll-polish` (PR#3) | ✅ merged | One-UI Notif-Panel + Scroll-Progress; Gate grün, gepusht, 307 |
 | 18 | `feat/global-search` | ✅ merged | app-shell-Konflikt gelöst + fuse.js installiert; Gate grün, gepusht |
 | 20 | `feat/recurring-tasks` | ✅ merged | Migration; prisma generate + Gate grün, gepusht |
+| 21 | `feat/gantt-view` | ✅ merged | Migration(startDate); app-shell-Nav-Konflikt gelöst; Gate grün |

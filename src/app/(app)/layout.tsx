@@ -6,7 +6,7 @@ import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
-import { WelcomeTour } from "@/components/welcome-tour";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { UpdatePrompt } from "@/components/update-prompt";
 import { SentryUserContext } from "@/components/sentry-user-context";
 import { resolveBranding, brandStyle } from "@/lib/branding";
@@ -43,7 +43,12 @@ export default async function AppLayout({
         >
           {children}
         </AppShell>
-        <WelcomeTour run={!user.hasSeenTour} role={user.role} />
+        <OnboardingFlow
+          name={user.name}
+          role={user.role}
+          needsOnboarding={!user.onboardedAt}
+          needsTour={!!user.onboardedAt && !user.hasSeenTour}
+        />
         <UpdatePrompt />
       </ToastProvider>
     </I18nProvider>

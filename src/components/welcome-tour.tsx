@@ -14,9 +14,13 @@ import type { TKey } from "@/lib/i18n";
 export function WelcomeTour({
   run: initialRun,
   role,
+  onFinish,
 }: {
   run: boolean;
   role: string;
+  /** Called on finish/skip. When omitted, falls back to marking the tour seen
+   *  directly (standalone use). The onboarding orchestrator passes its own. */
+  onFinish?: () => void;
 }) {
   const { t } = useT();
   const [mounted, setMounted] = useState(false);
@@ -24,7 +28,10 @@ export function WelcomeTour({
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
-    if (!mounted || !initialRun) return;
+    if (!mounted || !initialRun) {
+      setRun(false);
+      return;
+    }
     // Give the layout a moment so target elements exist
     const id = setTimeout(() => setRun(true), 700);
     return () => clearTimeout(id);
@@ -73,7 +80,8 @@ export function WelcomeTour({
     const { status } = data;
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRun(false);
-      completeTourAction();
+      if (onFinish) onFinish();
+      else completeTourAction();
     }
   }
 

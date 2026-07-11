@@ -111,6 +111,7 @@ model User {
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
   hasSeenTour  Boolean  @default(false)
+  onboardedAt  DateTime? // first-time onboarding done/skipped (welcome modal + optional sample project). null = not yet onboarded
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
