@@ -40,3 +40,20 @@ Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root 
 | 24 | `feat/voice-notes` | ✅ merged | Migration; .env+page.tsx Union-Konflikt gelöst; Gate grün |
 | 26 | `feat/time-tracking-reports` | ✅ merged | 2 Migr.; schema(ExportJob-Brace-Fix)+app-shell gelöst; Gate grün |
 | 27 | `fix/notifications-trilingual` | ✅ merged | NEU (Tarek-Auftrag): Notif-Titel trilingual in Empfänger-Locale, keine Migration; Gate grün |
+
+## Zurückgestellt (dokumentiert, NICHT gemergt) — brauchen dedizierten Rebase
+
+Diese Branches basieren auf altem `main@1080704` (b24–b81 zurück) und/oder refaktorieren Kern-Dateien inkompatibel zu bereits gemergten Features. Ein Batch-Merge würde riskieren, neueren Code zu reverten oder Kern-UI zu brechen. Empfehlung: einzeln auf aktuellen main rebasen, Konflikte mit Feature-Kontext lösen, dann mergen.
+
+| Branch | Grund |
+|--------|-------|
+| `feat/bulk-actions` | task-table/list inkompatibel zu custom-fields (Selection-Modell + Filter-UI) |
+| `feat/realtime-updates` | 5-Datei-Konflikt Kern (tasks.ts, layout, app-shell, kanban-board, i18n) |
+| `security/audit-hardening` | stale base (b24); add/add rate-limit.ts (main hat schon rate-limit); middleware/next.config-Konflikte |
+| `i18n/complete-rollout` | stale base (b24); i18n.ts auf main stark verändert (Feature-Keys + notif.t.*) → massive Konflikte |
+| `polish/theme-perfection` | 117 Dateien cross-cutting; kollidiert mit fast allen gemergten Features |
+| `feat/rich-text-editor` | stale base (b23); Editor-Lifecycle-Konflikte mit comment/task-form |
+| `claude/notif-realtime-counter` (PR#2) | stale base (b18/b42); vermutlich superseded durch Bell-Rework (#10 + apk-notif) |
+| `feat/notifications-upgrade-v2` | Bell-Panel-Rework großteils schon in main (markAll/per-item/no-auto-mark) |
+| `feat/v11-time-tracking` | superseded durch feat/time-tracking-reports (gemergt) |
+| `claude/ci-sandbox-deploy` (PR#1) | SSH-Auto-Deploy-Workflow — erst CI-Trigger reviewen, bevor Auto-Deploy auf Prod aktiv wird |
