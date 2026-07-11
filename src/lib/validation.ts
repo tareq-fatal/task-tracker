@@ -118,3 +118,16 @@ export const ALLOWED_MIME = [
   "text/csv",
   "application/zip",
 ];
+
+// Voice notes (MediaRecorder) — max 2 minutes; container depends on browser
+// (Chrome/Firefox → webm/ogg opus, Safari → mp4/aac).
+export const MAX_VOICE_SECONDS = 120;
+export const ALLOWED_AUDIO_MIME = [
+  "audio/webm",
+  "audio/ogg",
+  "audio/mp4",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/aac",
+  "audio/x-m4a",
+];

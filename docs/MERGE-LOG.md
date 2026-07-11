@@ -35,3 +35,5 @@ Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root 
 | 18 | `feat/global-search` | ✅ merged | app-shell-Konflikt gelöst + fuse.js installiert; Gate grün, gepusht |
 | 20 | `feat/recurring-tasks` | ✅ merged | Migration; prisma generate + Gate grün, gepusht |
 | 21 | `feat/gantt-view` | ✅ merged | Migration(startDate); app-shell-Nav-Konflikt gelöst; Gate grün |
+| 22 | `feat/onboarding-flow` | ✅ merged | Migration; restart-tour-Konflikt gelöst (Onboarding-Reset+Tooltip); Gate grün |
+| 23 | `feat/bulk-actions` | ⏸️ deferred | Echter Integrations-Konflikt: task-table.tsx/list refaktoriert inkompatibel ggü. custom-fields (Selection-Modell + Filter-UI). Braucht manuelle Integration, nicht gebotcht. |
