@@ -4,10 +4,15 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
+import { isInlineViewable } from "@/lib/attachment-view";
 
-// Serve an attachment as a forced DOWNLOAD (never inline) — Content-Disposition
-// attachment + octet-stream. Access-checked: same tenant + can view the task.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+// Serve an attachment. Access-checked: same tenant + can view the task.
+// `?inline=1` renders safe types (images, PDF) IN PLACE — the browser and the
+// Capacitor WebView can display them — instead of forcing a download (which the
+// Android WebView silently drops). Everything else stays a hardened
+// octet-stream download. `nosniff` is always set so a declared type can't be
+// re-sniffed into something executable.
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const { user, tenant } = await requireTenant();
   const att = await prisma.taskAttachment.findUnique({
     where: { id: params.id },
@@ -22,12 +27,16 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const data = await readFile(abs).catch(() => null);
   if (!data) return new NextResponse("Not found", { status: 404 });
 
+  const inline =
+    new URL(req.url).searchParams.get("inline") === "1" && isInlineViewable(att.mimeType);
+
   return new NextResponse(data, {
     headers: {
-      "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(att.fileName)}`,
+      "Content-Type": inline ? att.mimeType : "application/octet-stream",
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(att.fileName)}`,
       "Content-Length": String(data.length),
       "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

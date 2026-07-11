@@ -26,6 +26,7 @@ import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges"
 import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
+import { isImageMime, isInlineViewable } from "@/lib/attachment-view";
 import { DeleteTaskButton } from "@/components/delete-task-button";
 import { ChangeCreator } from "@/components/change-creator";
 import { ProgressControl } from "@/components/progress-control";
@@ -470,24 +471,39 @@ export default async function TaskDetailPage({
         </div>
         {task.attachments.length > 0 && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {task.attachments.map((a) => (
-              <a
-                key={a.id}
-                href={`/download/attachment/${a.id}`}
-                download={a.fileName}
-                className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
-              >
-                {a.mimeType.startsWith("image/") ? (
-                  <ImageIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                ) : (
-                  <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-                )}
-                <span className="flex-1 truncate">{a.fileName}</span>
-                <span className="text-xs text-muted-foreground">
-                  {formatBytes(a.sizeBytes)}
-                </span>
-              </a>
-            ))}
+            {task.attachments.map((a) => {
+              const inline = isInlineViewable(a.mimeType);
+              const image = isImageMime(a.mimeType);
+              const href = `/download/attachment/${a.id}${inline ? "?inline=1" : ""}`;
+              return (
+                <a
+                  key={a.id}
+                  href={href}
+                  {...(inline
+                    ? { target: "_blank", rel: "noopener noreferrer" }
+                    : { download: a.fileName })}
+                  className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
+                >
+                  {image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/download/attachment/${a.id}?inline=1`}
+                      alt={a.fileName}
+                      loading="lazy"
+                      className="h-11 w-11 shrink-0 rounded object-cover ring-1 ring-black/5"
+                    />
+                  ) : a.mimeType.startsWith("image/") ? (
+                    <ImageIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  ) : (
+                    <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  )}
+                  <span className="flex-1 truncate">{a.fileName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatBytes(a.sizeBytes)}
+                  </span>
+                </a>
+              );
+            })}
           </div>
         )}
       </section>

@@ -10,6 +10,7 @@ const ERRORS: Record<string, string> = {
   NO_FILE: "Keine Datei ausgewählt · No file selected",
   TOO_LARGE: "Datei zu groß (max 10 MB) · File too large (max 10 MB)",
   BAD_TYPE: "Bilder, PDF & Office · Images, PDF & Office",
+  WRITE_FAILED: "Upload fehlgeschlagen (Speicher) · Upload failed (storage)",
 };
 
 export function AttachmentUpload({ taskId }: { taskId: string }) {
