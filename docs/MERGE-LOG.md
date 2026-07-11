@@ -30,3 +30,5 @@ docs/v3-refresh · docs/openapi-spec · fix/readonly-hints-subtle · feat/keyboa
 - `feat/realtime-updates` — tasks.ts, (app)/layout.tsx, app-shell.tsx, kanban-board.tsx, i18n.ts (5 Kern-Dateien, substanziell)
 
 Hinweis: Prod hat **keinen** `/api/health`-Endpoint (404) → Liveness via Root (307 = up).
+| 15 | `claude/attachment-fix` (PR#4) | ✅ merged | Bugfix inline-view/storage; Gate grün, gepusht, 307 |
+| 16 | `claude/apk-notif-scroll-polish` (PR#3) | ✅ merged | One-UI Notif-Panel + Scroll-Progress; Gate grün, gepusht, 307 |

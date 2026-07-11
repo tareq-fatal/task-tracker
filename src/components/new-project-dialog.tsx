@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,10 +52,12 @@ export function NewProjectDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="me-1 h-4 w-4" />
-          {t("projects.new")}
-        </Button>
+        <TooltipHelp textKey="tooltip.new_project">
+          <Button>
+            <Plus className="me-1 h-4 w-4" />
+            {t("projects.new")}
+          </Button>
+        </TooltipHelp>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

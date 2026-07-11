@@ -5,16 +5,19 @@ import { useFormState, useFormStatus } from "react-dom";
 import { Send } from "lucide-react";
 import { addCommentAction } from "@/actions/tasks";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="sm" disabled={pending}>
-      <Send className="me-1 h-4 w-4" />
-      {label}
-    </Button>
+    <TooltipHelp textKey="tooltip.comment">
+      <Button type="submit" size="sm" disabled={pending}>
+        <Send className="me-1 h-4 w-4" />
+        {label}
+      </Button>
+    </TooltipHelp>
   );
 }
 

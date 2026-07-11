@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/components/i18n-provider";
@@ -48,10 +49,12 @@ export function NewUserDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="me-1 h-4 w-4" />
-          {t("admin.users.new")}
-        </Button>
+        <TooltipHelp textKey="tooltip.add_user">
+          <Button>
+            <Plus className="me-1 h-4 w-4" />
+            {t("admin.users.new")}
+          </Button>
+        </TooltipHelp>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

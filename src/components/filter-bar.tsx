@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { TooltipHelp } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -325,20 +326,22 @@ export function FilterBar({
         </div>
 
         {/* mobile filter button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-9 md:hidden"
-          onClick={() => setMobileOpen(true)}
-        >
-          <Filter className="me-1 h-4 w-4" />
-          {t("common.filters")}
-          {activeCount > 0 && (
-            <span className="ms-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
-              {activeCount}
-            </span>
-          )}
-        </Button>
+        <TooltipHelp textKey="tooltip.filter">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 md:hidden"
+            onClick={() => setMobileOpen(true)}
+          >
+            <Filter className="me-1 h-4 w-4" />
+            {t("common.filters")}
+            {activeCount > 0 && (
+              <span className="ms-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+                {activeCount}
+              </span>
+            )}
+          </Button>
+        </TooltipHelp>
 
         {/* result counter */}
         <span className="ms-auto whitespace-nowrap text-sm text-muted-foreground">
@@ -346,18 +349,20 @@ export function FilterBar({
         </span>
 
         {activeCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground"
-            onClick={() => {
-              setQ("");
-              router.push(basePath);
-            }}
-          >
-            <X className="me-1 h-4 w-4" />
-            {t("common.clear")}
-          </Button>
+          <TooltipHelp textKey="tooltip.clear_filter">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => {
+                setQ("");
+                router.push(basePath);
+              }}
+            >
+              <X className="me-1 h-4 w-4" />
+              {t("common.clear")}
+            </Button>
+          </TooltipHelp>
         )}
       </div>
 

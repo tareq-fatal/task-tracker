@@ -7,6 +7,7 @@ import { addTemplateAction, deleteTemplateAction, createFromTemplateAction, type
 import { TASK_TYPES, TASK_PRIORITIES } from "@/lib/enums";
 import { useT } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 
 export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
@@ -61,12 +62,16 @@ export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
                     <FileStack className="h-4 w-4 text-indigo-500" />
                     <span className="font-medium">{tpl.name}</span>
                     <span className="text-xs text-muted-foreground">{tpl.title} · {t(`type.${tpl.type}` as never)} · {t(`priority.${tpl.priority}` as never)}{tpl.subtasks.length ? ` · ${tpl.subtasks.length} ☑` : ""}</span>
-                    <Button size="sm" variant="outline" className="ms-auto" disabled={pending} onClick={() => start(async () => { await createFromTemplateAction(tpl.id); })}>
-                      <PlayCircle className="me-1 h-4 w-4" /> {t("tpl.create")}
-                    </Button>
-                    <button disabled={pending} title={t("tpl.delete")} onClick={() => run(() => deleteTemplateAction(tpl.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <Tooltip content={t("tpl.create")}>
+                      <Button size="sm" variant="outline" className="ms-auto" disabled={pending} onClick={() => start(async () => { await createFromTemplateAction(tpl.id); })}>
+                        <PlayCircle className="me-1 h-4 w-4" /> {t("tpl.create")}
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content={t("tpl.delete")}>
+                      <button disabled={pending} onClick={() => run(() => deleteTemplateAction(tpl.id))} className="rounded p-1.5 text-rose-500 hover:bg-rose-50">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </Tooltip>
                   </li>
                 ))}
               </ul>
