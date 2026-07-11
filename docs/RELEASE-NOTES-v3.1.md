@@ -53,10 +53,11 @@ Außerdem: **22 stale Branches gelöscht** (bereits in main enthalten).
 
 ## 📱 APK v3.1
 
-Native-Code ist integriert (Notif-Panel + Scroll PR#3; Camera/NativeInit/Preferences auf `feat/apk-native-polish-v2`). **Der signierte `.apk` konnte in dieser Umgebung nicht gebaut werden** — es fehlen JDK + Android SDK + Gradle. Build auf einer Maschine mit Android-Toolchain:
+Native-Code ist integriert (Notif-Panel + Scroll PR#3; Camera/NativeInit/Preferences auf `feat/apk-native-polish-v2`). **Der signierte `.apk` konnte in dieser Umgebung nicht gebaut werden:** JDK 17 ist vorhanden, aber das **Android SDK fehlt** (`ANDROID_HOME` unset) und das `android/`-Native-Projekt ist noch nicht scaffolded. Build auf einer Maschine mit Android SDK:
 
 ```bash
 npm ci && npm run build
+npx cap add android        # einmalig: Native-Projekt anlegen
 npx cap sync android
 cd android && ./gradlew assembleRelease   # → app/build/outputs/apk/release/
 ```
