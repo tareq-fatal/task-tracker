@@ -42,6 +42,7 @@ import { Logo } from "@/components/logo";
 import { NotificationBell } from "@/components/notification-bell";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
+import { GlobalSearch } from "@/components/global-search";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { TooltipHelp } from "@/components/ui/tooltip";
@@ -295,6 +296,7 @@ export function AppShell({
             )}
 
             <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
+              <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
               <TooltipHelp textKey="tooltip.new_task">
                 <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
                   <Link href="/tasks/new">
