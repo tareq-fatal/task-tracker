@@ -48,6 +48,14 @@ next-pwa generiert `public/sw.js` bei jedem Build neu (content-hashed Assets, `s
 - **Screenshot-Beweis:** [`docs/proof/mandanten-delete-button.png`](./proof/mandanten-delete-button.png) — lokal gegen ein frisches Postgres (v3.1-Build, geseedet) mit BackendAdmin-Login erzeugt. Zeigt `/admin/mandanten` mit **3 roten Löschen-Buttons** (Default, Tarek, Marine) + **1 grauem disabled** (Objektus = eigener Tenant). ⇒ Der Button ist im v3.1-Code **sichtbar & korrekt** — er fehlt auf Prod NUR wegen des fehlenden Deploys.
 - **Bonus-Beweis:** Alle **33 Migrationen** liefen mit `prisma migrate deploy` **fehlerfrei** gegen eine frische DB → die Migrations-Kette ist deploy-ready (kein Drift-Risiko beim Prod-Deploy).
 
+## Nebenbei-Status (die „falls Zeit"-Punkte)
+
+- **global-search-Konflikt** → ✅ bereits gelöst & auf main (heute früher, app-shell + fuse.js).
+- **analytics-Konflikt** → ✅ bereits gelöst & auf main (tasks.ts/sprints.ts/layout Union).
+- **Attachment-Upload-Fix** → ✅ bereits gemergt (`claude/attachment-fix`, PR#4).
+- **realtime-updates-Konflikt** → ⏸️ **bewusst NICHT** nachts erzwungen. 5-Datei-Kernkonflikt (tasks.ts, layout, app-shell, kanban-board, i18n); eine hastige Auflösung könnte das Board für alle User brechen. Braucht dedizierten Rebase mit Feature-Kontext — kein guter Nacht-Alleingang.
+- **Task-Count-Trennung (Primary vs Co-Assignee)** → ❓ **unterspezifiziert.** Multi-Assignee (#13) existiert, aber *wo* die getrennten Counts erscheinen sollen (Dashboard? Focus-Tab? Nav-Badge?) ist unklar. Ich rate das nachts nicht — bitte kurz sagen wo, dann 1 gezielter Commit. (Kein spekulativer Umbau an geteilten Zähler-Views.)
+
 ## Warum kein Auto-Deploy in dieser Nacht
 
 Kein Prod-SSH-Zugang auf dieser Maschine + Prinzip: **destruktives Feature + 33 ungetestete Live-Migrationen unbeaufsichtigt nachts = zu riskant.** Der Deploy braucht 2 Minuten mit Prod-Zugang und sollte beaufsichtigt laufen (Tarek).
