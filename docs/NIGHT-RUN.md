@@ -45,8 +45,8 @@ next-pwa generiert `public/sw.js` bei jedem Build neu (content-hashed Assets, `s
 
 - Diagnose + Root-Cause (oben), Button-/Rollen-Code verifiziert (kein Bug).
 - Version-Bump 3.1.0.
-- Screenshot-Beweis: siehe `docs/proof/` (falls erzeugt — sonst Vermerk unten).
-- (Nebenbei nur bei Restzeit — Status am Ende dieser Datei.)
+- **Screenshot-Beweis:** [`docs/proof/mandanten-delete-button.png`](./proof/mandanten-delete-button.png) — lokal gegen ein frisches Postgres (v3.1-Build, geseedet) mit BackendAdmin-Login erzeugt. Zeigt `/admin/mandanten` mit **3 roten Löschen-Buttons** (Default, Tarek, Marine) + **1 grauem disabled** (Objektus = eigener Tenant). ⇒ Der Button ist im v3.1-Code **sichtbar & korrekt** — er fehlt auf Prod NUR wegen des fehlenden Deploys.
+- **Bonus-Beweis:** Alle **33 Migrationen** liefen mit `prisma migrate deploy` **fehlerfrei** gegen eine frische DB → die Migrations-Kette ist deploy-ready (kein Drift-Risiko beim Prod-Deploy).
 
 ## Warum kein Auto-Deploy in dieser Nacht
 
