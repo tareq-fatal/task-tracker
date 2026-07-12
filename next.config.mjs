@@ -40,7 +40,7 @@ export default withSentryConfig(withPWA(nextConfig), {
   // Tags every event + uploaded source map with the same release so stack
   // traces symbolicate against the right build.
   release: {
-    name: process.env.SENTRY_RELEASE || "task-tracker@v3.0.0",
+    name: process.env.SENTRY_RELEASE || "task-tracker@v3.1.0",
   },
 
   silent: !process.env.CI,

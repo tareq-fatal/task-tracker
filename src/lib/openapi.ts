@@ -38,7 +38,7 @@ import { MAX_UPLOAD_BYTES, ALLOWED_MIME } from "./validation";
 /** JSON value — the served document is plain JSON, so we keep the type loose. */
 type Json = Record<string, unknown>;
 
-const VERSION = "3.0.0";
+const VERSION = "3.1.0";
 
 // ── Trilingual introduction (DE / EN / AR) ──────────────────────────────────
 // Rendered as Markdown by Swagger-UI. Arabic is the product's primary locale
