@@ -1,0 +1,61 @@
+name: Deploy to VPS (tasks.coastshield.net)
+
+# Manual, one-click redeploy of `main` to the Coast-Shield VPS.
+#
+# ── ONE-TIME SETUP (do this once, then every deploy is a single click) ────────
+#   Add a repository secret named  VPS_SSH_KEY  containing a PRIVATE key whose
+#   public half is in  root@13.140.146.101:~/.ssh/authorized_keys
+#   (Settings → Secrets and variables → Actions → New repository secret).
+#   Optionally override the host/user with the VPS_HOST / VPS_USER secrets.
+#
+# Then run it from the Actions tab → "Deploy to VPS" → Run workflow.
+# It SSHes in and runs infra/deploy-tasks.sh, which pulls main, rebuilds the
+# image and restarts the container (prisma migrate deploy runs on boot).
+#
+# NOTE: the box that actually serves prod must already have the repo cloned at
+# /home/marisight/apps/task-tracker and the compose stack at
+# /home/marisight/marisight/infra/prod (see docs/PRODUCTION-DEPLOY.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Run DB seed (FIRST DEPLOY ONLY — WIPES tasks/projects/teams)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: vps-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          HOST='${{ secrets.VPS_HOST }}'; HOST="${HOST:-13.140.146.101}"
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Redeploy
+        run: |
+          HOST='${{ secrets.VPS_HOST }}';  HOST="${HOST:-13.140.146.101}"
+          USER='${{ secrets.VPS_USER }}';  USER="${USER:-root}"
+          SEED_FLAG=''
+          if [ "${{ inputs.seed }}" = "true" ]; then SEED_FLAG='--seed'; fi
+          ssh -i ~/.ssh/id_deploy "$USER@$HOST" \
+            "cd /home/marisight/marisight/infra/prod && \
+             APP_DIR=/home/marisight/apps/task-tracker \
+             COMPOSE_DIR=\$PWD COMPOSE_FILE=docker-compose.prod.yml \
+             bash /home/marisight/apps/task-tracker/infra/deploy-tasks.sh $SEED_FLAG"
+
+      - name: Smoke-check public URL
+        if: always()
+        run: |
+          sleep 15
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://tasks.coastshield.net/login || echo 000)
+          echo "login -> $code"
+          test "$code" = "200"
