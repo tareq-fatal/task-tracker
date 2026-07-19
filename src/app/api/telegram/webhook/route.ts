@@ -92,10 +92,18 @@ export async function POST(req: NextRequest) {
 
   if (cmd === "/start" || cmd === "/link") {
     if (arg) {
-      const user = await prisma.user.findUnique({
+      const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+      let user = await prisma.user.findUnique({
         where: { telegramLinkToken: arg },
-        select: { id: true, locale: true },
+        select: { id: true, locale: true, telegramLinkTokenAt: true },
       });
+      if (user?.telegramLinkTokenAt && Date.now() - user.telegramLinkTokenAt.getTime() > TOKEN_TTL_MS) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { telegramLinkToken: null, telegramLinkTokenAt: null },
+        });
+        user = null; // expired → treated exactly like an unknown token
+      }
       if (user) {
         // Re-linking moves the chat to this user; one chat = one user.
         await prisma.user.updateMany({

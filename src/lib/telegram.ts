@@ -68,6 +68,34 @@ function openLabel(locale: string): string {
 }
 
 /**
+ * Optional per-tenant broadcast group (Weg 2). Telegram forbids bots from
+ * adding members, so the group is created manually and the bot added as admin;
+ * the tenant stores the group chat id + the CSV of event types to mirror.
+ * Called ONCE per event from notifyMany (not per recipient).
+ */
+export async function broadcastToTelegramGroup(
+  tenantId: string,
+  eventType: string,
+  payload: { title: string; body?: string; url?: string }
+): Promise<void> {
+  if (!telegramEnabled) return;
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { telegramGroupChatId: true, telegramGroupEvents: true },
+    });
+    if (!tenant?.telegramGroupChatId) return;
+    const events = (tenant.telegramGroupEvents ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!events.includes(eventType)) return;
+    const text = `<b>${esc(payload.title)}</b>` + (payload.body ? `\n${esc(payload.body)}` : "");
+    const url = payload.url ? new URL(payload.url, APP_URL).toString() : undefined;
+    await sendTelegramMessage(tenant.telegramGroupChatId, text, { url, urlLabel: "فتح المهمة" });
+  } catch {
+    /* best-effort */
+  }
+}
+
+/**
  * Notification fan-out target — called from notify() when the webPush channel
  * is active (Telegram deliberately follows the same triggers as push). Skips
  * silently when the user has no linked chat or muted the bot.

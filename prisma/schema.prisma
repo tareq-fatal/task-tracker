@@ -29,6 +29,11 @@ model Tenant {
   // Feature flag: show billable/non-billable time UI. Off for military
   // tenants (no invoicing), on by default for commercial ones.
   billingEnabled Boolean @default(true)
+  // Optional Telegram broadcast group (bot must be added manually as admin —
+  // Telegram forbids bots from adding members). Events = CSV of notification
+  // event types that should ALSO be posted to the group.
+  telegramGroupChatId String?
+  telegramGroupEvents String?
   createdAt    DateTime @default(now())
 
   users         User[]
@@ -128,7 +133,10 @@ model User {
   // Linked via deep link t.me/<bot>?start=<telegramLinkToken>.
   telegramChatId    String?
   telegramLinkToken String?  @unique // one-time link token; cleared after linking
+  telegramLinkTokenAt DateTime? // minted at — tokens expire after 30 days
   telegramMuted     Boolean  @default(false) // /mute in the bot
+  telegramHandle    String? // official @username from the ops roster (bulk onboarding)
+  telegramNickname  String? // full name as listed in the ops roster
 
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)

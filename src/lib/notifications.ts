@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import { notifyUser as webPush } from "./push";
-import { notifyUserTelegram } from "./telegram";
+import { notifyUserTelegram, broadcastToTelegramGroup } from "./telegram";
 import { sendEmail, basicEmailTemplate } from "./email";
 import { translate, type TKey } from "./i18n";
 import { DEFAULT_LOCALE, type Locale } from "./enums";
@@ -115,6 +115,16 @@ export async function notifyMany(
 ): Promise<void> {
   const unique = [...new Set(recipientUserIds)].filter(Boolean);
   await Promise.all(unique.map((id) => notify({ ...base, recipientUserId: id })));
+  // Optional tenant broadcast group — mirrored ONCE per event (not per
+  // recipient), in the tenant's primary locale, admin-configured per event.
+  const groupTitle = base.titleKey
+    ? translate(DEFAULT_LOCALE, base.titleKey)
+    : base.title ?? "";
+  await broadcastToTelegramGroup(base.tenantId, base.type, {
+    title: groupTitle,
+    body: base.body,
+    url: base.url,
+  }).catch(() => {});
 }
 
 /** Native push via FCM legacy HTTP. No-op without FCM_SERVER_KEY. */
