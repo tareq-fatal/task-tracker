@@ -63,28 +63,29 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      {isAdmin && (
-        <>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-base">
-                {t["settings.notifications"]}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PushToggle vapidPublicKey={vapid} />
-            </CardContent>
-          </Card>
+      {/* Push toggle — EVERYONE gets this. Regular users must be able to enable
+          device notifications (assigned tasks, comments, mentions) themselves;
+          only the fine-grained prefs matrix below stays admin-only. */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">
+            {t["settings.notifications"]}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PushToggle vapidPublicKey={vapid} />
+        </CardContent>
+      </Card>
 
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-base">{t["notif.prefsTitle"]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NotificationSettings view={notifyPrefs} />
-            </CardContent>
-          </Card>
-        </>
+      {isAdmin && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{t["notif.prefsTitle"]}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationSettings view={notifyPrefs} />
+          </CardContent>
+        </Card>
       )}
 
       {ssoConfig && (

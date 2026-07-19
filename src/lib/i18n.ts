@@ -710,6 +710,9 @@ export const dictionaries = {
     "theme.system": "النظام",
     "settings.enablePush": "تفعيل إشعارات المتصفح",
     "settings.pushUnsupported": "الإشعارات غير مدعومة في هذه البيئة",
+    "push.banner.text": "فعّل الإشعارات لتصلك المهام الجديدة والتعليقات حتى عندما يكون التطبيق مغلقًا",
+    "push.banner.enable": "تفعيل",
+    "push.banner.later": "لاحقًا",
 
     "nav.admin.teams": "الفرق",
     "task.team": "الفريق",
@@ -1715,6 +1718,9 @@ export const dictionaries = {
     "theme.system": "System",
     "settings.enablePush": "Push-Benachrichtigungen aktivieren",
     "settings.pushUnsupported": "Push wird in dieser Umgebung nicht unterstützt",
+    "push.banner.text": "Benachrichtigungen aktivieren — neue Aufgaben und Kommentare erreichen dich auch bei geschlossener App",
+    "push.banner.enable": "Aktivieren",
+    "push.banner.later": "Später",
 
     "nav.admin.teams": "Teams",
     "task.team": "Team",
@@ -2719,6 +2725,9 @@ export const dictionaries = {
     "theme.system": "System",
     "settings.enablePush": "Enable push notifications",
     "settings.pushUnsupported": "Push is not supported in this environment",
+    "push.banner.text": "Enable notifications — new tasks and comments reach you even when the app is closed",
+    "push.banner.enable": "Enable",
+    "push.banner.later": "Later",
 
     "nav.admin.teams": "Teams",
     "task.team": "Team",
