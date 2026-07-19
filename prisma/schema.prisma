@@ -121,6 +121,12 @@ model User {
   quietHoursEnd   Int?
   notifyDigest    Boolean @default(false) // batch email instead of instant
 
+  // Telegram notifications (follows the webPush channel preference).
+  // Linked via deep link t.me/<bot>?start=<telegramLinkToken>.
+  telegramChatId    String?
+  telegramLinkToken String?  @unique // one-time link token; cleared after linking
+  telegramMuted     Boolean  @default(false) // /mute in the bot
+
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
