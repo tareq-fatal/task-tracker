@@ -24,6 +24,11 @@ export type NotifyInput = {
   url?: string;
   taskId?: string;
   actorUserId?: string; // don't notify the person who caused the event
+  /** Per-call channel gate, ANDed with the user's prefs — lets a caller keep
+   *  the in-app feed while suppressing push/email for low-priority noise
+   *  (e.g. status changes on Low/Medium tasks). `false` disables a channel;
+   *  absent/`true` leaves the pref untouched. */
+  channelMask?: Partial<ChannelPrefs>;
 };
 
 /** Central fan-out: in-app feed + web-push + email + native, per user prefs. */
@@ -52,6 +57,11 @@ export async function notify(input: NotifyInput): Promise<void> {
     quietStart: user.quietHoursStart,
     quietEnd: user.quietHoursEnd,
   });
+  if (input.channelMask) {
+    for (const k of Object.keys(ch) as (keyof ChannelPrefs)[]) {
+      if (input.channelMask[k] === false) ch[k] = false;
+    }
+  }
 
   // Localise the title into the RECIPIENT's locale at create time (no migration:
   // the resolved string is stored in `title`). Legacy callers passing a raw

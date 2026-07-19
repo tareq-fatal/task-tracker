@@ -8,6 +8,7 @@ import { ToastProvider } from "@/components/toast";
 import { AppShell } from "@/components/app-shell";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { UpdatePrompt } from "@/components/update-prompt";
+import { PushBootstrap } from "@/components/push-bootstrap";
 import { SentryUserContext } from "@/components/sentry-user-context";
 import { resolveBranding, brandStyle } from "@/lib/branding";
 
@@ -50,6 +51,9 @@ export default async function AppLayout({
           needsTour={!!user.onboardedAt && !user.hasSeenTour}
         />
         <UpdatePrompt />
+        <PushBootstrap
+          vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+        />
       </ToastProvider>
     </I18nProvider>
   );

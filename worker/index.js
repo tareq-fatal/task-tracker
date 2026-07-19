@@ -19,6 +19,29 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// Browsers may rotate/expire a push subscription at any time. Re-subscribe
+// with the same VAPID key and tell the server, so pushes keep arriving even
+// though the app was never reopened.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const options = event.oldSubscription?.options ?? {
+          userVisibleOnly: true,
+        };
+        const sub = await self.registration.pushManager.subscribe(options);
+        await fetch("/api/push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sub),
+        });
+      } catch (e) {
+        /* best-effort — next app open re-syncs via PushBootstrap */
+      }
+    })()
+  );
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url || "/";

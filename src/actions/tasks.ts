@@ -57,11 +57,20 @@ async function notifyWatchers(
   actorUserId: string,
   type: NotificationEvent,
   titleKey: TKey,
-  body?: string
+  body?: string,
+  channelMask?: { webPush?: boolean; native?: boolean; email?: boolean; inApp?: boolean }
 ): Promise<void> {
-  const ids = [task.assignedToUserId, task.createdByUserId].filter(
-    (x): x is string => Boolean(x)
-  );
+  // Watchers = Hauptkopf + creator + every co-assignee (#13 TaskAssignee) —
+  // a co-assignee works the task just as much and must not miss updates.
+  const coAssignees = await prisma.taskAssignee.findMany({
+    where: { taskId: task.id },
+    select: { userId: true },
+  });
+  const ids = [
+    task.assignedToUserId,
+    task.createdByUserId,
+    ...coAssignees.map((a) => a.userId),
+  ].filter((x): x is string => Boolean(x));
   await notifyMany(ids, {
     tenantId: task.tenantId,
     type,
@@ -70,7 +79,15 @@ async function notifyWatchers(
     url: `/tasks/${task.id}`,
     taskId: task.id,
     actorUserId,
+    channelMask,
   });
+}
+
+/** Status-change pushes are only worth waking a phone for on important tasks.
+ *  Low/Medium changes stay in the in-app feed; High/Critical also push. */
+function statusChannelMask(priority: string) {
+  const important = priority === "High" || priority === "Critical";
+  return important ? undefined : { webPush: false, native: false, email: false };
 }
 
 /** Append an activity-log entry (best-effort; never blocks the mutation). */
@@ -537,7 +554,8 @@ export async function updateTaskAction(
       user.id,
       "status",
       "notif.t.status",
-      `${d.title}: ${existing.status} → ${d.status}`
+      `${d.title}: ${existing.status} → ${d.status}`,
+      statusChannelMask(d.priority)
     );
   }
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
@@ -671,7 +689,7 @@ export async function updateTaskStatusAction(
   });
 
   await logActivity(taskId, user.id, leftDone ? "reopened" : "status", `${existing.status} → ${status}`);
-  await notifyWatchers(existing, user.id, "status", "notif.t.status", `${existing.title}: ${existing.status} → ${status}`);
+  await notifyWatchers(existing, user.id, "status", "notif.t.status", `${existing.title}: ${existing.status} → ${status}`, statusChannelMask(existing.priority));
   await notifyAdminsOfChange(user, existing, `Status: ${existing.status} → ${status}`);
   if (becameDone) await notifyBlockerResolved(taskId, tenant.id, user.id);
   await applyAutomations(tenant.id, taskId, { type: "status_to", value: status, projectId: existing.projectId });
@@ -768,10 +786,17 @@ export async function addCommentAction(
         actorUserId: user.id,
       });
     }
-    // comment to watchers who weren't already mentioned
-    const watchers = [task.assignedToUserId, task.createdByUserId].filter(
-      (x): x is string => Boolean(x) && !mentionedIds.has(x as string)
-    );
+    // comment to watchers who weren't already mentioned — co-assignees
+    // (#13 TaskAssignee) included, not just the Hauptkopf.
+    const commentCoAssignees = await prisma.taskAssignee.findMany({
+      where: { taskId },
+      select: { userId: true },
+    });
+    const watchers = [
+      task.assignedToUserId,
+      task.createdByUserId,
+      ...commentCoAssignees.map((a) => a.userId),
+    ].filter((x): x is string => Boolean(x) && !mentionedIds.has(x as string));
     await notifyMany(watchers, {
       tenantId: task.tenantId,
       type: "comment",
