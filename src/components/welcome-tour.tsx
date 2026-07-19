@@ -66,12 +66,12 @@ export function WelcomeTour({
     center("tour.admin.7"),
     at('[data-tour="topbar-actions"]', "tour.admin.8"),
   ];
+  // Deliberately just 3 essential steps for regular users (customer request):
+  // welcome/مهامي → create a task → enable notifications. No marketing copy.
   const userSteps: Step[] = [
     center("tour.user.1"),
-    at('[data-tour="nav-board"]', "tour.user.2"),
-    center("tour.user.3"),
-    center("tour.user.4"),
-    at('[data-tour="topbar-actions"]', "tour.user.5"),
+    at('[data-tour="new-task"]', "tour.user.2"),
+    at('[data-tour="topbar-actions"]', "tour.user.3"),
   ];
 
   const steps = isAdminRole(role) ? adminSteps : userSteps;
