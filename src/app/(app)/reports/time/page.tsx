@@ -57,6 +57,7 @@ export default async function TimeReportPage({
         users={users}
         projects={projects}
         sprints={sprints}
+        billingEnabled={tenant.billingEnabled}
       />
     </div>
   );

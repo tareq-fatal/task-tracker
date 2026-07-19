@@ -21,6 +21,7 @@ export function TimeReport({
   users,
   projects,
   sprints,
+  billingEnabled = true,
 }: {
   entries: TimeEntryWire[];
   fromDay: string; // local "YYYY-MM-DD"
@@ -30,6 +31,8 @@ export function TimeReport({
   users: { id: string; name: string }[];
   projects: { id: string; name: string }[];
   sprints: { id: string; name: string }[];
+  /** Tenant feature flag — false hides the billable filter, split and bars. */
+  billingEnabled?: boolean;
 }) {
   const { t, locale } = useT();
   const router = useRouter();
@@ -129,20 +132,22 @@ export function TimeReport({
         </select>
 
         {/* Billable filter (client-side) */}
-        <div className="flex overflow-hidden rounded-md border text-sm">
-          {(["all", "billable", "nonBillable"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setBillableFilter(f)}
-              className={cn(
-                "px-3 py-1.5 transition-colors",
-                billableFilter === f ? "bg-indigo-500/15 font-medium text-indigo-700" : "text-muted-foreground hover:bg-secondary"
-              )}
-            >
-              {f === "all" ? t("timeReport.all") : f === "billable" ? t("time.billable") : t("time.nonBillable")}
-            </button>
-          ))}
-        </div>
+        {billingEnabled && (
+          <div className="flex overflow-hidden rounded-md border text-sm">
+            {(["all", "billable", "nonBillable"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setBillableFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 transition-colors",
+                  billableFilter === f ? "bg-indigo-500/15 font-medium text-indigo-700" : "text-muted-foreground hover:bg-secondary"
+                )}
+              >
+                {f === "all" ? t("timeReport.all") : f === "billable" ? t("time.billable") : t("time.nonBillable")}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="ms-auto">
           <ExportButtons targetId="time-report-print" filename={`time-report-${fromDay}`} />
@@ -157,12 +162,16 @@ export function TimeReport({
             <p className="text-sm text-muted-foreground">{range}</p>
           </div>
           <div className="flex gap-2 text-sm">
-            <span className="rounded-full bg-emerald-500/10 px-3 py-1 font-medium text-emerald-700">
-              {t("time.billable")}: {formatHoursMinutes(totals.billable)} h
-            </span>
-            <span className="rounded-full bg-secondary px-3 py-1 font-medium text-muted-foreground">
-              {t("time.nonBillable")}: {formatHoursMinutes(totals.nonBillable)} h
-            </span>
+            {billingEnabled && (
+              <>
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 font-medium text-emerald-700">
+                  {t("time.billable")}: {formatHoursMinutes(totals.billable)} h
+                </span>
+                <span className="rounded-full bg-secondary px-3 py-1 font-medium text-muted-foreground">
+                  {t("time.nonBillable")}: {formatHoursMinutes(totals.nonBillable)} h
+                </span>
+              </>
+            )}
             <span className="rounded-full bg-indigo-500/10 px-3 py-1 font-semibold text-indigo-700">
               {t("time.total")}: {formatHoursMinutes(totals.total)} h
             </span>
@@ -179,21 +188,27 @@ export function TimeReport({
                   <span className="font-medium">{r.label}</span>
                   <span className="tabular-nums text-muted-foreground">
                     {formatMinutes(r.total)}
-                    {r.nonBillable > 0 && billableFilter === "all" && (
+                    {billingEnabled && r.nonBillable > 0 && billableFilter === "all" && (
                       <span className="text-xs"> ({t("time.billable")}: {formatMinutes(r.billable)})</span>
                     )}
                   </span>
                 </div>
                 <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary">
-                  {max > 0 && (
-                    <>
+                  {max > 0 &&
+                    (billingEnabled ? (
+                      <>
+                        <div
+                          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                          style={{ width: `${(r.billable / max) * 100}%` }}
+                        />
+                        <div className="h-full bg-muted-foreground/30" style={{ width: `${(r.nonBillable / max) * 100}%` }} />
+                      </>
+                    ) : (
                       <div
-                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
-                        style={{ width: `${(r.billable / max) * 100}%` }}
+                        className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400"
+                        style={{ width: `${(r.total / max) * 100}%` }}
                       />
-                      <div className="h-full bg-muted-foreground/30" style={{ width: `${(r.nonBillable / max) * 100}%` }} />
-                    </>
-                  )}
+                    ))}
                 </div>
               </div>
             ))}

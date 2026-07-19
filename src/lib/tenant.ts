@@ -12,6 +12,7 @@ export type ActiveTenant = {
   name: string;
   primaryColor: string | null;
   logo: string | null;
+  billingEnabled: boolean;
 };
 
 export function setTenantCookie(slug: string): void {

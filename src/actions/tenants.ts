@@ -7,7 +7,7 @@ import { requireTenant, setTenantCookie } from "@/lib/tenant";
 import { can } from "@/lib/roles";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
-export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number };
+export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean };
 
 async function requireSuper() {
   const { user } = await requireTenant();
@@ -26,7 +26,24 @@ export async function getTenants(): Promise<TenantRow[]> {
   return tenants.map((t) => ({
     id: t.id, slug: t.slug, name: t.name, primaryColor: t.primaryColor,
     users: t._count.users, tasks: t._count.tasks, projects: t._count.projects,
+    billingEnabled: t.billingEnabled,
   }));
+}
+
+/** BackendAdmin-only feature flag: billable/non-billable UI per tenant.
+ *  Takes effect on the next render — no restart needed. */
+export async function setTenantBillingAction(
+  tenantId: string,
+  enabled: boolean
+): Promise<TenantState> {
+  await requireSuper();
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { billingEnabled: enabled },
+  });
+  revalidatePath("/admin/mandanten");
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 /** Onboard a new customer: create an empty tenant + its first TenantAdmin. */

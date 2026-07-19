@@ -50,6 +50,7 @@ export default async function TimePage({
         tenantName={tenant.name}
         users={users}
         isAdmin={isAdmin}
+        billingEnabled={tenant.billingEnabled}
       />
     </div>
   );

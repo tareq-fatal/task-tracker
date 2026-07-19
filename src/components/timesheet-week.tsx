@@ -35,6 +35,7 @@ export function TimesheetWeek({
   tenantName,
   users,
   isAdmin,
+  billingEnabled = true,
 }: {
   entries: TimeEntryWire[];
   weekStartDay: string; // local "YYYY-MM-DD" of the Monday
@@ -42,6 +43,8 @@ export function TimesheetWeek({
   userId: string;
   tenantName: string;
   users: { id: string; name: string }[];
+  /** Tenant feature flag — false hides every billable/non-billable element. */
+  billingEnabled?: boolean;
   isAdmin: boolean;
 }) {
   const { t, locale } = useT();
@@ -129,12 +132,16 @@ export function TimesheetWeek({
             </p>
           </div>
           <div className="flex gap-2 text-sm">
-            <span className="rounded-full bg-emerald-500/10 px-3 py-1 font-medium text-emerald-700">
-              {t("time.billable")}: {formatHoursMinutes(grid.billable)} h
-            </span>
-            <span className="rounded-full bg-secondary px-3 py-1 font-medium text-muted-foreground">
-              {t("time.nonBillable")}: {formatHoursMinutes(grid.nonBillable)} h
-            </span>
+            {billingEnabled && (
+              <>
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 font-medium text-emerald-700">
+                  {t("time.billable")}: {formatHoursMinutes(grid.billable)} h
+                </span>
+                <span className="rounded-full bg-secondary px-3 py-1 font-medium text-muted-foreground">
+                  {t("time.nonBillable")}: {formatHoursMinutes(grid.nonBillable)} h
+                </span>
+              </>
+            )}
             <span className="rounded-full bg-indigo-500/10 px-3 py-1 font-semibold text-indigo-700">
               {t("time.total")}: {formatHoursMinutes(grid.total)} h
             </span>
@@ -223,18 +230,20 @@ export function TimesheetWeek({
                     <span className="ms-auto tabular-nums font-medium text-indigo-600">
                       {e.endedAt ? formatMinutes(entryMinutes(e, now)) : t("time.running")}
                     </span>
-                    <button
-                      onClick={() => act(() => toggleBillableAction(e.id))}
-                      disabled={pending}
-                      title={e.billable ? t("time.billable") : t("time.nonBillable")}
-                      aria-label={t("time.toggleBillable")}
-                      className={cn(
-                        "rounded-full p-1 transition-colors",
-                        e.billable ? "text-emerald-600 hover:text-emerald-700" : "text-muted-foreground/50 hover:text-muted-foreground"
-                      )}
-                    >
-                      <BadgeEuro className="h-4 w-4" />
-                    </button>
+                    {billingEnabled && (
+                      <button
+                        onClick={() => act(() => toggleBillableAction(e.id))}
+                        disabled={pending}
+                        title={e.billable ? t("time.billable") : t("time.nonBillable")}
+                        aria-label={t("time.toggleBillable")}
+                        className={cn(
+                          "rounded-full p-1 transition-colors",
+                          e.billable ? "text-emerald-600 hover:text-emerald-700" : "text-muted-foreground/50 hover:text-muted-foreground"
+                        )}
+                      >
+                        <BadgeEuro className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => act(() => deleteTimeEntryAction(e.id))}
                       disabled={pending}

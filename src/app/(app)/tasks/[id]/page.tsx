@@ -508,6 +508,7 @@ export default async function TaskDetailPage({
           </h2>
           <TimeTracking
             taskId={task.id}
+            billingEnabled={tenant.billingEnabled}
             runningOnThisTask={runningOnThisTask}
             totalMinutes={timeTotal}
             entries={task.timeEntries.map((e) => ({
