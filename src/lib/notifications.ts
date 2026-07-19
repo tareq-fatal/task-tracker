@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import { notifyUser as webPush } from "./push";
+import { notifyUserTelegram } from "./telegram";
 import { sendEmail, basicEmailTemplate } from "./email";
 import { translate, type TKey } from "./i18n";
 import { DEFAULT_LOCALE, type Locale } from "./enums";
@@ -87,6 +88,14 @@ export async function notify(input: NotifyInput): Promise<void> {
   }
   if (ch.webPush) {
     await webPush(input.recipientUserId, { title: finalTitle, body: input.body ?? "", url: input.url });
+    // Telegram rides the webPush preference: same triggers, same masks
+    // (assigned/comment/mention, status only High+Critical, due_soon).
+    // No-op when the user hasn't linked a chat.
+    await notifyUserTelegram(input.recipientUserId, {
+      title: finalTitle,
+      body: input.body ?? "",
+      url: input.url,
+    }).catch(() => {});
   }
   if (ch.email && user.email && user.email.includes("@")) {
     await sendEmail({

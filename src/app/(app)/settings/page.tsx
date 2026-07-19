@@ -13,6 +13,8 @@ import { PlannerSyncSettings } from "@/components/planner-sync-settings";
 import { getPlannerSyncView } from "@/actions/planner-sync";
 import { NotificationSettings } from "@/components/notification-settings";
 import { getNotificationPrefs } from "@/actions/notifications";
+import { TelegramConnect } from "@/components/telegram-connect";
+import { getTelegramStatus } from "@/actions/telegram";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 
@@ -25,6 +27,7 @@ export default async function SettingsPage() {
   const ssoConfig = isAdmin ? await getTenantSsoConfig() : null;
   const plannerView = isAdmin ? await getPlannerSyncView() : null;
   const notifyPrefs = await getNotificationPrefs();
+  const telegramStatus = await getTelegramStatus();
 
   return (
     <div className="container max-w-xl py-6">
@@ -74,6 +77,16 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <PushToggle vapidPublicKey={vapid} />
+        </CardContent>
+      </Card>
+
+      {/* Telegram — deep-link connect; notifications mirror the push triggers */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">{t["settings.telegram"]}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TelegramConnect status={telegramStatus} />
         </CardContent>
       </Card>
 
