@@ -19,12 +19,22 @@ export default async function DashboardPage() {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
+  // "مهامي" = EVERY task the user is involved in: primary assignee (Hauptkopf),
+  // co-assignee (#13 TaskAssignee), or creator. The two sections stay disjoint —
+  // anything I'm assigned to shows under "assigned", the rest of what I created
+  // under "created" — so together they cover the full involvement set.
+  const assignedToMe = {
+    OR: [
+      { assignedToUserId: user.id },
+      { assignees: { some: { userId: user.id } } },
+    ],
+  };
   const [assigned, created] = await Promise.all([
     prisma.task.findMany({
       where: {
         tenantId: tenant.id,
-        assignedToUserId: user.id,
         status: { not: "Archived" },
+        ...assignedToMe,
       },
       select: cardSelect,
     }),
@@ -32,8 +42,8 @@ export default async function DashboardPage() {
       where: {
         tenantId: tenant.id,
         createdByUserId: user.id,
-        assignedToUserId: { not: user.id },
         status: { not: "Archived" },
+        NOT: assignedToMe,
       },
       select: cardSelect,
     }),
@@ -46,9 +56,16 @@ export default async function DashboardPage() {
     isOverdue(x.dueDate, x.status as any)
   ).length;
 
-  // KPI snapshot over all of the user's assigned tasks (incl. completed).
+  // KPI snapshot over all tasks the user is involved in (incl. completed).
   const kpiRows = await prisma.task.findMany({
-    where: { tenantId: tenant.id, assignedToUserId: user.id },
+    where: {
+      tenantId: tenant.id,
+      OR: [
+        { assignedToUserId: user.id },
+        { createdByUserId: user.id },
+        { assignees: { some: { userId: user.id } } },
+      ],
+    },
     select: {
       status: true,
       createdAt: true,

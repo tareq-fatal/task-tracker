@@ -16,10 +16,25 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const { user, tenant } = await requireTenant();
   const att = await prisma.taskAttachment.findUnique({
     where: { id: params.id },
-    include: { task: { select: { tenantId: true, createdByUserId: true, assignedToUserId: true } } },
+    include: {
+      task: {
+        select: {
+          tenantId: true,
+          createdByUserId: true,
+          assignedToUserId: true,
+          assignees: { select: { userId: true } },
+        },
+      },
+    },
   });
   if (!att || att.task.tenantId !== tenant.id) return new NextResponse("Not found", { status: 404 });
-  const canView = isAdminRole(user.role) || att.task.createdByUserId === user.id || att.task.assignedToUserId === user.id;
+  // Same visibility as the task detail page: admin, creator, or ANY assignee —
+  // co-assignees (#13 TaskAssignee) included, not just the primary Hauptkopf.
+  const canView =
+    isAdminRole(user.role) ||
+    att.task.createdByUserId === user.id ||
+    att.task.assignedToUserId === user.id ||
+    att.task.assignees.some((a) => a.userId === user.id);
   if (!canView) return new NextResponse("Forbidden", { status: 403 });
 
   // filePath is "/uploads/<hash>.<ext>" → public/uploads/<hash>.<ext>
