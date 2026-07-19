@@ -26,6 +26,9 @@ model Tenant {
   accentColor    String?
   themeName      String  @default("ocean-pro") // ocean-pro | sage-modern | coral-energy | custom | dark-only | light-only
   ssoDomains     String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
+  // Feature flag: show billable/non-billable time UI. Off for military
+  // tenants (no invoicing), on by default for commercial ones.
+  billingEnabled Boolean @default(true)
   createdAt    DateTime @default(now())
 
   users         User[]

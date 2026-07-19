@@ -84,7 +84,10 @@ export async function addManualTimeAction(
   const minutes = parseDurationToMinutes(formData.get("duration")?.toString() ?? "");
   if (!minutes || minutes <= 0) return { error: "DURATION" };
   const note = formData.get("note")?.toString().trim() || null;
-  const billable = formData.get("billable") !== null;
+  // With billing disabled the checkbox isn't rendered at all — default those
+  // entries to billable=true so the split stays consistent ("not applicable"
+  // rather than silently non-billable) if the flag is ever turned back on.
+  const billable = tenant.billingEnabled ? formData.get("billable") !== null : true;
   const now = new Date();
   await prisma.taskTimeEntry.create({
     data: {
