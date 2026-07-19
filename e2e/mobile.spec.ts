@@ -39,10 +39,21 @@ test("mobile board has a snap-scroll container and column dots", async ({
   expect(box!.x + box!.width).toBeGreaterThan(0);
 });
 
-test("mobile bottom nav is visible", async ({ page }) => {
+test("mobile has ONE nav: 4 tabs + Mehr, no hamburger drawer", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");
-  // bottom nav new-task shortcut + section links are present on mobile
-  await expect(
-    page.getByRole("heading", { name: /Meine Tasks/i })
-  ).toBeVisible();
+
+  // the old hamburger menu is gone — bottom nav is the only mobile nav
+  await expect(page.getByRole("button", { name: "Menu" })).toHaveCount(0);
+
+  const bottom = page.locator("nav.fixed.bottom-0");
+  await expect(bottom).toBeVisible();
+  // exactly 5 slots: 4 primary views + Mehr (iOS/Android tab-bar standard)
+  await expect(bottom.locator("a, button")).toHaveCount(5);
+  await expect(bottom.getByRole("button", { name: "Mehr" })).toBeVisible();
+
+  // Mehr opens the sheet with the secondary items (Zeitleiste, Projekte, …)
+  await bottom.getByRole("button", { name: "Mehr" }).click();
+  await expect(page.getByRole("link", { name: "Zeitleiste" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Projekte" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Einstellungen" })).toBeVisible();
 });

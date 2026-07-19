@@ -6,6 +6,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility, visibleProjectIds, canEditTaskContent } from "@/lib/task-access";
 import { ZOOM_LEVELS, type ZoomLevel } from "@/lib/gantt";
 import { GanttBoard, type GanttTask, type GanttDep } from "@/components/gantt-board";
+import { TimelineTabs } from "@/components/timeline-tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export default async function GanttPage({
 
   return (
     <div className="container py-6">
+      <TimelineTabs active="gantt" labels={{ gantt: t["nav.gantt"], roadmap: t["nav.roadmap"] }} />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <span className="mt-0.5 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 p-2 text-white shadow-sm">

@@ -21,7 +21,6 @@ import {
   Zap,
   Webhook,
   FileStack,
-  Map,
   GanttChartSquare,
   Target,
   Table2,
@@ -65,19 +64,26 @@ type NavItem = {
   tour?: string;
   adminOnly?: boolean;
   tip?: TKey;
+  /** Extra path prefixes that also count as "this item is active". */
+  match?: string[];
 };
 
+// 4 distinct task views (Board=Kanban flow, List=dense table, Calendar,
+// Timeline=Gantt+Roadmap under one roof) — /roadmap is reachable via the
+// Timeline tabs, not a separate nav entry.
 const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard, tip: "tooltip.dashboard" },
   { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board", tip: "tooltip.board" },
   { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true, tip: "tooltip.focus" },
   { href: "/list", label: "nav.list", icon: Table2, tip: "tooltip.list" },
   { href: "/views", label: "nav.views", icon: CalendarDays, tip: "tooltip.views" },
-  { href: "/gantt", label: "nav.gantt", icon: GanttChartSquare },
+  { href: "/gantt", label: "nav.timeline", icon: GanttChartSquare, match: ["/roadmap"] },
   { href: "/time", label: "nav.time", icon: Clock },
-  { href: "/roadmap", label: "nav.roadmap", icon: Map, tip: "tooltip.roadmap" },
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
 ];
+
+// Mobile bottom nav = the 4 everyday views; everything else lives in "More".
+const MOBILE_PRIMARY = ["/", "/board", "/list", "/views"];
 
 const ADMIN: NavItem[] = [
   { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },
@@ -104,9 +110,10 @@ const SUPER: NavItem[] = [
   { href: "/admin/db", label: "nav.db", icon: Database },
 ];
 
-function isActive(pathname: string, href: string) {
+function isActive(pathname: string, href: string, match?: string[]) {
   if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
+  const hit = (h: string) => pathname === h || pathname.startsWith(h + "/");
+  return hit(href) || (match ?? []).some(hit);
 }
 
 function NavLink({
@@ -165,18 +172,32 @@ export function AppShell({
 }) {
   const { t } = useT();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  // Mobile "More" bottom sheet — the ONLY secondary nav on mobile (the old
+  // hamburger drawer duplicated the bottom nav and is gone).
+  const [moreOpen, setMoreOpen] = useState(false);
   const isAdmin = isAdminRole(user.role);
   const isBackend = can(user.role, "useDbConsole"); // BackendAdmin (Tarek) only
   // Focus (/tasks) is admin-only — hide it from regular users' nav.
   const mainNav = isAdmin ? MAIN : MAIN.filter((i) => !i.adminOnly);
   const allItems = [...mainNav, ...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])];
-  const activeItem = allItems.find((i) => isActive(pathname, i.href));
+  const activeItem = allItems.find((i) => isActive(pathname, i.href, i.match));
 
-  // Lock background scroll while the mobile drawer is open, preserving position
+  // Bottom nav: the 4 everyday views; the rest goes into the More sheet.
+  const bottomNav = mainNav.filter((i) => MOBILE_PRIMARY.includes(i.href));
+  const moreNav = mainNav.filter((i) => !MOBILE_PRIMARY.includes(i.href));
+  const moreActive = moreNav.some((i) => isActive(pathname, i.href, i.match)) ||
+    [...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])].some((i) => isActive(pathname, i.href)) ||
+    isActive(pathname, "/settings");
+
+  // Close the sheet on navigation.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
+
+  // Lock background scroll while the More sheet is open, preserving position
   // (fixes the "opening the menu jumps to top" bug in the APK).
   useEffect(() => {
-    if (!open) return;
+    if (!moreOpen) return;
     const y = window.scrollY;
     const body = document.body;
     body.style.position = "fixed";
@@ -188,7 +209,7 @@ export function AppShell({
       body.style.width = "";
       window.scrollTo(0, y);
     };
-  }, [open]);
+  }, [moreOpen]);
 
   return (
     <div className="min-h-screen">
@@ -276,17 +297,6 @@ export function AppShell({
         {/* Top header */}
         <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className="flex h-14 items-center gap-2 px-4">
-            <TooltipHelp textKey="tooltip.menu">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={() => setOpen((o) => !o)}
-                aria-label="Menu"
-              >
-                {open ? <X /> : <Menu />}
-              </Button>
-            </TooltipHelp>
             <Link href="/" className="flex items-center gap-2 md:hidden">
               <Logo size={24} />
               <span className="font-semibold">{t("app.name")}</span>
@@ -310,10 +320,10 @@ export function AppShell({
               <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
               <RunningTimer />
               <TooltipHelp textKey="tooltip.new_task">
-                <Button asChild size="sm" className="hidden sm:flex" data-tour="new-task">
+                <Button asChild size="sm" data-tour="new-task" aria-label={t("nav.newTask")}>
                   <Link href="/tasks/new">
-                    <Plus className="me-1 h-4 w-4" />
-                    {t("nav.newTask")}
+                    <Plus className="h-4 w-4 sm:me-1" />
+                    <span className="hidden sm:inline">{t("nav.newTask")}</span>
                   </Link>
                 </Button>
               </TooltipHelp>
@@ -335,36 +345,6 @@ export function AppShell({
             </div>
           </div>
 
-          {/* Mobile drawer */}
-          {open && (
-            <nav className="flex flex-col gap-1 border-t p-2 md:hidden">
-              <div className="pb-1">
-                <TenantSwitcher current={tenant} tenants={tenants} />
-              </div>
-              {allItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={isActive(pathname, item.href)}
-                  onClick={() => setOpen(false)}
-                />
-              ))}
-              <Link
-                href="/settings"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground"
-              >
-                <Settings className="h-4 w-4" />
-                {t("nav.settings")}
-              </Link>
-              <Button asChild variant="outline" size="sm" className="mx-1 mt-1 w-[calc(100%-0.5rem)]">
-                <a href="/logout" onClick={() => setOpen(false)}>
-                  <LogOut className="me-1 h-4 w-4" />
-                  {t("nav.logout")}
-                </a>
-              </Button>
-            </nav>
-          )}
         </header>
 
         <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
@@ -380,15 +360,88 @@ export function AppShell({
         </main>
       </div>
 
-      {/* Mobile bottom nav — pb includes the device safe-area so icons aren't
-          hidden behind the Android/iOS system bar inside the APK */}
+      {/* Mobile "More" bottom sheet — everything that is not in the 4-item
+          bottom nav: remaining views, admin/backend sections, settings, logout. */}
+      {moreOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <button
+            aria-label={t("nav.close")}
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[75vh] overflow-y-auto rounded-t-2xl border-t bg-background p-3 shadow-2xl"
+            style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+          >
+            <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
+            <div className="mb-2 flex items-center justify-between px-1">
+              <TenantSwitcher current={tenant} tenants={tenants} />
+              <button
+                onClick={() => setMoreOpen(false)}
+                aria-label={t("nav.close")}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-1">
+              {moreNav.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(pathname, item.href, item.match)}
+                  onClick={() => setMoreOpen(false)}
+                />
+              ))}
+              {isBackend && (
+                <>
+                  <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-indigo-500/80">
+                    🛠️ {t("nav.backendSection")}
+                  </p>
+                  {SUPER.map((item) => (
+                    <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} onClick={() => setMoreOpen(false)} />
+                  ))}
+                </>
+              )}
+              {isAdmin && (
+                <>
+                  <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {t("nav.adminSection")}
+                  </p>
+                  {ADMIN.map((item) => (
+                    <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} onClick={() => setMoreOpen(false)} />
+                  ))}
+                </>
+              )}
+              <Link
+                href="/settings"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground"
+              >
+                <Settings className="h-5 w-5" />
+                {t("nav.settings")}
+              </Link>
+              <Button asChild variant="outline" size="sm" className="mx-1 mt-1 w-[calc(100%-0.5rem)]">
+                <a href="/logout">
+                  <LogOut className="me-1 h-4 w-4" />
+                  {t("nav.logout")}
+                </a>
+              </Button>
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom nav — the ONLY mobile navigation: 4 everyday views plus
+          "More". pb includes the device safe-area so icons aren't hidden behind
+          the Android/iOS system bar inside the APK. */}
       <nav
         className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t bg-background/90 pt-1 backdrop-blur-md md:hidden"
         style={{ paddingBottom: "calc(0.25rem + env(safe-area-inset-bottom))" }}
       >
-        {mainNav.map((item) => {
+        {bottomNav.map((item) => {
           const Icon = item.icon;
-          const active = isActive(pathname, item.href);
+          const active = isActive(pathname, item.href, item.match);
           return (
             <Link
               key={item.href}
@@ -410,14 +463,25 @@ export function AppShell({
             </Link>
           );
         })}
-        <Link
-          href="/tasks/new"
-          className="flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] text-indigo-600"
+        <button
+          onClick={() => setMoreOpen((o) => !o)}
+          className={cn(
+            "flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] transition-colors",
+            moreOpen || moreActive ? "text-indigo-600" : "text-muted-foreground"
+          )}
+          aria-label={t("nav.more")}
+          aria-expanded={moreOpen}
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-md">
-            <Plus className="h-4 w-4" />
+          <span
+            className={cn(
+              "flex h-7 items-center justify-center rounded-full px-3 transition-all",
+              (moreOpen || moreActive) && "bg-gradient-to-r from-indigo-500/15 to-emerald-500/15"
+            )}
+          >
+            <Menu className="h-5 w-5" />
           </span>
-        </Link>
+          {t("nav.more")}
+        </button>
       </nav>
     </div>
   );

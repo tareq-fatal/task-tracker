@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { getActiveLocale } from "@/lib/locale";
@@ -6,21 +7,19 @@ import { getDictionary } from "@/lib/i18n";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { CalendarView } from "@/components/calendar-view";
-import { GanttChart } from "@/components/gantt-chart";
 import { ScrumBoard, type ScrumTask } from "@/components/scrum-board";
-
-const DAY = 24 * 60 * 60 * 1000;
 
 export default async function ViewsPage({
   searchParams,
 }: {
   searchParams: { view?: string; project?: string };
 }) {
+  // Gantt/timeline used to be tabs here too — that duplicated the dedicated
+  // /gantt page. The consolidated "الجدول الزمني" view owns them now.
+  if (searchParams.view === "gantt" || searchParams.view === "timeline") redirect("/gantt");
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
-  const view = ["scrum", "calendar", "gantt", "timeline"].includes(searchParams.view ?? "")
-    ? (searchParams.view as "scrum" | "calendar" | "gantt" | "timeline")
-    : "calendar";
+  const view = searchParams.view === "scrum" ? "scrum" : "calendar";
 
   const projects = await prisma.project.findMany({
     where: { tenantId: tenant.id },
@@ -58,38 +57,10 @@ export default async function ViewsPage({
     : null;
   const teamUsers = await prisma.user.findMany({ where: { tenantId: tenant.id }, select: { name: true }, orderBy: { name: "asc" }, take: 20 });
 
-  const now = new Date();
   const calendarTasks = tasks.map((x) => ({
     id: x.id, title: x.title, status: x.status, type: x.type,
     dueDate: x.dueDate ? x.dueDate.toISOString().slice(0, 10) : null,
   }));
-
-  // gantt/timeline: scheduled tasks (have a due date)
-  const scheduled = tasks.filter((x) => x.dueDate);
-  const ganttTasks = scheduled.map((x) => ({
-    id: x.id, title: x.title, status: x.status, type: x.type,
-    start: x.createdAt.toISOString(),
-    end: x.dueDate!.toISOString(),
-  }));
-  const ids = new Set(scheduled.map((x) => x.id));
-  const links = view === "calendar" ? [] : await prisma.taskLink.findMany({
-    where: { type: { in: ["DependsOn", "Blocks"] }, taskId: { in: [...ids] }, linkedTaskId: { in: [...ids] } },
-    select: { taskId: true, linkedTaskId: true, type: true },
-  });
-  // Normalize both spellings of the same relationship ("A DependsOn B" ≙
-  // "B Blocks A") into waits-for edges, deduped.
-  const depSet = new Map<string, { taskId: string; dependsOnId: string }>();
-  for (const l of links) {
-    const e =
-      l.type === "DependsOn"
-        ? { taskId: l.taskId, dependsOnId: l.linkedTaskId }
-        : { taskId: l.linkedTaskId, dependsOnId: l.taskId };
-    depSet.set(`${e.taskId}→${e.dependsOnId}`, e);
-  }
-  const deps = [...depSet.values()];
-
-  const ganttWindow = { from: new Date(now.getTime() - 30 * DAY).toISOString(), to: new Date(now.getTime() + 90 * DAY).toISOString() };
-  const timelineWindow = { from: new Date(now.getTime() - 60 * DAY).toISOString(), to: new Date(now.getTime() + 300 * DAY).toISOString() };
 
   const tab = (v: string, label: string) => (
     <Link
@@ -106,8 +77,6 @@ export default async function ViewsPage({
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {tab("scrum", t["view.scrum"])}
         {tab("calendar", t["view.calendar"])}
-        {tab("gantt", t["view.gantt"])}
-        {tab("timeline", t["view.timeline"])}
         <form className="ms-auto">
           <select
             name="project"
@@ -130,14 +99,6 @@ export default async function ViewsPage({
         <ScrumBoard tasks={scrumTasks} sprint={sprintHeader} team={teamUsers.map((u) => u.name)} meName={user.name} />
       )}
       {view === "calendar" && <CalendarView tasks={calendarTasks} />}
-      {view === "gantt" && (
-        ganttTasks.length ? <GanttChart tasks={ganttTasks} deps={deps} from={ganttWindow.from} to={ganttWindow.to} mode="gantt" />
-          : <p className="text-sm text-muted-foreground">{t["views.unscheduled"]}</p>
-      )}
-      {view === "timeline" && (
-        ganttTasks.length ? <GanttChart tasks={ganttTasks} deps={deps} from={timelineWindow.from} to={timelineWindow.to} mode="timeline" />
-          : <p className="text-sm text-muted-foreground">{t["views.unscheduled"]}</p>
-      )}
     </div>
   );
 }
