@@ -349,9 +349,10 @@ async function assertCanEdit(
 
 /**
  * "Edit content" gate (#36) — may this user rewrite the task itself (title,
- * description, assignee, due date, priority, story points, subtasks, links,
- * custom fields)? ONLY the creator or an admin. A user working an admin-assigned
- * task passes assertCanEdit but NOT this.
+ * description, assignee, due date, priority, story points, links, custom
+ * fields)? ONLY the creator or an admin. A user working an admin-assigned
+ * task passes assertCanEdit but NOT this. Progress + subtasks moved to the
+ * looser assertCanEdit (every collaborator) per customer request 2026-07-19.
  */
 async function assertCanEditContent(
   taskId: string,
@@ -998,7 +999,9 @@ export async function updateTaskProgressAction(
   progress: number
 ): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEditContent(taskId, user, tenant.id); // #36 progress = content
+  // Progress is workaday state, not content: EVERY collaborator (creator,
+  // Hauptkopf, co-assignee) may move it — same involvement rule as visibility.
+  const task = await assertCanEdit(taskId, user, tenant.id);
 
   const parsed = progressSchema.safeParse({ progress });
   if (!parsed.success) return { ok: false };
@@ -1011,6 +1014,9 @@ export async function updateTaskProgressAction(
     where: { id: taskId },
     data: { progress: value },
   });
+  if (value !== task.progress) {
+    await logActivity(taskId, user.id, "progress", `${task.progress}% → ${value}%`);
+  }
 
   revalidateTaskViews(taskId);
   return { ok: true };
@@ -1026,7 +1032,8 @@ export async function addSubtaskAction(
   formData: FormData
 ): Promise<{ error?: string }> {
   const { user, tenant } = await requireTenant();
-  await assertCanEditContent(taskId, user, tenant.id); // #36 subtasks = content
+  // Subtasks are shared working state — every collaborator may manage them.
+  await assertCanEdit(taskId, user, tenant.id);
 
   const parsed = subtaskSchema.safeParse({ title: formData.get("title") });
   if (!parsed.success) return { error: "INVALID" };
@@ -1044,6 +1051,7 @@ export async function addSubtaskAction(
     },
   });
 
+  await logActivity(taskId, user.id, "subtask_added", parsed.data.title);
   await recomputeTaskProgress(taskId);
   revalidateTaskViews(taskId);
   return {};
@@ -1055,13 +1063,14 @@ export async function toggleSubtaskAction(
   const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEditContent(sub.taskId, user, tenant.id); // #36 subtasks = content
+  await assertCanEdit(sub.taskId, user, tenant.id); // every collaborator
 
   await prisma.subtask.update({
     where: { id: subtaskId },
     data: { done: !sub.done },
   });
 
+  await logActivity(sub.taskId, user.id, sub.done ? "subtask_reopened" : "subtask_done", sub.title);
   await recomputeTaskProgress(sub.taskId);
   revalidateTaskViews(sub.taskId);
   return { ok: true };
@@ -1073,9 +1082,10 @@ export async function deleteSubtaskAction(
   const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEditContent(sub.taskId, user, tenant.id); // #36 subtasks = content
+  await assertCanEdit(sub.taskId, user, tenant.id); // every collaborator
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
+  await logActivity(sub.taskId, user.id, "subtask_deleted", sub.title);
   await recomputeTaskProgress(sub.taskId);
   revalidateTaskViews(sub.taskId);
   return { ok: true };

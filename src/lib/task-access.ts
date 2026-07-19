@@ -80,10 +80,10 @@ export async function canAccessProject(
 
 /**
  * #36 — two-tier edit rights on a task:
- *  - "act": status, comments, timer, attachments — allowed for the creator,
- *    any assignee, or an admin.
+ *  - "act": status, comments, timer, attachments, progress, subtasks —
+ *    allowed for the creator, any assignee (co-assignees included), or admin.
  *  - "editContent": title, description, assignee, due date, priority, story
- *    points, custom fields, subtasks, links — ONLY the creator or an admin.
+ *    points, custom fields, links — ONLY the creator or an admin.
  *    A user working an admin-assigned task may act but not rewrite it.
  */
 export function canEditTaskContent(

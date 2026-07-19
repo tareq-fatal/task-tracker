@@ -13,8 +13,6 @@ import {
   type TimeActionState,
 } from "@/actions/time";
 import { formatMinutes } from "@/lib/time-tracking";
-import { startPomodoro } from "@/lib/pomodoro";
-import { savePomodoro, requestNotifyPermission } from "@/components/pomodoro-store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,13 +37,11 @@ function AddBtn() {
 
 export function TimeTracking({
   taskId,
-  taskTitle,
   entries,
   totalMinutes,
   runningOnThisTask,
 }: {
   taskId: string;
-  taskTitle: string;
   entries: TimeEntryView[];
   totalMinutes: number;
   runningOnThisTask: boolean;
@@ -68,33 +64,13 @@ export function TimeTracking({
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-3">
         {runningOnThisTask ? (
-          <Button size="sm" variant="destructive" disabled={pending} onClick={() => act(async () => {
-            savePomodoro(null); // a manual stop also ends a pomodoro session
-            await stopTimerAction();
-          })}>
+          <Button size="sm" variant="destructive" disabled={pending} onClick={() => act(() => stopTimerAction())}>
             <Square className="me-1 h-4 w-4 fill-current" /> {t("time.stop")}
           </Button>
         ) : (
-          <>
-            <Button size="sm" disabled={pending} onClick={() => act(() => startTimerAction(taskId))}>
-              <Play className="me-1 h-4 w-4" /> {t("time.start")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={pending}
-              title={t("pomodoro.hint")}
-              onClick={() =>
-                act(async () => {
-                  requestNotifyPermission();
-                  await startTimerAction(taskId, "pomodoro");
-                  savePomodoro(startPomodoro(taskId, Date.now(), taskTitle));
-                })
-              }
-            >
-              <span className="me-1" aria-hidden>🍅</span> {t("pomodoro.start")}
-            </Button>
-          </>
+          <Button size="sm" disabled={pending} onClick={() => act(() => startTimerAction(taskId))}>
+            <Play className="me-1 h-4 w-4" /> {t("time.start")}
+          </Button>
         )}
         <span className="text-sm text-muted-foreground">
           {t("time.total")}: <span className="font-semibold text-foreground tabular-nums">{formatMinutes(totalMinutes)}</span>
@@ -122,7 +98,6 @@ export function TimeTracking({
               <span className="tabular-nums text-indigo-600">
                 {e.endedAt ? formatMinutes(e.minutes) : t("time.running")}
               </span>
-              {e.source === "pomodoro" && <span title={t("pomodoro.title")}>🍅</span>}
               {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}
               <span className="ms-auto text-xs text-muted-foreground">{new Date(e.startedAt).toLocaleDateString()}</span>
               <button
