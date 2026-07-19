@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/i18n-provider";
-import { isAdminRole, isSuperAdmin } from "@/lib/enums";
+import { isAdminRole } from "@/lib/enums";
 import { createSampleProjectAction } from "@/actions/onboarding";
 import type { TKey } from "@/lib/i18n";
 
@@ -46,18 +46,9 @@ export function WelcomeModal({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState(false);
 
-  const roleTitle: TKey = isSuperAdmin(role)
-    ? "onboarding.role.backend.title"
-    : admin
-      ? "onboarding.role.admin.title"
-      : "onboarding.role.user.title";
-  const roleDesc: TKey = isSuperAdmin(role)
-    ? "onboarding.role.backend.desc"
-    : admin
-      ? "onboarding.role.admin.desc"
-      : "onboarding.role.user.desc";
-
   // Feature highlights shown as a short "what you can do here" list.
+  // Deliberately NO role/permission explanation and no marketing copy —
+  // the customer wants a neutral, purely functional onboarding.
   const features: { icon: typeof KanbanSquare; key: TKey }[] = [
     { icon: KanbanSquare, key: "onboarding.feature.board" },
     { icon: Timer, key: "onboarding.feature.timer" },
@@ -102,16 +93,6 @@ export function WelcomeModal({
             {t("onboarding.welcome.subtitle")}
           </DialogDescription>
         </DialogHeader>
-
-        {/* Role explanation */}
-        <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-3 dark:border-indigo-400/20 dark:bg-indigo-500/10">
-          <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">
-            {t(roleTitle)}
-          </p>
-          <p className="mt-0.5 text-sm text-indigo-700/80 dark:text-indigo-200/70">
-            {t(roleDesc)}
-          </p>
-        </div>
 
         {/* What you can do */}
         <ul className="grid gap-2">
