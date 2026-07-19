@@ -348,7 +348,10 @@ export function AppShell({
 
         </header>
 
-        <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+        {/* Mobile bottom padding must clear the fixed bottom nav (~4.5rem incl.
+            labels) with breathing room, or the last buttons on long pages
+            (comment send, voice note) sit under the nav. */}
+        <main className="flex-1 pb-[calc(8.5rem+env(safe-area-inset-bottom))] md:pb-8">
           <AppEnvironmentBanner />
           {user.mustChangePassword && (
             <div className="border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
