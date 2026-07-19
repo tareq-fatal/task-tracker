@@ -439,6 +439,9 @@ model Task {
   assignees        TaskAssignee[]
 
   // #24 — admin support: when set, the task is flagged as escalated (needs help).
+  // DEPRECATED 2026-07-19: escalation-support feature removed on customer
+  // request (priority=Critical covers the need). Column kept so existing rows
+  // stay intact; drop in a later cleanup migration once confirmed unused.
   escalatedAt DateTime?
 
   commentReads TaskCommentRead[]

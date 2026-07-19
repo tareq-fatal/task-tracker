@@ -776,12 +776,15 @@ export async function addCommentAction(
         })
       : [];
     const mentionedIds = new Set(mentioned.map((u) => u.id));
+    // Body format (push + Telegram): task title, author, short excerpt — the
+    // localized headline comes from titleKey per recipient locale.
+    const commentBody = `«${task.title}»\n👤 ${user.name}: ${parsed.data.content.slice(0, 60)}`;
     if (mentionedIds.size) {
       await notifyMany([...mentionedIds], {
         tenantId: task.tenantId,
         type: "mention",
         titleKey: "notif.t.mention",
-        body: parsed.data.content.slice(0, 140),
+        body: commentBody,
         url: `/tasks/${taskId}`,
         taskId,
         actorUserId: user.id,
@@ -802,7 +805,7 @@ export async function addCommentAction(
       tenantId: task.tenantId,
       type: "comment",
       titleKey: "notif.t.comment",
-      body: `${task.title}: ${parsed.data.content.slice(0, 120)}`,
+      body: commentBody,
       url: `/tasks/${taskId}`,
       taskId,
       actorUserId: user.id,
