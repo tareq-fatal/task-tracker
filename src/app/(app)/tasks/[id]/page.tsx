@@ -22,8 +22,7 @@ import { Check, CheckCheck } from "lucide-react";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
-import { SupportTools } from "@/components/support-tools";
-import { AlertTriangle, Ban } from "lucide-react";
+import { Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
@@ -156,10 +155,7 @@ export default async function TaskDetailPage({
 
   const isBlocked = openStatus(task.status) && blockedBy.length > 0;
 
-  // #24 — admin support state
   const isAdmin = isAdminRole(user.role);
-  const escalated = task.escalatedAt != null;
-  const isAssisting = task.assignees.some((a) => a.userId === user.id);
 
   // #12 — read-receipts: watchers = all assignees + creator; a comment I wrote is
   // ✓✓ once every OTHER watcher has read past it.
@@ -269,14 +265,6 @@ export default async function TaskDetailPage({
         )}
       </div>
 
-      {/* #24 — escalation banner (visible to everyone on the task) */}
-      {escalated && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
-          <AlertTriangle className="h-4 w-4" />
-          {t["support.escalatedBanner"]}
-        </div>
-      )}
-
       {/* Dependencies — blocked banner + clickable chips, visible to everyone */}
       {isBlocked && (
         <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-500/40 dark:bg-amber-500/10">
@@ -313,13 +301,6 @@ export default async function TaskDetailPage({
               <StatusBadge status={b.status} />
             </Link>
           ))}
-        </div>
-      )}
-
-      {/* #24 — admin-only support tools */}
-      {isAdmin && (
-        <div className="mb-6">
-          <SupportTools taskId={task.id} escalated={escalated} isAssisting={isAssisting} />
         </div>
       )}
 
