@@ -20,9 +20,9 @@ const L = {
     en: "⚠️ Invalid or expired code. Open the app → Settings → “Connect Telegram” and try again.",
   },
   start: {
-    ar: "مرحبًا! للربط: افتح متعقب المهام ← الإعدادات ← «الربط مع تيليغرام».",
-    de: "Hallo! Zum Verbinden: Task Tracker öffnen → Einstellungen → „Mit Telegram verbinden“.",
-    en: "Hi! To link: open Task Tracker → Settings → “Connect Telegram”.",
+    ar: "مرحبًا 👋 هذا بوت إشعارات متعقب المهام. لربط حسابك: افتح التطبيق ← الإعدادات ← «الربط مع تيليغرام».",
+    de: "Hallo 👋 Das ist der Benachrichtigungs-Bot des Task Trackers. Zum Verbinden: App öffnen → Einstellungen → „Mit Telegram verbinden“.",
+    en: "Hi 👋 This is the Task Tracker notification bot. To link your account: open the app → Settings → “Connect Telegram”.",
   },
   unlinked: {
     ar: "🔌 تم فصل الحساب. لن تصلك إشعارات بعد الآن.",
@@ -50,9 +50,9 @@ const L = {
     en: "Not linked yet. Open the app → Settings → “Connect Telegram”.",
   },
   alreadyLinked: {
-    ar: "أنت متصل بالفعل ✅ — إشعاراتك تصل هنا.",
-    de: "Du bist bereits verbunden ✅ — deine Benachrichtigungen kommen hier an.",
-    en: "You are already connected ✅ — your notifications arrive here.",
+    ar: "أنت متصل بالفعل ✅ ستصلك الإشعارات هنا. اكتب /help للأوامر.",
+    de: "Du bist bereits verbunden ✅ — Benachrichtigungen kommen hier an. Tippe /help für die Befehle.",
+    en: "You are already connected ✅ — notifications arrive here. Type /help for commands.",
   },
   unknown: {
     ar: "لم أفهم هذه الرسالة. اكتب /help لعرض الأوامر.",
@@ -107,6 +107,11 @@ export async function POST(req: NextRequest) {
           data: { telegramChatId: chatId, telegramLinkToken: null, telegramMuted: false },
         });
         await sendTelegramMessage(chatId, msg("linked", user.locale));
+      } else if (linkedUser) {
+        // Stale payload (tokens are one-time and Telegram re-sends the old
+        // deep-link parameter on every Start tap) but the chat IS connected —
+        // reassure instead of scaring with "invalid token".
+        await sendTelegramMessage(chatId, msg("alreadyLinked", locale));
       } else {
         await sendTelegramMessage(chatId, msg("badToken", locale));
       }
