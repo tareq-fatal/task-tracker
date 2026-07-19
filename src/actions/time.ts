@@ -30,16 +30,13 @@ export async function getRunningEntry(): Promise<RunningEntry> {
   return e ? { id: e.id, taskId: e.taskId, taskTitle: e.task.title, startedAt: e.startedAt.toISOString() } : null;
 }
 
-export async function startTimerAction(
-  taskId: string,
-  source: "timer" | "pomodoro" = "timer"
-): Promise<{ ok: boolean }> {
+export async function startTimerAction(taskId: string): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
   await taskInTenant(taskId, tenant.id);
   // stop any other running entry for this user first (one timer at a time)
   await stopTimerAction();
   await prisma.taskTimeEntry.create({
-    data: { taskId, userId: user.id, tenantId: tenant.id, startedAt: new Date(), endedAt: null, source },
+    data: { taskId, userId: user.id, tenantId: tenant.id, startedAt: new Date(), endedAt: null, source: "timer" },
   });
   revalidatePath(`/tasks/${taskId}`);
   revalidatePath("/", "layout");

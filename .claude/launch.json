@@ -1,0 +1,81 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "gantt-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\gantt-view && npm run dev -- -p 3210"],
+      "port": 3210,
+      "autoPort": false
+    },
+    {
+      "name": "voice-notes-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\voice-notes && npm run dev -- -p 3208"],
+      "port": 3208,
+      "autoPort": false
+    },
+    {
+      "name": "a11y-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\a11y+wcag-aa-deep && npm run dev -- -p 3102"],
+      "port": 3102
+    },
+    {
+      "name": "bulk-import-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker-bulk-import && npm run dev -- -p 3177"],
+      "port": 3177,
+      "autoPort": false
+    },
+    {
+      "name": "global-search-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\global-search && npm run dev -- -p 3144"],
+      "port": 3144,
+      "autoPort": false
+    },
+    {
+      "name": "realtime-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker-realtime-updates && npm run dev -- -p 3163"],
+      "port": 3163,
+      "autoPort": false
+    },
+    {
+      "name": "task-deps-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\task-deps && npm run dev -- -p 3191"],
+      "port": 3191,
+      "autoPort": false
+    },
+    {
+      "name": "rich-text-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\rich-text-editor && npm run dev -- -p 3199"],
+      "port": 3199,
+      "autoPort": false
+    },
+    {
+      "name": "time-tracking-dev",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker\\.claude\\worktrees\\time-tracking-reports && npm run dev -- -p 3222"],
+      "port": 3222,
+      "autoPort": false
+    },
+    {
+      "name": "openapi-docs",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\sapb1\\source\\Sy\\task-tracker-openapi-spec && npm run dev -- -p 3131"],
+      "port": 3131,
+      "autoPort": false
+    }
+  ]
+}

@@ -35,14 +35,10 @@ test("time report groups logged time and filters billable", async ({ page }) => 
   await expect(page.getByRole("button", { name: "Nicht abrechenbar" })).toBeVisible();
 });
 
-test("pomodoro starts a 25-minute focus countdown in the header", async ({ page }) => {
+test("task detail offers no pomodoro button (feature removed)", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");
-  await newTask(page, `Pomo ${Date.now()}`);
-  await page.getByRole("button", { name: /Pomodoro/ }).click();
-  // header pill: cycle badge ×1 and a 24:xx countdown
-  await expect(page.getByText("×1")).toBeVisible();
-  await expect(page.getByText(/^24:[0-5]\d$/)).toBeVisible();
-  // stopping the pomodoro clears the pill
-  await page.getByRole("button", { name: "Pomodoro beenden" }).click();
-  await expect(page.getByText("×1")).toHaveCount(0);
+  await newTask(page, `Kein Pomo ${Date.now()}`);
+  // plain timer start is there, the pomodoro button is gone
+  await expect(page.getByRole("button", { name: "Timer starten" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Pomodoro/ })).toHaveCount(0);
 });

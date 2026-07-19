@@ -508,7 +508,6 @@ export default async function TaskDetailPage({
           </h2>
           <TimeTracking
             taskId={task.id}
-            taskTitle={task.title}
             runningOnThisTask={runningOnThisTask}
             totalMinutes={timeTotal}
             entries={task.timeEntries.map((e) => ({
@@ -525,26 +524,29 @@ export default async function TaskDetailPage({
         </CardContent>
       </Card>
 
-      {/* Progress + Subtasks + Links — content, so creator/admin only (#36) */}
+      {/* Progress + Subtasks — shared working state: EVERY collaborator on
+          this page may edit (viewing already requires admin/creator/assignee,
+          so uninvolved viewers never get here — they 404 above). */}
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card>
+          <CardContent className="p-5">
+            <ProgressControl
+              taskId={task.id}
+              value={task.progress}
+              hasSubtasks={task.subtasks.length > 0}
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <SubtaskList taskId={task.id} subtasks={task.subtasks} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Links + custom fields — content, so creator/admin only (#36) */}
       {canEditContent && (
         <>
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Card>
-              <CardContent className="p-5">
-                <ProgressControl
-                  taskId={task.id}
-                  value={task.progress}
-                  hasSubtasks={task.subtasks.length > 0}
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-5">
-                <SubtaskList taskId={task.id} subtasks={task.subtasks} />
-              </CardContent>
-            </Card>
-          </div>
-
           <Card className="mb-6">
             <CardContent className="p-5">
               <TaskLinks

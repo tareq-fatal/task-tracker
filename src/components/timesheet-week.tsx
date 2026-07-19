@@ -219,7 +219,6 @@ export function TimesheetWeek({
                     <Link href={`/tasks/${e.taskId}`} className="truncate font-medium hover:underline">
                       {e.taskTitle}
                     </Link>
-                    {e.source === "pomodoro" && <span title={t("pomodoro.title")}>🍅</span>}
                     {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}
                     <span className="ms-auto tabular-nums font-medium text-indigo-600">
                       {e.endedAt ? formatMinutes(entryMinutes(e, now)) : t("time.running")}
