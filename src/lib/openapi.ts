@@ -217,7 +217,7 @@ const User: Json = {
     "strings: empty email = no email, empty password = a temporary one is generated.",
   required: ["name", "username"],
   properties: {
-    name: { type: "string", minLength: 1, maxLength: 120, example: "Tarek Fatal" },
+    name: { type: "string", minLength: 1, maxLength: 120, example: "Ahmed Ali" },
     username: {
       type: "string",
       minLength: 3,
