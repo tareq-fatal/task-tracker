@@ -19,6 +19,7 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
   const [supported, setSupported] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [testState, setTestState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
 
   useEffect(() => {
     const ok =
@@ -88,11 +89,34 @@ export function PushToggle({ vapidPublicKey }: { vapidPublicKey: string }) {
     );
   }
 
+  async function sendTest() {
+    setTestState("sending");
+    try {
+      const res = await fetch("/api/push/test", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      setTestState(res.ok && data.ok ? "sent" : "failed");
+    } catch {
+      setTestState("failed");
+    }
+    setTimeout(() => setTestState("idle"), 5000);
+  }
+
   return subscribed ? (
-    <Button variant="outline" onClick={disable} disabled={busy}>
-      <BellOff className="me-1 h-4 w-4" />
-      {busy ? "…" : "Aus / Off"}
-    </Button>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button variant="outline" onClick={disable} disabled={busy}>
+        <BellOff className="me-1 h-4 w-4" />
+        {busy ? "…" : "Aus / Off"}
+      </Button>
+      <Button variant="secondary" onClick={sendTest} disabled={testState === "sending"}>
+        {testState === "sending" ? "…" : t("push.test.button")}
+      </Button>
+      {testState === "sent" && (
+        <span className="text-sm text-emerald-600">{t("push.test.sent")}</span>
+      )}
+      {testState === "failed" && (
+        <span className="text-sm text-destructive">{t("push.test.failed")}</span>
+      )}
+    </div>
   ) : (
     <Button onClick={enable} disabled={busy}>
       <Bell className="me-1 h-4 w-4" />
