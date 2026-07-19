@@ -49,6 +49,16 @@ const L = {
     de: "Noch nicht verknüpft. App → Einstellungen → „Mit Telegram verbinden“.",
     en: "Not linked yet. Open the app → Settings → “Connect Telegram”.",
   },
+  alreadyLinked: {
+    ar: "أنت متصل بالفعل ✅ — إشعاراتك تصل هنا.",
+    de: "Du bist bereits verbunden ✅ — deine Benachrichtigungen kommen hier an.",
+    en: "You are already connected ✅ — your notifications arrive here.",
+  },
+  unknown: {
+    ar: "لم أفهم هذه الرسالة. اكتب /help لعرض الأوامر.",
+    de: "Das habe ich nicht verstanden. Tippe /help für die Befehle.",
+    en: "I did not understand that. Type /help for the commands.",
+  },
 } as const;
 
 type MsgKey = keyof typeof L;
@@ -101,7 +111,8 @@ export async function POST(req: NextRequest) {
         await sendTelegramMessage(chatId, msg("badToken", locale));
       }
     } else {
-      await sendTelegramMessage(chatId, msg(linkedUser ? "linked" : "start", locale));
+      // Bare /start: no re-onboarding for an already-connected chat.
+      await sendTelegramMessage(chatId, msg(linkedUser ? "alreadyLinked" : "start", locale));
     }
     return NextResponse.json({ ok: true });
   }
@@ -129,6 +140,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  await sendTelegramMessage(chatId, msg("help", locale));
+  if (cmd === "/help") {
+    await sendTelegramMessage(chatId, msg("help", locale));
+    return NextResponse.json({ ok: true });
+  }
+
+  // Anything else (free text, typos): one gentle line — the full command list
+  // only appears on an explicit /help, not as a reply to every message.
+  await sendTelegramMessage(chatId, msg("unknown", locale));
   return NextResponse.json({ ok: true });
 }
