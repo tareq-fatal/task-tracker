@@ -48,6 +48,7 @@ import { ScrollProgress } from "@/components/scroll-progress";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { GlobalSearch } from "@/components/global-search";
 import { RunningTimer } from "@/components/running-timer";
+import { AppEnvironmentBanner } from "@/components/app-environment-banner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { TooltipHelp } from "@/components/ui/tooltip";
@@ -348,6 +349,7 @@ export function AppShell({
         </header>
 
         <main className="flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+          <AppEnvironmentBanner />
           {user.mustChangePassword && (
             <div className="border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300">
               {t("account.mustChangePassword")}{" "}
