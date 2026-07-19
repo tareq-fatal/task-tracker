@@ -938,8 +938,19 @@ export async function addVoiceNoteAction(
   const note = await prisma.voiceNote.create({
     data: { taskId, userId: user.id, ...saved },
   });
-  await logActivity(taskId, user.id, "voice_note", formatSeconds(saved.durationSec));
-  await notifyAdminsOfChange(user, task, `🎤 Sprachnotiz (${formatSeconds(saved.durationSec)})`);
+  const noteFmt = formatSeconds(saved.durationSec);
+  await logActivity(taskId, user.id, "voice_note", noteFmt);
+  // A voice note is a comment in audio form — notify every watcher (creator,
+  // Hauptkopf, co-assignees) exactly like a text comment. Rides the "comment"
+  // preference; the 🎤 title key differentiates the copy.
+  await notifyWatchers(
+    task,
+    user.id,
+    "comment",
+    "notif.t.voiceNote",
+    `«${task.title}»\n👤 ${user.name} (${noteFmt})`
+  );
+  await notifyAdminsOfChange(user, task, `🎤 Sprachnotiz (${noteFmt})`);
   // Optional Whisper transcription (ENV opt-in) — fire and forget.
   transcribeVoiceNote(note.id).catch(() => {});
 
@@ -972,18 +983,15 @@ export async function addVoiceCommentAction(
     select: { id: true, tenantId: true, title: true, assignedToUserId: true, createdByUserId: true },
   });
   if (task) {
-    const watchers = [task.assignedToUserId, task.createdByUserId].filter(
-      (x): x is string => Boolean(x)
+    // Same watcher circle as text comments (co-assignees included) and the
+    // dedicated 🎤 title so recipients know it's audio before opening.
+    await notifyWatchers(
+      task,
+      user.id,
+      "comment",
+      "notif.t.voiceNote",
+      `«${task.title}»\n👤 ${user.name} (${fmt})`
     );
-    await notifyMany(watchers, {
-      tenantId: task.tenantId,
-      type: "comment",
-      titleKey: "notif.t.comment",
-      body: `${task.title}: 🎤 Sprachnotiz (${fmt})`,
-      url: `/tasks/${taskId}`,
-      taskId,
-      actorUserId: user.id,
-    });
     await notifyAdminsOfChange(user, task, `🎤 Sprachnotiz (${fmt})`);
   }
   transcribeVoiceNote(note.id).catch(() => {});
