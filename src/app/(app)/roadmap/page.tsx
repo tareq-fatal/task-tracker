@@ -8,6 +8,7 @@ import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { laneRange, pct, roadmapWindow, ZOOMS, type Zoom } from "@/lib/roadmap";
 import { cn } from "@/lib/utils";
 import { RoadmapView, type Lane } from "@/components/roadmap-view";
+import { TimelineTabs } from "@/components/timeline-tabs";
 
 // Distinct lane colours (epics have no project colour of their own)
 const PALETTE = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6", "#14b8a6", "#f43f5e"];
@@ -69,6 +70,7 @@ export default async function RoadmapPage({ searchParams }: { searchParams: { zo
 
   return (
     <div className="container py-6">
+      <TimelineTabs active="roadmap" labels={{ gantt: t["nav.gantt"], roadmap: t["nav.roadmap"] }} />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t["roadmap.title"]}</h1>
