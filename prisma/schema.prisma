@@ -452,6 +452,12 @@ model Task {
   // stay intact; drop in a later cleanup migration once confirmed unused.
   escalatedAt DateTime?
 
+  // Soft-delete: rows are never hard-deleted from the UI — old links land on
+  // a friendly "deleted" page and admins can restore. List reads exclude
+  // these automatically via the Prisma client extension in lib/prisma.ts.
+  deletedAt DateTime?
+  deletedBy String? // user id who deleted; resolved to a name on display
+
   commentReads TaskCommentRead[]
 
   createdByUserId String
@@ -492,6 +498,7 @@ model Task {
   @@index([parentId])
   @@index([tenantId])
   @@index([workflowColumnId])
+  @@index([deletedAt])
   @@index([recurringNextAt])
 }
 

@@ -18,7 +18,8 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
-import { Check, CheckCheck } from "lucide-react";
+import { Check, CheckCheck, Trash2 } from "lucide-react";
+import { RestoreTaskButton } from "@/components/restore-task-button";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
@@ -120,6 +121,40 @@ export default async function TaskDetailPage({
   const canView =
     isAdminRole(user.role) || task.createdByUserId === user.id || isAssignee;
   if (!canView) notFound();
+
+  // Soft-deleted → friendly "task was deleted" page (HTTP 200) for everyone
+  // involved instead of a bare 404; admins additionally get a restore button.
+  if (task.deletedAt) {
+    const deletedByUser = task.deletedBy
+      ? await prisma.user.findUnique({ where: { id: task.deletedBy }, select: { name: true } })
+      : null;
+    const assigneeNames = task.assignees.map((a) => a.user.name).join("، ");
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Trash2 className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["deleted.banner"]}</h1>
+        <p className="mt-2 text-lg italic text-muted-foreground line-through">{task.title}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {t["deleted.by"]
+            .replace("{name}", deletedByUser?.name ?? "—")
+            .replace("{date}", task.deletedAt.toLocaleDateString(getActiveLocale()))}
+        </p>
+        {assigneeNames && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t["deleted.wasAssigned"]}: {assigneeNames}
+          </p>
+        )}
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link href="/">{t["deleted.back"]}</Link>
+          </Button>
+          {isAdminRole(user.role) && <RestoreTaskButton taskId={task.id} />}
+        </div>
+      </div>
+    );
+  }
 
   // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
   const canEditContent = canEditTaskContent(user, task);
