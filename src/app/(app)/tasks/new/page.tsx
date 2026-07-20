@@ -7,6 +7,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { createTaskAction } from "@/actions/tasks";
 import { TaskForm } from "@/components/task-form";
 import { isAdminRole } from "@/lib/enums";
+import { taskParticipation } from "@/lib/task-access";
 
 export default async function NewTaskPage({
   searchParams,
@@ -20,7 +21,8 @@ export default async function NewTaskPage({
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.task.findMany({ where: { tenantId: tenant.id, type: { not: "Subtask" } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    // Parent picker: only tasks the user participates in (admins: all).
+    prisma.task.findMany({ where: { ...(await taskParticipation(user, tenant.id)), type: { not: "Subtask" } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
 
   return (
