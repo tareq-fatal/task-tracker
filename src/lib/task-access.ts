@@ -54,6 +54,30 @@ export async function taskVisibility(
 }
 
 /**
+ * Prisma `where` for task PICKERS (parent selector etc.): every task the user
+ * is involved in — creator OR any assignee (Hauptkopf/co-assignee) OR a task
+ * in one of their member projects. Slightly wider than `taskVisibility` (which
+ * omits creator-only tasks) and exactly what a user may reference. Admins: the
+ * whole tenant, as everywhere.
+ */
+export async function taskParticipation(
+  user: { id: string; role: string },
+  tenantId: string
+) {
+  if (isAdminRole(user.role)) return { tenantId };
+  const projectIds = await memberProjectIds(user.id, tenantId);
+  return {
+    tenantId,
+    OR: [
+      { assignees: { some: { userId: user.id } } },
+      { assignedToUserId: user.id },
+      { createdByUserId: user.id },
+      ...(projectIds.length ? [{ projectId: { in: projectIds } }] : []),
+    ],
+  };
+}
+
+/**
  * Can this user open a specific project? Admins: any project in the tenant.
  * Non-admins: projects they are a member of, OR projects that contain a task
  * assigned to them (so they never lose access to work they already have).

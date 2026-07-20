@@ -9,7 +9,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { updateTaskAction } from "@/actions/tasks";
 import { formatDuration } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
-import { canEditTaskContent } from "@/lib/task-access";
+import { canEditTaskContent, taskParticipation } from "@/lib/task-access";
 import { TaskForm } from "@/components/task-form";
 import { describeRule, ruleInterval, ruleWeekdays } from "@/lib/recurrence";
 
@@ -31,7 +31,21 @@ export default async function EditTaskPage({
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.task.findMany({ where: { tenantId: tenant.id, type: { not: "Subtask" }, id: { not: task.id } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    // Parent picker: participation-scoped; the CURRENT parent is always kept
+    // selectable so an existing reference never breaks in the form.
+    prisma.task.findMany({
+      where: {
+        type: { not: "Subtask" },
+        id: { not: task.id },
+        OR: [
+          await taskParticipation(user, tenant.id),
+          ...(task.parentId ? [{ id: task.parentId, tenantId: tenant.id }] : []),
+        ],
+      },
+      select: { id: true, title: true },
+      orderBy: { updatedAt: "desc" },
+      take: 200,
+    }),
     prisma.taskAssignee.findMany({ where: { taskId: task.id }, select: { userId: true } }),
   ]);
   // #13 — co-assignees = everyone assigned except the primary (Hauptkopf)
