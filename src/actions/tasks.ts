@@ -338,6 +338,8 @@ async function assertCanEdit(
   if (!task) throw new Error("NOT_FOUND");
   // Hard tenant isolation: a task from another tenant is invisible.
   if (task.tenantId !== tenantId) throw new Error("NOT_FOUND");
+  // Soft-deleted tasks accept no edits/comments/timers until restored.
+  if (task.deletedAt) throw new Error("NOT_FOUND");
   if (isAdminRole(user.role) || task.createdByUserId === user.id) return task;
   const assignee = await prisma.taskAssignee.findUnique({
     where: { taskId_userId: { taskId, userId: user.id } },
@@ -361,6 +363,7 @@ async function assertCanEditContent(
 ) {
   const task = await prisma.task.findUnique({ where: { id: taskId } });
   if (!task || task.tenantId !== tenantId) throw new Error("NOT_FOUND");
+  if (task.deletedAt) throw new Error("NOT_FOUND");
   if (!canEditTaskContent(user, task)) throw new Error("FORBIDDEN");
   return task;
 }
@@ -730,10 +733,32 @@ export async function deleteTaskAction(taskId: string): Promise<void> {
   // Admins may delete any task; regular users only tasks THEY created (not ones
   // an admin assigned to them). Hard-fail otherwise.
   if (!isAdminRole(user.role) && task.createdByUserId !== user.id) throw new Error("FORBIDDEN");
-  await prisma.task.delete({ where: { id: taskId } });
+  // SOFT delete: the row (with comments, attachments, subtasks, assignees)
+  // stays intact — old links render a friendly "deleted" page and an admin
+  // can restore. Child tasks keep their parentId; their breadcrumb link now
+  // leads to the deleted-task page instead of 404ing.
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { deletedAt: new Date(), deletedBy: user.id },
+  });
   revalidatePath("/");
   revalidatePath("/board");
   redirect("/");
+}
+
+/** Undo a soft delete — admin only. Everything (assignees, comments,
+ *  progress) reappears because nothing was actually removed. */
+export async function restoreTaskAction(taskId: string): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true } });
+  if (!task || task.tenantId !== tenant.id) throw new Error("NOT_FOUND");
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { deletedAt: null, deletedBy: null },
+  });
+  revalidateTaskViews(taskId);
+  return { ok: true };
 }
 
 export async function addCommentAction(

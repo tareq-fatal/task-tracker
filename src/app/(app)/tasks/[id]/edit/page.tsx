@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +23,9 @@ export default async function EditTaskPage({
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task || task.tenantId !== tenant.id) notFound();
+  // Soft-deleted tasks are not editable — the detail route shows the
+  // friendly "deleted" page (with restore for admins) instead.
+  if (task.deletedAt) redirect(`/tasks/${task.id}`);
 
   // #36 — only the creator or an admin may open the content-edit form.
   if (!canEditTaskContent(user, task)) notFound();
