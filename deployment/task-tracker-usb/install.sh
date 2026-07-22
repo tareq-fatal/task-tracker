@@ -142,12 +142,16 @@ else
   die "Only ${DISK_GB} GB free on /var/lib — need at least 8 GB (20 GB recommended)."
 fi
 
+# Capture first, match in the shell: `… | grep -q` under pipefail returns 141
+# on a match (SIGPIPE for the writer), which reads as "no match".
 port_busy() {
-  local p="$1"
+  local p="$1" listening=""
   if command -v ss >/dev/null 2>&1; then
-    ss -ltnH "sport = :$p" 2>/dev/null | grep -q . && return 0
+    listening="$(ss -ltnH "sport = :$p" 2>/dev/null || true)"
+    [ -n "$listening" ] && return 0
   elif command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null | grep -qE "[:.]$p[[:space:]]" && return 0
+    listening="$(netstat -ltn 2>/dev/null || true)"
+    case "$listening" in *:"$p"[[:space:]]*) return 0 ;; esac
   fi
   return 1
 }
@@ -159,6 +163,30 @@ for p in "$HTTP_PORT" "$HTTPS_PORT"; do
   fi
 done
 ok "Ports $HTTP_PORT and $HTTPS_PORT are free"
+
+# Minimal cloud images ship without openssl or curl, and every password this
+# installer generates comes out of openssl. Fix that before anything needs them.
+MISSING=""
+command -v openssl >/dev/null 2>&1 || MISSING="$MISSING openssl"
+if [ "$OFFLINE" = "0" ]; then
+  command -v curl >/dev/null 2>&1 || command -v wget >/dev/null 2>&1 || MISSING="$MISSING curl"
+  [ -e /etc/ssl/certs/ca-certificates.crt ] || MISSING="$MISSING ca-certificates"
+fi
+if [ -n "$MISSING" ]; then
+  if [ "$OFFLINE" = "1" ]; then
+    die "These programs are missing and cannot be installed offline:$MISSING
+Install them from your distribution media, then re-run:  apt-get install$MISSING"
+  fi
+  info "Installing the missing base packages:$MISSING"
+  # shellcheck disable=SC2086  # deliberate word splitting of the package list
+  DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $MISSING >/dev/null 2>&1 \
+    || die "Could not install:$MISSING
+Install them by hand (apt-get install$MISSING) and re-run this script."
+  ok "Base packages installed:$MISSING"
+else
+  ok "All required base programs are present"
+fi
 
 REINSTALL=0
 if [ -f "$TT_INSTALL_DIR/.env" ]; then
@@ -217,17 +245,47 @@ Install Docker manually (apt-get install docker.io docker-compose-v2) and re-run
   ok "Docker installed"
 fi
 
-# The daemon is not necessarily running yet (fresh install, or a container host).
-if ! docker info >/dev/null 2>&1; then
-  info "Starting the Docker service…"
-  if command -v systemctl >/dev/null 2>&1; then
+# The daemon is not necessarily running yet (fresh install, or a host without
+# systemd). Try each start method in turn and VERIFY after each one — a start
+# command that returns 0 without a working daemon is common in containers.
+docker_up() {
+  local tries="${1:-20}"
+  for _ in $(seq 1 "$tries"); do
+    docker info >/dev/null 2>&1 && return 0
+    sleep 1
+  done
+  return 1
+}
+
+start_docker() {
+  if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+    info "Starting Docker via systemd…"
     systemctl enable --now docker >/dev/null 2>&1 || true
-  else
-    service docker start >/dev/null 2>&1 || true
+    docker_up 25 && return 0
   fi
-  for _ in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done
+  if [ -x /etc/init.d/docker ]; then
+    info "Starting Docker via its init script…"
+    service docker start >/dev/null 2>&1 || /etc/init.d/docker start >/dev/null 2>&1 || true
+    docker_up 25 && return 0
+  fi
+  # Last resort — LXC / container hosts / images without any service manager.
+  warn "No working service manager for Docker — starting the daemon directly."
+  ( dockerd >/var/log/dockerd.log 2>&1 & ) || true
+  if docker_up 30; then
+    warn "Docker was started by hand and will NOT survive a reboot of this"
+    warn "machine. Arrange for 'dockerd' to be started at boot."
+    return 0
+  fi
+  return 1
+}
+
+if ! docker info >/dev/null 2>&1; then
+  start_docker || {
+    err "The Docker daemon is not responding."
+    [ -s /var/log/dockerd.log ] && { err "Last lines of /var/log/dockerd.log:"; tail -n 15 /var/log/dockerd.log >&2; }
+    die "Check 'systemctl status docker' (or /var/log/dockerd.log) and re-run this script."
+  }
 fi
-docker info >/dev/null 2>&1 || die "The Docker daemon is not responding. Check: systemctl status docker"
 ok "Docker daemon is running"
 
 resolve_compose || die "Docker Compose is missing. Install the docker-compose-plugin package and re-run."
@@ -251,13 +309,15 @@ if [ -z "$DOMAIN" ] && [ "$TT_ASSUME_YES" != "1" ]; then
 fi
 
 # A bare IP or 'localhost' cannot get a Let's Encrypt certificate.
+# Matched with bash's own =~ rather than `printf | grep -q`, which returns 141
+# under pipefail exactly when it matches.
 USE_TLS=1
 if [ -z "$DOMAIN" ] || [ "$DOMAIN" = "localhost" ] \
-   || printf '%s' "$DOMAIN" | grep -qE '^[0-9]+(\.[0-9]+){3}$'; then
+   || [[ "$DOMAIN" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
   USE_TLS=0
   [ -n "$DOMAIN" ] && warn "'$DOMAIN' cannot have a public certificate — installing for plain HTTP."
   DOMAIN=""
-elif ! printf '%s' "$DOMAIN" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$'; then
+elif ! [[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]]; then
   die "'$DOMAIN' is not a valid domain name."
 fi
 
@@ -317,8 +377,8 @@ else
   if [ "$OFFLINE" = "1" ] && [ -f "$BUNDLE_DIR/images/build-info.env" ]; then
     # The public half is compiled into the pre-built image, so the private half
     # has to be the one it was generated with.
-    VAPID_PUBLIC_KEY="$(sed -n 's/^VAPID_PUBLIC_KEY=//p' "$BUNDLE_DIR/images/build-info.env" | head -n1)"
-    VAPID_PRIVATE_KEY="$(sed -n 's/^VAPID_PRIVATE_KEY=//p' "$BUNDLE_DIR/images/build-info.env" | head -n1)"
+    VAPID_PUBLIC_KEY="$(sed -n 's/^VAPID_PUBLIC_KEY=//p' "$BUNDLE_DIR/images/build-info.env" | sed -n '1p')"
+    VAPID_PRIVATE_KEY="$(sed -n 's/^VAPID_PRIVATE_KEY=//p' "$BUNDLE_DIR/images/build-info.env" | sed -n '1p')"
     ok "Web-Push keypair (from the pre-built image)"
   elif gen_vapid; then
     ok "Web-Push keypair"
@@ -431,7 +491,7 @@ info "Waiting for the database migrations to finish…"
 APP_CID=""
 HEALTHY=0
 for i in $(seq 1 150); do
-  APP_CID="$(dc ps -q app 2>/dev/null | head -n1)"
+  APP_CID="$(dc ps -q app 2>/dev/null | sed -n '1p')"
   if [ -n "$APP_CID" ]; then
     state="$(docker inspect -f '{{.State.Health.Status}}' "$APP_CID" 2>/dev/null || echo starting)"
     [ "$state" = "healthy" ] && { HEALTHY=1; break; }

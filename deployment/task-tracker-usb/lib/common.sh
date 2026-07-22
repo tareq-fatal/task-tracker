@@ -67,10 +67,16 @@ docker_ready() {
 # --- Config ------------------------------------------------------------------
 # Read a single key out of the installed .env without sourcing it (values may
 # contain characters the shell would try to interpret).
+# NOTE on pipelines in this bundle: every script runs with `set -o pipefail`, so
+# a pipeline whose READER exits early (head -n1, head -c N, grep -q) kills the
+# writer with SIGPIPE and makes the whole pipeline fail with 141. Several
+# helpers below are written the long way round purely to avoid that.
 env_get() {
   local key="$1" file="${2:-$TT_INSTALL_DIR/.env}"
   [ -f "$file" ] || return 1
-  sed -n "s/^${key}=//p" "$file" | head -n1
+  # `sed -n 1p` (not `1q`) keeps reading to EOF, so the upstream sed never gets
+  # SIGPIPE when the key appears more than once.
+  sed -n "s/^${key}=//p" "$file" | sed -n '1p'
 }
 
 require_installed() {
@@ -121,10 +127,14 @@ rand_hex()    { openssl rand -hex "${1:-32}"; }
 rand_base64() { openssl rand -base64 "${1:-32}" | tr -d '\n='; }
 
 # A password safe to paste into a URL / .env without quoting: no /, +, =, or
-# shell metacharacters.
+# shell metacharacters. Built by appending filtered chunks and slicing in the
+# shell — `tr </dev/urandom | head -c N` would die of SIGPIPE under pipefail.
 rand_password() {
-  local n="${1:-24}"
-  LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$n"
+  local n="${1:-24}" out=""
+  while [ "${#out}" -lt "$n" ]; do
+    out="$out$(openssl rand -base64 48 | LC_ALL=C tr -dc 'A-Za-z0-9')"
+  done
+  printf '%s' "${out:0:n}"
 }
 
 # VAPID keypair (Web Push, RFC 8292): a P-256 key whose two halves are
@@ -137,15 +147,19 @@ rand_password() {
 b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 
 gen_vapid() {
-  local keyfile
-  keyfile="$(mktemp)"
-  chmod 600 "$keyfile"
+  local keyfile derfile pubfile
+  keyfile="$(mktemp)"; derfile="$(mktemp)"; pubfile="$(mktemp)"
+  chmod 600 "$keyfile" "$derfile" "$pubfile"
   openssl ecparam -name prime256v1 -genkey -noout -out "$keyfile" 2>/dev/null \
-    || { rm -f "$keyfile"; return 1; }
+    || { rm -f "$keyfile" "$derfile" "$pubfile"; return 1; }
 
-  VAPID_PUBLIC_KEY="$(openssl ec -in "$keyfile" -pubout -outform DER 2>/dev/null | tail -c 65 | b64url)"
-  VAPID_PRIVATE_KEY="$(openssl ec -in "$keyfile" -outform DER 2>/dev/null | tail -c +8 | head -c 32 | b64url)"
-  rm -f "$keyfile"
+  # Both halves are cut out of FILES rather than out of a pipe: `head -c 32` on
+  # an openssl pipeline would SIGPIPE openssl and fail under pipefail.
+  openssl ec -in "$keyfile" -pubout -outform DER -out "$pubfile" 2>/dev/null
+  openssl ec -in "$keyfile" -outform DER -out "$derfile" 2>/dev/null
+  VAPID_PUBLIC_KEY="$(tail -c 65 "$pubfile" | b64url)"
+  VAPID_PRIVATE_KEY="$(dd if="$derfile" bs=1 skip=7 count=32 2>/dev/null | b64url)"
+  rm -f "$keyfile" "$derfile" "$pubfile"
 
   # 65 raw bytes -> 87 base64url chars; 32 -> 43. Anything else means the DER
   # layout was not what we assumed and the keys would silently not work.

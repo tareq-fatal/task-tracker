@@ -169,7 +169,7 @@ fi
 step "Starting the application again"
 dc up -d --no-build >/dev/null
 for i in $(seq 1 90); do
-  cid="$(dc ps -q app 2>/dev/null | head -n1)"
+  cid="$(dc ps -q app 2>/dev/null | sed -n '1p')"
   [ -n "$cid" ] && [ "$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null)" = "healthy" ] && break
   sleep 2
 done
@@ -177,4 +177,9 @@ ok "Application running again"
 
 echo
 ok "Restore complete — the data is from $(basename "$SOURCE")."
-[ "$SKIP_SAFETY" = "0" ] && info "Wrong backup? The previous state is in ${SAFETY:-the safety copy}."
+# Written as if/fi, not `[ … ] && info`: as the LAST statement of the script a
+# false test would make restore.sh exit 1 and look like a failure.
+if [ "$SKIP_SAFETY" = "0" ]; then
+  info "Wrong backup? The previous state is in ${SAFETY:-the safety copy}."
+fi
+exit 0

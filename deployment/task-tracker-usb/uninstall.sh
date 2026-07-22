@@ -93,7 +93,10 @@ ok "Containers stopped and removed"
 # Nightly backup timer
 # =============================================================================
 if command -v systemctl >/dev/null 2>&1; then
-  if systemctl list-unit-files 2>/dev/null | grep -q '^task-tracker-backup.timer'; then
+  # Captured, then matched in the shell — `| grep -q` fails with 141 under
+  # pipefail precisely when it finds something.
+  UNIT_FILES="$(systemctl list-unit-files 2>/dev/null || true)"
+  if [ "$UNIT_FILES" != "${UNIT_FILES#*task-tracker-backup.timer}" ]; then
     step "Removing the nightly backup timer"
     systemctl disable --now task-tracker-backup.timer >/dev/null 2>&1 || true
     rm -f /etc/systemd/system/task-tracker-backup.timer /etc/systemd/system/task-tracker-backup.service
@@ -106,9 +109,10 @@ fi
 # Images
 # =============================================================================
 step "Removing the application images"
-docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null \
-  | grep '^task-tracker:' \
-  | while read -r img; do docker rmi "$img" >/dev/null 2>&1 || true; done
+TT_IMAGES="$(docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true)"
+for img in $TT_IMAGES; do
+  case "$img" in task-tracker:*) docker rmi "$img" >/dev/null 2>&1 || true ;; esac
+done
 ok "Images removed"
 info "PostgreSQL and Caddy are left in place — other stacks may use them."
 

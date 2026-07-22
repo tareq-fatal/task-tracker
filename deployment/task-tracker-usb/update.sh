@@ -62,7 +62,7 @@ CURRENT_IMAGE="task-tracker:$CURRENT_VERSION"
 wait_healthy() {
   local limit="${1:-120}" cid state
   for i in $(seq 1 "$limit"); do
-    cid="$(dc ps -q app 2>/dev/null | head -n1)"
+    cid="$(dc ps -q app 2>/dev/null | sed -n '1p')"
     if [ -n "$cid" ]; then
       state="$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo starting)"
       [ "$state" = "healthy" ] && return 0
