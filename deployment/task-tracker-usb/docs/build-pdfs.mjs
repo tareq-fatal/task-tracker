@@ -40,18 +40,28 @@ const IMG = {
   loginAr: dataUri(join(REPO, "screenshots", "v3-ar", "01-login.png")),
   boardAr: dataUri(join(REPO, "screenshots", "v3-ar", "03-board.png")),
   dashAr: dataUri(join(REPO, "screenshots", "v3-ar", "02-dashboard.png")),
-  fresh: dataUri(join(ASSETS, "fresh-install-login.png")),
+  // Captured from the instance the tested install.sh run actually produced —
+  // one per language, since the login page follows DEFAULT_LOCALE.
+  freshDe: dataUri(join(ASSETS, "fresh-install-login-de.png")),
+  freshAr: dataUri(join(ASSETS, "fresh-install-login-ar.png")),
 };
 
-function logSlice(file, from, to) {
+/** Cut the section between two marker lines out of the captured install log.
+ *  `before` pulls in extra leading lines — used to catch the ASCII box drawn
+ *  above the "Installation complete" line. */
+function logSlice(file, from, to, before = 0) {
   const path = join(ASSETS, file);
   if (!existsSync(path)) return "(no captured output available)";
-  const lines = readFileSync(path, "utf8").replace(/\r/g, "").split("\n");
-  const start = from ? lines.findIndex((l) => l.includes(from)) : 0;
+  const lines = readFileSync(path, "utf8")
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((l) => !l.startsWith("# ")); // drop the provenance header
+  const found = from ? lines.findIndex((l) => l.includes(from)) : 0;
+  const start = Math.max(0, (found === -1 ? 0 : found) - before);
   const endRel = to ? lines.slice(start + 1).findIndex((l) => l.includes(to)) : -1;
   const end = endRel === -1 ? lines.length : start + 1 + endRel;
   return lines
-    .slice(Math.max(start, 0), end)
+    .slice(start, end)
     .join("\n")
     .replace(/\[[0-9;]*m/g, "")
     .trimEnd();
@@ -383,9 +393,9 @@ const table = (rows, firstIsCode = false) => `
   </tbody>
 </table>`;
 
-const shot = (src, caption) =>
+const shot = (src, caption, cls = "") =>
   src
-    ? `<figure><img src="${src}" alt=""/>${
+    ? `<figure class="${cls}"><img src="${src}" alt=""/>${
         caption ? `<figcaption>${esc(caption)}</figcaption>` : ""
       }</figure>`
     : "";
@@ -537,8 +547,13 @@ function buildHtml(t, images) {
   figcaption {
     font-size: 8.5pt; color: #64748b; margin-top: 6px; text-align: center;
   }
+  /* The app screenshots are full-page captures and can be several thousand
+     pixels tall. Crop them to the top rather than letting one image eat a
+     whole page. */
   .two-up { display: flex; gap: 10px; break-inside: avoid; }
   .two-up figure { flex: 1; margin: 14px 0; }
+  .two-up img { max-height: 95mm; object-fit: cover; object-position: top center; }
+  figure.crop img { max-height: 110mm; object-fit: cover; object-position: top center; }
   .page-break { break-before: page; }
 </style>
 </head>
@@ -589,14 +604,14 @@ ${table(t.step3Rows)}
 
 ${step(4, t.step4Title)}
 <p>${esc(t.step4Body)}</p>
-${term(logSlice("install-log.txt", "Generating passwords", "Setting up the administrator"))}
+${term(logSlice("install-log.txt", "Generating passwords", "Starting Task Tracker"))}
 ${note(t.step4Note)}
 
 <div class="page-break"></div>
 
 ${step(5, t.step5Title)}
 <p>${esc(t.step5Body)}</p>
-${term(logSlice("install-log.txt", "Installation complete", "Everyday commands"))}
+${term(logSlice("install-log.txt", "Installation complete", "Everyday commands", 1))}
 ${note(t.step5Warn, "warn")}
 
 ${step(6, t.step6Title)}
@@ -658,8 +673,8 @@ async function main() {
       const t = L[lang];
       const images =
         lang === "ar"
-          ? { login: IMG.fresh || IMG.loginAr, dash: IMG.dashAr, board: IMG.boardAr }
-          : { login: IMG.fresh || IMG.loginDe, dash: IMG.dashDe, board: IMG.boardDe };
+          ? { login: IMG.freshAr || IMG.loginAr, dash: IMG.dashAr, board: IMG.boardAr }
+          : { login: IMG.freshDe || IMG.loginDe, dash: IMG.dashDe, board: IMG.boardDe };
 
       const html = buildHtml(t, images);
       // Keep the HTML next to the PDF so the source of a shipped guide is

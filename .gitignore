@@ -60,3 +60,7 @@ e2e/fixtures/*.xlsx
 /android/local.properties
 /android/app/release
 releases/*.apk
+
+# Build output of deployment/task-tracker-usb/make-bundle.sh
+/dist/
+/dist-offline/

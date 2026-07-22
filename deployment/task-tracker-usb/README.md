@@ -110,6 +110,17 @@ every user out.
 > with argon2 (no application-level pepper). `SESSION_SECRET` is the equivalent
 > of the "JWT secret" here.
 
+## Language
+
+`install.sh --locale <ar|de|en>` sets two things:
+
+- `DEFAULT_LOCALE` in `.env` — the language the **login page** comes up in for
+  anyone who has not picked one yet. Read at runtime, so changing it later only
+  needs `sudo ./update.sh --restart`.
+- the administrator account's own locale.
+
+Every user can switch language for themselves; their choice always wins.
+
 ## Online vs. offline bundles
 
 |                        | online bundle          | offline bundle                    |

@@ -31,6 +31,20 @@ const EMAIL = (process.env.ADMIN_EMAIL || "admin@task-tracker.local").toLowerCas
 
 const prisma = new PrismaClient();
 
+async function pruneEmptyDefaultTenant(keepTenantId) {
+  const def = await prisma.tenant.findUnique({ where: { slug: "default" } });
+  if (!def || def.id === keepTenantId) return;
+  const [users, projects, teams, tasks] = await Promise.all([
+    prisma.user.count({ where: { tenantId: def.id } }),
+    prisma.project.count({ where: { tenantId: def.id } }),
+    prisma.team.count({ where: { tenantId: def.id } }),
+    prisma.task.count({ where: { tenantId: def.id } }),
+  ]);
+  if (users || projects || teams || tasks) return; // has real data — leave it
+  await prisma.tenant.delete({ where: { id: def.id } });
+  console.log("pruned=empty-default-tenant");
+}
+
 async function main() {
   if (!PASSWORD) {
     console.error("ADMIN_PASSWORD is empty — refusing to create an account without a password.");
@@ -69,6 +83,13 @@ async function main() {
       tenantId: tenant.id,
     },
   });
+
+  // 3. The multi-tenant migration seeds a placeholder "default" tenant to hang
+  //    pre-migration rows off. On a brand-new install nothing ever lands in it,
+  //    and a SuperAdmin would see a second, permanently empty workspace in the
+  //    tenant switcher. Drop it — but only when it is genuinely empty, so an
+  //    upgraded instance whose real data still lives there is never touched.
+  await pruneEmptyDefaultTenant(tenant.id);
 
   console.log(`status=created username=${USERNAME} tenant=${TENANT_SLUG}`);
 }
