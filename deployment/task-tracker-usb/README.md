@@ -7,6 +7,12 @@ stick, without us being in the room.
 (Deutsch) · [`docs/INSTALL_AR.pdf`](docs/INSTALL_AR.pdf) (العربية). Hand those to
 the customer — this README is the technical reference.
 
+> **This bundle is "Option 1 — self-hosted".** There is also **"Option 2 —
+> managed hosting"**, where the customer just gets a login on our VPS (own
+> tenant, we run updates/backups/SSL). The two options are described for
+> customers in [`docs/CUSTOMER_OPTIONS.md`](docs/CUSTOMER_OPTIONS.md) — sales
+> material with prices, kept in the repo and **not** shipped on the stick.
+
 ---
 
 ## Quick start
