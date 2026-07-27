@@ -243,7 +243,7 @@ export default async function TaskDetailPage({
         {t["common.back"]}
       </Link>
 
-      {task.parent && (
+      {tenant.parentTasksEnabled && task.parent && (
         <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
           <TypeBadge type={task.parent.type} />
           <Link href={`/tasks/${task.parent.id}`} className="hover:underline">
@@ -281,7 +281,7 @@ export default async function TaskDetailPage({
         <TypeBadge type={task.type} />
         <StatusBadge status={task.status} />
         <PriorityBadge priority={task.priority} />
-        {task.storyPoints != null && (
+        {tenant.storyPointsEnabled && task.storyPoints != null && (
           <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
             {task.storyPoints} SP
           </span>

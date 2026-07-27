@@ -42,6 +42,8 @@ export default async function NewTaskPage({
         teams={teams}
         parents={parents}
         canAssign={isAdminRole(user.role)}
+        showStoryPoints={tenant.storyPointsEnabled}
+        showParent={tenant.parentTasksEnabled}
         defaults={{
           assignedToUserId: user.id,
           projectId: searchParams.project ?? null,
