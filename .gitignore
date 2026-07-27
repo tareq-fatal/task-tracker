@@ -60,3 +60,8 @@ e2e/fixtures/*.xlsx
 /android/local.properties
 /android/app/release
 releases/*.apk
+
+# Local USB/offline deployment artifacts — never in git (images are >250 MB)
+dist-offline/
+deployment/**/*.tar
+deployment/**/*.zip

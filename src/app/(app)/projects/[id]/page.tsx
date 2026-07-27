@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, KanbanSquare, Plus, Columns3 } from "lucide-react";
+import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2 } from "lucide-react";
+import { DeleteProjectButton } from "@/components/delete-project-button";
+import { RestoreProjectButton } from "@/components/restore-project-button";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
@@ -36,6 +38,35 @@ export default async function ProjectDetailPage({
   if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
 
   const isAdmin = isAdminRole(user.role);
+
+  // Soft-deleted → friendly "project was deleted" page (HTTP 200) instead of
+  // a 404; admins additionally get a restore that also brings back the tasks
+  // that were cascade-deleted with the project.
+  if (project.deletedAt) {
+    const deletedByUser = project.deletedBy
+      ? await prisma.user.findUnique({ where: { id: project.deletedBy }, select: { name: true } })
+      : null;
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Trash2 className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["project.deleted.banner"]}</h1>
+        <p className="mt-2 text-lg italic text-muted-foreground line-through">{project.name}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {t["deleted.by"]
+            .replace("{name}", deletedByUser?.name ?? "—")
+            .replace("{date}", project.deletedAt.toLocaleDateString(getActiveLocale()))}
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link href="/projects">{t["deleted.back"]}</Link>
+          </Button>
+          {isAdmin && <RestoreProjectButton projectId={project.id} />}
+        </div>
+      </div>
+    );
+  }
   const membersView = isAdmin ? await getProjectMembersView(project.id) : null;
 
   const filters = parseTaskFilters(searchParams);
@@ -74,7 +105,10 @@ export default async function ProjectDetailPage({
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <DeleteProjectButton projectId={project.id} projectName={project.name} />
+          )}
           {isAdminRole(user.role) && (
             <Button asChild variant="outline">
               <Link href={`/projects/${project.id}/workflow`}>
