@@ -250,6 +250,10 @@ model Project {
   id            String   @id @default(cuid())
   name          String
   description   String?
+  // Soft-delete (mirrors Task): list reads exclude these via the client
+  // extension in lib/prisma.ts; old links show a friendly "deleted" page.
+  deletedAt     DateTime?
+  deletedBy     String?
   color         String   @default("#6366f1") // indigo
   externalId    String?  @unique // e.g. MS Planner plan id (import idempotency)
   createdAt     DateTime @default(now())
@@ -268,6 +272,7 @@ model Project {
   members      ProjectMember[]
 
   @@index([tenantId])
+  @@index([deletedAt])
 }
 
 // Explicit project access grant. When a project has ≥1 member, non-admin
