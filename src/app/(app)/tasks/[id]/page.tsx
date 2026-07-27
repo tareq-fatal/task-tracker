@@ -20,6 +20,7 @@ import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
+import { notify } from "@/lib/notifications";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
@@ -59,8 +60,10 @@ function formatBytes(n: number): string {
 
 export default async function TaskDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { src?: string };
 }) {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
@@ -170,6 +173,46 @@ export default async function TaskDetailPage({
       </div>
     );
   }
+
+  // 👁 Read receipt (WhatsApp-style): first open by a non-creator writes ONE
+  // row and notifies the creator (push + Telegram). Reloads are a no-op via
+  // the unique(taskId,userId) constraint. Telegram deep links carry ?src=tg.
+  const isCreator = task.createdByUserId === user.id;
+  if (!isCreator) {
+    const receipt = await prisma.taskReadReceipt
+      .create({
+        data: {
+          taskId: task.id,
+          userId: user.id,
+          source: searchParams?.src === "tg" ? "telegram" : "web",
+        },
+      })
+      .catch(() => null); // unique violation → already seen before
+    if (receipt) {
+      const opened = receipt.firstOpenedAt;
+      const stamp = `${String(opened.getDate()).padStart(2, "0")}.${String(opened.getMonth() + 1).padStart(2, "0")}.${opened.getFullYear()} ${String(opened.getHours()).padStart(2, "0")}:${String(opened.getMinutes()).padStart(2, "0")}`;
+      await notify({
+        recipientUserId: task.createdByUserId,
+        tenantId: tenant.id,
+        type: "task_seen",
+        titleKey: "notif.t.taskSeen",
+        body: `«${task.title}»\n👁 ${user.name} — ${stamp}`,
+        url: `/tasks/${task.id}`,
+        taskId: task.id,
+        actorUserId: user.id,
+      }).catch(() => {});
+    }
+  }
+
+  // Seen-by line — only creators/admins get to see who opened the task when.
+  const readReceipts =
+    isCreator || isAdminRole(user.role)
+      ? await prisma.taskReadReceipt.findMany({
+          where: { taskId: task.id },
+          include: { user: { select: { name: true } } },
+          orderBy: { firstOpenedAt: "asc" },
+        })
+      : [];
 
   // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
   const canEditContent = canEditTaskContent(user, task);
@@ -314,6 +357,25 @@ export default async function TaskDetailPage({
           </Link>
         )}
       </div>
+
+      {/* 👁 Read receipts — creators/admins see who opened the task when */}
+      {(isCreator || isAdminRole(user.role)) && (
+        <p className="mb-4 text-xs text-muted-foreground">
+          {readReceipts.length === 0 ? (
+            <>☐ {t["seen.none"]}</>
+          ) : (
+            <>
+              <span className="font-semibold text-sky-600">✓✓</span> {t["seen.by"]}:{" "}
+              {readReceipts
+                .map(
+                  (r) =>
+                    `${r.user.name} (${format(r.firstOpenedAt, "dd.MM. HH:mm")}${r.source === "telegram" ? " · TG" : ""})`
+                )
+                .join("، ")}
+            </>
+          )}
+        </p>
+      )}
 
       {/* Dependencies — blocked banner + clickable chips, visible to everyone */}
       {isBlocked && (

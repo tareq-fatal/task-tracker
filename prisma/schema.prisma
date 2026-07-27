@@ -154,6 +154,7 @@ model User {
   projectMemberships ProjectMember[]
   taskAssignments   TaskAssignee[]
   commentReads      TaskCommentRead[]
+  taskReadReceipts  TaskReadReceipt[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -467,6 +468,7 @@ model Task {
   deletedBy String? // user id who deleted; resolved to a name on display
 
   commentReads TaskCommentRead[]
+  readReceipts TaskReadReceipt[]
 
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
@@ -630,6 +632,22 @@ model TaskTimeEntry {
   @@index([taskId])
   @@index([userId, endedAt])
   @@index([tenantId])
+}
+
+// WhatsApp-style task read receipt: ONE row per (task, user), created the
+// first time a non-creator opens the task detail. Drives the "seen by X at Y"
+// line for creators/admins and the task_seen notification.
+model TaskReadReceipt {
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstOpenedAt DateTime @default(now())
+  source        String   @default("web") // web | telegram
+
+  @@unique([taskId, userId])
+  @@index([taskId])
 }
 
 model ActivityLog {
