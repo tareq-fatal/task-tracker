@@ -131,6 +131,9 @@ model User {
   quietHoursStart Int? // 0-23 local hour; null = off
   quietHoursEnd   Int?
   notifyDigest    Boolean @default(false) // batch email instead of instant
+  // Admin-only: mirror EVERY tenant event to this admin's Telegram chat
+  // (feed-equivalent for the pocket). Ignored for non-admin roles.
+  notifyAllTenantEvents Boolean @default(false)
 
   // Telegram notifications (follows the webPush channel preference).
   // Linked via deep link t.me/<bot>?start=<telegramLinkToken>.
