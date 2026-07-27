@@ -62,6 +62,8 @@ export function TaskForm({
   submitLabel,
   canAssign = true,
   isEdit = false,
+  showStoryPoints = true,
+  showParent = true,
 }: {
   action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>;
   users: Option[];
@@ -72,6 +74,9 @@ export function TaskForm({
   submitLabel: string;
   canAssign?: boolean;
   isEdit?: boolean;
+  /** Tenant feature flags — hidden fields keep their stored values. */
+  showStoryPoints?: boolean;
+  showParent?: boolean;
 }) {
   const { t } = useT();
   const [state, formAction] = useFormState(action, {});
@@ -145,29 +150,42 @@ export function TaskForm({
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="storyPoints">{t("task.storyPoints")}</Label>
-          <Input
-            id="storyPoints"
-            name="storyPoints"
-            type="number"
-            min={0}
-            defaultValue={d.storyPoints ?? ""}
-            placeholder="—"
-          />
-        </div>
+        {/* Hidden fields still submit their stored value, so disabling a
+            feature never wipes existing data on edit. */}
+        {!showStoryPoints && d.storyPoints != null && d.storyPoints !== "" && (
+          <input type="hidden" name="storyPoints" value={d.storyPoints} />
+        )}
+        {!showParent && d.parentId && (
+          <input type="hidden" name="parentId" value={d.parentId} />
+        )}
 
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="parentId">{t("task.parent")}</Label>
-          <select id="parentId" name="parentId" defaultValue={d.parentId ?? ""} className={selectClass}>
-            <option value="">{t("task.noParent")}</option>
-            {parents.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </div>
+        {showStoryPoints && (
+          <div className="space-y-2">
+            <Label htmlFor="storyPoints">{t("task.storyPoints")}</Label>
+            <Input
+              id="storyPoints"
+              name="storyPoints"
+              type="number"
+              min={0}
+              defaultValue={d.storyPoints ?? ""}
+              placeholder="—"
+            />
+          </div>
+        )}
+
+        {showParent && (
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="parentId">{t("task.parent")}</Label>
+            <select id="parentId" name="parentId" defaultValue={d.parentId ?? ""} className={selectClass}>
+              <option value="">{t("task.noParent")}</option>
+              {parents.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {canAssign && (
           <div className="space-y-2">

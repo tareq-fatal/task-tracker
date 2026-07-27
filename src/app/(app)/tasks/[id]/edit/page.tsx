@@ -74,6 +74,8 @@ export default async function EditTaskPage({
         parents={parents}
         canAssign={isAdminRole(user.role)}
         isEdit
+        showStoryPoints={tenant.storyPointsEnabled}
+        showParent={tenant.parentTasksEnabled}
         defaults={{
           title: task.title,
           description: task.description ?? "",
