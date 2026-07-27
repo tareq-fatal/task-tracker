@@ -88,7 +88,12 @@ export async function broadcastToTelegramGroup(
     const events = (tenant.telegramGroupEvents ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!events.includes(eventType)) return;
     const text = `<b>${esc(payload.title)}</b>` + (payload.body ? `\n${esc(payload.body)}` : "");
-    const url = payload.url ? new URL(payload.url, APP_URL).toString() : undefined;
+    let url: string | undefined;
+  if (payload.url) {
+    const u = new URL(payload.url, APP_URL);
+    u.searchParams.set("src", "tg"); // read-receipt source attribution
+    url = u.toString();
+  }
     await sendTelegramMessage(tenant.telegramGroupChatId, text, { url, urlLabel: "فتح المهمة" });
   } catch {
     /* best-effort */
@@ -118,7 +123,12 @@ export async function notifyUserTelegram(
 
   const text =
     `<b>${esc(payload.title)}</b>` + (payload.body ? `\n${esc(payload.body)}` : "");
-  const url = payload.url ? new URL(payload.url, APP_URL).toString() : undefined;
+  let url: string | undefined;
+  if (payload.url) {
+    const u = new URL(payload.url, APP_URL);
+    u.searchParams.set("src", "tg"); // read-receipt source attribution
+    url = u.toString();
+  }
   await sendTelegramMessage(user.telegramChatId, text, {
     url,
     urlLabel: openLabel(user.locale),
