@@ -23,7 +23,7 @@ export default async function AdminUsersPage() {
     where: { tenantId: tenant.id },
     orderBy: { createdAt: "asc" },
     include: {
-      _count: { select: { assignedTasks: true, createdTasks: true } },
+      _count: { select: { assignedTasks: { where: { deletedAt: null } }, createdTasks: { where: { deletedAt: null } } } },
     },
   });
 

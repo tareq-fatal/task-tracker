@@ -22,7 +22,7 @@ export default async function ProjectsPage() {
       ...(allowed ? { id: { in: allowed } } : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { tasks: true } } },
+    include: { _count: { select: { tasks: { where: { deletedAt: null } } } } },
   });
 
   return (
