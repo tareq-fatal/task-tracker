@@ -2,8 +2,9 @@ import { isAdminRole } from "./enums";
 import { prisma } from "./prisma";
 
 /**
- * Project ids the (non-admin) user is an explicit member of, scoped to the tenant.
- * Members see ALL tasks in those projects. Admins never need this (they see all).
+ * Project ids the (non-admin) user is an explicit member of, scoped to the
+ * tenant. Used for PROJECT access/listing only — since the 2026-07-27
+ * hardening, membership does NOT widen task visibility.
  */
 export async function memberProjectIds(
   userId: string,
@@ -18,39 +19,41 @@ export async function memberProjectIds(
 
 /**
  * Pure builder for the task-visibility `where` clause — no DB access, so it's
- * unit-testable. Admins: tenant-only. Non-admins: any task they're an assignee
- * of (primary Hauptkopf OR co-assignee, #13) PLUS every task in a project they
- * belong to (#26). With no member projects the clause collapses to
- * `{ tenantId, assignees: { some } }` — the previous assigned-only behaviour
- * (the primary is mirrored into TaskAssignee). Tenant scoping is ALWAYS applied.
+ * unit-testable. Admins: tenant-only. Non-admins: ONLY tasks they are
+ * personally involved in — creator, Hauptkopf, or co-assignee (#13).
+ *
+ * HARDENED (customer, 2026-07-27): project membership no longer grants task
+ * visibility. Being in a project lets you open the project page, but you see
+ * exclusively your own tasks there ("er kann nur seinen Kram sehen").
+ * The projectIds parameter is retained for signature stability but ignored.
+ * Tenant scoping is ALWAYS applied.
  */
 export function taskVisibilityClause(
   user: { id: string; role: string },
   tenantId: string,
-  projectIds: string[]
+  _projectIds: string[] = []
 ) {
   if (isAdminRole(user.role)) return { tenantId };
-  const mine = { assignees: { some: { userId: user.id } } };
-  if (projectIds.length === 0) {
-    return { tenantId, ...mine };
-  }
   return {
     tenantId,
-    OR: [mine, { projectId: { in: projectIds } }],
+    OR: [
+      { assignees: { some: { userId: user.id } } },
+      { assignedToUserId: user.id },
+      { createdByUserId: user.id },
+    ],
   };
 }
 
 /**
- * Prisma `where` scoping tasks to the active tenant AND (for non-admins) to the
- * tasks they may see (#26). Async because project membership is a DB lookup.
+ * Prisma `where` scoping tasks to the active tenant AND (for non-admins) to
+ * the tasks they may see. No DB lookup needed since the hardening — project
+ * membership does not widen task visibility anymore.
  */
 export async function taskVisibility(
   user: { id: string; role: string },
   tenantId: string
 ) {
-  if (isAdminRole(user.role)) return { tenantId };
-  const projectIds = await memberProjectIds(user.id, tenantId);
-  return taskVisibilityClause(user, tenantId, projectIds);
+  return taskVisibilityClause(user, tenantId);
 }
 
 /**
@@ -64,17 +67,9 @@ export async function taskParticipation(
   user: { id: string; role: string },
   tenantId: string
 ) {
-  if (isAdminRole(user.role)) return { tenantId };
-  const projectIds = await memberProjectIds(user.id, tenantId);
-  return {
-    tenantId,
-    OR: [
-      { assignees: { some: { userId: user.id } } },
-      { assignedToUserId: user.id },
-      { createdByUserId: user.id },
-      ...(projectIds.length ? [{ projectId: { in: projectIds } }] : []),
-    ],
-  };
+  // HARDENED: identical to taskVisibility now — member-project tasks are no
+  // longer referencable either ("nur seine Sachen", pickers included).
+  return taskVisibility(user, tenantId);
 }
 
 /**
