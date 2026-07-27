@@ -22,7 +22,7 @@ export async function getTenants(): Promise<TenantRow[]> {
   await requireSuper();
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { users: true, tasks: true, projects: true } } },
+    include: { _count: { select: { users: true, tasks: { where: { deletedAt: null } }, projects: { where: { deletedAt: null } } } } },
   });
   return tenants.map((t) => ({
     id: t.id, slug: t.slug, name: t.name, primaryColor: t.primaryColor,
