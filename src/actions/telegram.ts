@@ -144,6 +144,28 @@ export async function setTelegramGroupSettingsAction(input: GroupSettings): Prom
   return { ok: true };
 }
 
+/** Admin-only self-service toggle: mirror every tenant event to MY Telegram
+ *  chat ("Alle Events empfangen"). Ignored by the sender for non-admin roles. */
+export async function setNotifyAllEventsAction(enabled: boolean): Promise<{ ok: boolean }> {
+  const { user } = await requireTenant();
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { notifyAllTenantEvents: enabled },
+  });
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function getNotifyAllEvents(): Promise<boolean> {
+  const { user } = await requireTenant();
+  const u = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { notifyAllTenantEvents: true },
+  });
+  return Boolean(u?.notifyAllTenantEvents);
+}
+
 export async function listNotificationEvents(): Promise<string[]> {
   // admin_activity is internal admin chatter — never a group broadcast option.
   return NOTIFICATION_EVENTS.filter((e) => e !== "admin_activity");

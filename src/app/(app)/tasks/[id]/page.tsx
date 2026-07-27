@@ -20,7 +20,7 @@ import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
-import { notify } from "@/lib/notifications";
+import { notify, mirrorToAdmins } from "@/lib/notifications";
 import { isAdminRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
@@ -191,16 +191,23 @@ export default async function TaskDetailPage({
     if (receipt) {
       const opened = receipt.firstOpenedAt;
       const stamp = `${String(opened.getDate()).padStart(2, "0")}.${String(opened.getMonth() + 1).padStart(2, "0")}.${opened.getFullYear()} ${String(opened.getHours()).padStart(2, "0")}:${String(opened.getMinutes()).padStart(2, "0")}`;
+      const seenBody = `«${task.title}»\n👁 ${user.name} — ${stamp}`;
       await notify({
         recipientUserId: task.createdByUserId,
         tenantId: tenant.id,
         type: "task_seen",
         titleKey: "notif.t.taskSeen",
-        body: `«${task.title}»\n👁 ${user.name} — ${stamp}`,
+        body: seenBody,
         url: `/tasks/${task.id}`,
         taskId: task.id,
         actorUserId: user.id,
       }).catch(() => {});
+      // single-recipient event → admin personal broadcast handled here
+      await mirrorToAdmins(
+        tenant.id,
+        { title: "👁", body: seenBody, url: `/tasks/${task.id}` },
+        [task.createdByUserId, user.id]
+      ).catch(() => {});
     }
   }
 
