@@ -120,7 +120,22 @@ export default async function TaskDetailPage({
   const isAssignee = task.assignees.some((a) => a.userId === user.id);
   const canView =
     isAdminRole(user.role) || task.createdByUserId === user.id || isAssignee;
-  if (!canView) notFound();
+  // Friendly "no access" page instead of a bare 404 — an uninvolved user who
+  // guesses/receives a task URL learns nothing about the task's content.
+  if (!canView) {
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Ban className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["noAccess.title"]}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.text"]}</p>
+        <Button asChild variant="outline" className="mt-6">
+          <Link href="/">{t["deleted.back"]}</Link>
+        </Button>
+      </div>
+    );
+  }
 
   // Soft-deleted → friendly "task was deleted" page (HTTP 200) for everyone
   // involved instead of a bare 404; admins additionally get a restore button.
