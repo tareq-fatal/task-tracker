@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { aggregateReactions, canDeleteContent, isReactionType } from "./comment-reactions";
+import { aggregateReactions, canDeleteContent, canReact, isReactionType } from "./comment-reactions";
+
+describe("reaction permission (customer: admin-only for now)", () => {
+  it("only Admin/BackendAdmin may react; everyone else is read-only", () => {
+    expect(canReact("Admin")).toBe(true);
+    expect(canReact("BackendAdmin")).toBe(true);
+    expect(canReact("SuperAdmin")).toBe(true); // legacy alias
+    expect(canReact("SubAdmin")).toBe(false);
+    expect(canReact("User")).toBe(false);
+  });
+});
 
 describe("comment reactions", () => {
   it("aggregates multi-reactions into one chip with count (👍 5)", () => {

@@ -7,6 +7,7 @@ import { isAdminRole, isStaffRole } from "@/lib/enums";
 import {
   isReactionType,
   canDeleteContent,
+  canReact,
   REACTION_NOTIFY_WINDOW_MS,
   REACTION_EMOJI,
   type ReactionType,
@@ -50,6 +51,8 @@ export async function toggleReactionAction(
 ): Promise<{ ok: boolean }> {
   if (!isReactionType(type)) return { ok: false };
   const { user, tenant, comment } = await assertCommentAccess(commentId);
+  // Customer decision: reacting is Admin/BackendAdmin-only for now.
+  if (!canReact(user.role)) throw new Error("FORBIDDEN");
 
   const existing = await prisma.commentReaction.findUnique({
     where: { commentId_userId_type: { commentId, userId: user.id, type } },
