@@ -162,6 +162,7 @@ model User {
   projectMemberships ProjectMember[]
   taskAssignments   TaskAssignee[]
   commentReads      TaskCommentRead[]
+  commentReactions  CommentReaction[]
   taskReadReceipts  TaskReadReceipt[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
@@ -679,10 +680,30 @@ model TaskComment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
   createdAt DateTime @default(now())
+  // Soft-delete (admin or author): row kept for audit, rendered as a grey
+  // "this comment was deleted" placeholder; admins can restore.
+  deletedAt DateTime?
+  deletedBy String?
 
   voiceNote VoiceNote?
+  reactions CommentReaction[]
 
   @@index([taskId])
+}
+
+// Emoji reactions on comments (👍 thumbs_up, 👁 seen, ❤️ heart, ✅ check).
+// One row per (comment, user, type); toggling deletes the row again.
+model CommentReaction {
+  id        String      @id @default(cuid())
+  commentId String
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // thumbs_up | seen | heart | check
+  createdAt DateTime    @default(now())
+
+  @@unique([commentId, userId, type])
+  @@index([commentId])
 }
 
 model TaskAttachment {
@@ -693,6 +714,9 @@ model TaskAttachment {
   filePath   String // public path, e.g. /uploads/xxxx.png
   mimeType   String
   sizeBytes  Int
+  uploadedBy String? // uploader (tracked since 2026-07-28; older rows null)
+  deletedAt  DateTime? // soft-delete: hidden from UI, kept for audit
+  deletedBy  String?
   uploadedAt DateTime @default(now())
 
   @@index([taskId])
