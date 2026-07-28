@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2 } from "lucide-react";
+import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban } from "lucide-react";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { RestoreProjectButton } from "@/components/restore-project-button";
 import { prisma } from "@/lib/prisma";
@@ -34,8 +34,22 @@ export default async function ProjectDetailPage({
     where: { id: params.id },
   });
   if (!project || project.tenantId !== tenant.id) notFound();
-  // #26: non-admins may only open projects they're a member of (or have a task in)
-  if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
+  // Non-admins may only open projects they're involved in (member, creator,
+  // or own task inside). Friendly no-access page — reveals nothing.
+  if (!(await canAccessProject(user, tenant.id, project.id))) {
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Ban className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["noAccess.project.title"]}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.project.text"]}</p>
+        <Button asChild variant="outline" className="mt-6">
+          <Link href="/projects">{t["deleted.back"]}</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const isAdmin = isAdminRole(user.role);
 
@@ -74,7 +88,7 @@ export default async function ProjectDetailPage({
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
-    loadFilterOptions(tenant.id),
+    loadFilterOptions(user, tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
   ]);

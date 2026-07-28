@@ -8,6 +8,7 @@ import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { CalendarView } from "@/components/calendar-view";
 import { ScrumBoard, type ScrumTask } from "@/components/scrum-board";
+import { scopedProjectOptions } from "@/lib/filter-data";
 
 export default async function ViewsPage({
   searchParams,
@@ -21,11 +22,7 @@ export default async function ViewsPage({
   const t = getDictionary(getActiveLocale());
   const view = searchParams.view === "scrum" ? "scrum" : "calendar";
 
-  const projects = await prisma.project.findMany({
-    where: { tenantId: tenant.id },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const projects = await scopedProjectOptions(user, tenant.id);
   const projectId = searchParams.project && projects.some((p) => p.id === searchParams.project) ? searchParams.project : null;
 
   const tasks = await prisma.task.findMany({

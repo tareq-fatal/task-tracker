@@ -23,7 +23,7 @@ export default async function FocusPage({ searchParams }: { searchParams: { view
   const view: FocusView = VIEWS.includes(searchParams.view as FocusView) ? (searchParams.view as FocusView) : "all";
   const id = searchParams.id ?? null;
 
-  const [options, savedViews] = await Promise.all([loadFilterOptions(tenant.id), getMySavedViews()]);
+  const [options, savedViews] = await Promise.all([loadFilterOptions(user, tenant.id), getMySavedViews()]);
 
   // Every query stays tenant-scoped via taskVisibility; a crafted foreign id
   // simply matches nothing (tasks are tenant-scoped), so isolation holds.

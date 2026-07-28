@@ -46,16 +46,12 @@ export function UpdatePrompt() {
     let idleTimer: ReturnType<typeof setInterval> | undefined;
     let alive = true;
 
-    // Only surface when a real update is WAITING right now and the user is
-    // idle (no input for 30 s) — otherwise keep it pending and retry.
+    // Surface once a new worker was INSTALLED (pendingRef) and the user is
+    // idle. IMPORTANT: do NOT require reg.waiting here — our service worker
+    // uses skipWaiting, so a new version activates immediately and never
+    // parks in "waiting"; gating on it made the banner never appear at all.
     const maybeShow = () => {
       if (!alive || !pendingRef.current || recentlyDismissed()) return;
-      const stillWaiting = Boolean(regRef.current?.waiting);
-      if (!stillWaiting) {
-        pendingRef.current = false;
-        setShow(false);
-        return;
-      }
       if (Date.now() - lastInputRef.current >= IDLE_MS) setShow(true);
     };
 
@@ -114,6 +110,9 @@ export function UpdatePrompt() {
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {}
+    // A dismissed version stays dismissed; a NEWER deploy fires updatefound
+    // again, which re-arms pendingRef after the dismiss TTL logic.
+    pendingRef.current = false;
     setShow(false);
   }
 
