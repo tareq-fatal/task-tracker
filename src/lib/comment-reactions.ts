@@ -41,6 +41,13 @@ export function canDeleteContent(actorRole: string, isOwn: boolean): boolean {
   return isOwn || isAdminRole(actorRole);
 }
 
+/** Who may REACT on comments. Customer decision 2026-07-28 ("Nein nur admin
+ *  erstmal"): Admin + BackendAdmin only — everyone else SEES the chips but
+ *  cannot react. Widen here when the customer opens it up. */
+export function canReact(actorRole: string): boolean {
+  return isAdminRole(actorRole);
+}
+
 /** Reaction notifications are deduped: repeated reactions on the same comment
  *  within this window produce no additional notification. */
 export const REACTION_NOTIFY_WINDOW_MS = 5 * 60 * 1000;

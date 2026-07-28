@@ -22,7 +22,7 @@ import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
 import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
 import { AttachmentShell } from "@/components/attachment-shell";
-import { aggregateReactions, canDeleteContent } from "@/lib/comment-reactions";
+import { aggregateReactions, canDeleteContent, canReact } from "@/lib/comment-reactions";
 import { notify, mirrorToAdmins } from "@/lib/notifications";
 import { isAdminRole, isStaffRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
@@ -818,6 +818,7 @@ export default async function TaskDetailPage({
                     user.id
                   )}
                   canDelete={canDeleteContent(user.role, mine)}
+                  canReact={canReact(user.role)}
                 >
                 <div className="flex-1 rounded-lg border bg-card p-3">
                   <div className="mb-1 flex items-center justify-between gap-2">

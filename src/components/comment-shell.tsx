@@ -32,11 +32,14 @@ export function CommentShell({
   commentId,
   chips,
   canDelete,
+  canReact = false,
   children,
 }: {
   commentId: string;
   chips: ReactionChip[];
   canDelete: boolean;
+  /** Admin-only for now (customer decision) — non-admins see chips read-only. */
+  canReact?: boolean;
   children: React.ReactNode;
 }) {
   const { t } = useT();
@@ -79,23 +82,35 @@ export function CommentShell({
 
       {/* Reactions row */}
       <div className="mt-1 flex flex-wrap items-center gap-1">
-        {chips.map((c) => (
-          <button
-            key={c.type}
-            disabled={pending}
-            onClick={() => react(c.type)}
-            title={c.names.join("، ")}
-            className={cn(
-              "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
-              c.mine
-                ? "border-indigo-300 bg-indigo-500/10 text-indigo-700"
-                : "bg-card text-muted-foreground hover:bg-secondary"
-            )}
-          >
-            <span>{REACTION_EMOJI[c.type]}</span>
-            <span className="tabular-nums">{c.count}</span>
-          </button>
-        ))}
+        {chips.map((c) =>
+          canReact ? (
+            <button
+              key={c.type}
+              disabled={pending}
+              onClick={() => react(c.type)}
+              title={c.names.join("، ")}
+              className={cn(
+                "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
+                c.mine
+                  ? "border-indigo-300 bg-indigo-500/10 text-indigo-700"
+                  : "bg-card text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              <span>{REACTION_EMOJI[c.type]}</span>
+              <span className="tabular-nums">{c.count}</span>
+            </button>
+          ) : (
+            <span
+              key={c.type}
+              title={c.names.join("، ")}
+              className="flex items-center gap-1 rounded-full border bg-card px-2 py-0.5 text-xs text-muted-foreground"
+            >
+              <span>{REACTION_EMOJI[c.type]}</span>
+              <span className="tabular-nums">{c.count}</span>
+            </span>
+          )
+        )}
+        {canReact && (
         <div className="relative">
           <button
             onClick={() => setPickerOpen((o) => !o)}
@@ -122,6 +137,7 @@ export function CommentShell({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Context menu */}
@@ -140,15 +156,17 @@ export function CommentShell({
             className="fixed z-50 w-44 overflow-hidden rounded-xl border bg-background py-1 text-sm shadow-2xl"
             style={{ left: menuAt.x, top: menuAt.y }}
           >
-            <button
-              className="flex w-full items-center gap-2 px-3 py-2 hover:bg-secondary"
-              onClick={() => {
-                setMenuAt(null);
-                setPickerOpen(true);
-              }}
-            >
-              <SmilePlus className="h-4 w-4" /> {t("comments.addReaction")}
-            </button>
+            {canReact && (
+              <button
+                className="flex w-full items-center gap-2 px-3 py-2 hover:bg-secondary"
+                onClick={() => {
+                  setMenuAt(null);
+                  setPickerOpen(true);
+                }}
+              >
+                <SmilePlus className="h-4 w-4" /> {t("comments.addReaction")}
+              </button>
+            )}
             <button
               className="flex w-full items-center gap-2 px-3 py-2 hover:bg-secondary"
               onClick={async () => {
