@@ -1,4 +1,4 @@
-import { isAdminRole } from "./enums";
+import { isAdminRole, isStaffRole } from "./enums";
 import { prisma } from "./prisma";
 
 /**
@@ -33,7 +33,9 @@ export function taskVisibilityClause(
   tenantId: string,
   _projectIds: string[] = []
 ) {
-  if (isAdminRole(user.role)) return { tenantId };
+  // Staff = Admin/BackendAdmin/SubAdmin — SubAdmin READS everything (writes
+  // stay gated on isAdminRole in the actions).
+  if (isStaffRole(user.role)) return { tenantId };
   return {
     tenantId,
     OR: [
@@ -82,7 +84,7 @@ export async function canAccessProject(
   tenantId: string,
   projectId: string
 ): Promise<boolean> {
-  if (isAdminRole(user.role)) return true;
+  if (isStaffRole(user.role)) return true;
 
   const member = await prisma.projectMember.findUnique({
     where: { projectId_userId: { projectId, userId: user.id } },
@@ -126,7 +128,7 @@ export async function visibleProjectIds(
   user: { id: string; role: string },
   tenantId: string
 ): Promise<string[] | null> {
-  if (isAdminRole(user.role)) return null;
+  if (isStaffRole(user.role)) return null;
 
   const [members, assigned, created] = await Promise.all([
     memberProjectIds(user.id, tenantId),

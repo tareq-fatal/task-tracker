@@ -30,7 +30,7 @@ function Submit({ label }: { label: string }) {
   );
 }
 
-export function NewUserDialog() {
+export function NewUserDialog({ roleOptions = ["SubAdmin", "User"] }: { roleOptions?: string[] }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [state, formAction] = useFormState(createUserAction, {});
@@ -80,7 +80,7 @@ export function NewUserDialog() {
             <div className="space-y-2">
               <Label htmlFor="role">{t("admin.users.role")}</Label>
               <select id="role" name="role" className={selectClass} defaultValue="User">
-                {ROLES.filter((r) => r !== "BackendAdmin").map((r) => (
+                {roleOptions.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>

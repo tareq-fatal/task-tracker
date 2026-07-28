@@ -1,0 +1,85 @@
+# =============================================================================
+# Task Tracker — service definition for the Coast-Shield prod stack.
+#
+# This is a MERGE FRAGMENT. Copy the `task-tracker` service (and the volume +
+# network references) into:
+#     /home/marisight/marisight/infra/prod/docker-compose.prod.yml
+#
+# Or run it standalone from this file on the VPS:
+#     docker compose -f docker-compose.task-tracker.yml --env-file .env.task-tracker up -d
+#
+# >>> CONFIRM THE PLACEHOLDERS MARKED `# CONFIRM:` AGAINST THE EXISTING STACK <<<
+#   - the Postgres service name / host         (DATABASE_URL host)
+#   - the external network Caddy lives on        (so Caddy can reach :3000)
+#   - the external network Postgres lives on
+# =============================================================================
+
+services:
+  task-tracker:
+    # Built on the VPS from the cloned repo by infra/deploy-tasks.sh.
+    image: task-tracker:latest
+    build:
+      context: /home/marisight/apps/task-tracker # CONFIRM: where the repo is cloned on the VPS
+      dockerfile: Dockerfile
+    container_name: task-tracker
+    restart: unless-stopped
+    env_file:
+      - .env.task-tracker # non-secret config + DATABASE_URL (NOT committed; see .env.task-tracker.example)
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # OPTIONAL — Docker secrets instead of plaintext env. The entrypoint expands
+      # any <VAR>_FILE into <VAR>, so uncomment these + the `secrets:` block below
+      # (and drop SESSION_SECRET / DATABASE_URL from .env.task-tracker):
+      # SESSION_SECRET_FILE: /run/secrets/tt_session_secret
+      # DATABASE_URL_FILE: /run/secrets/tt_database_url
+    # secrets:
+    #   - tt_session_secret
+    #   - tt_database_url
+    volumes:
+      # Persist uploaded attachments across redeploys.
+      - task_tracker_uploads:/app/public/uploads
+    networks:
+      - proxy # CONFIRM: the network Caddy uses to reach upstreams
+      - data # CONFIRM: the network the existing Postgres is on
+    # The app applies `prisma migrate deploy` on boot (see docker-entrypoint.sh),
+    # so it must wait for Postgres to be reachable. If Postgres is in THIS same
+    # compose project, uncomment and set the correct service name:
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  task_tracker_uploads:
+    name: task_tracker_uploads
+
+# OPTIONAL — Docker secrets (see the commented `secrets:`/`*_FILE` block above).
+# secrets:
+#   tt_session_secret:
+#     file: ./secrets/session_secret.txt   # gitignored; `openssl rand -hex 32`
+#   tt_database_url:
+#     file: ./secrets/database_url.txt      # postgresql://tasktracker:…@postgres:5432/tasktracker
+
+# These networks already exist in the Coast-Shield stack — mark them external so
+# this fragment joins them instead of creating new ones. Replace the names with
+# the real ones (`docker network ls` on the VPS).
+networks:
+  proxy:
+    external: true
+    name: coastshield_proxy # CONFIRM
+  data:
+    external: true
+    name: coastshield_data # CONFIRM

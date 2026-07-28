@@ -47,7 +47,9 @@ export function LoginForm() {
         />
       </div>
       {state.error && (
-        <p className="text-sm font-medium text-destructive">{t("login.error")}</p>
+        <p className="text-sm font-medium text-destructive">
+          {state.error === "DEACTIVATED" ? t("login.deactivated") : t("login.error")}
+        </p>
       )}
       <SubmitButton />
     </form>

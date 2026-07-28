@@ -1,0 +1,24 @@
+# =============================================================================
+# Umami — Caddy site block for analytics.coastshield.net
+#
+# Append this block to the Coast-Shield Caddyfile (or `import` it):
+#     /home/marisight/marisight/infra/prod/Caddyfile
+#
+# Reload after editing:   docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+# =============================================================================
+
+analytics.coastshield.net {
+	encode zstd gzip
+
+	# `umami` is the compose service name; Caddy must share a network with
+	# it (the `proxy` network in docker-compose.umami.yml).
+	reverse_proxy umami:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}

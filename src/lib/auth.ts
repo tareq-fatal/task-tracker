@@ -88,6 +88,9 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     return null;
   }
 
+  // Deactivated users have no valid session, even a pre-existing one.
+  if (session.user.deactivatedAt) return null;
+
   // best-effort activity timestamp (don't block auth on it)
   prisma.user
     .update({

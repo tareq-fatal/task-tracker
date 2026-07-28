@@ -1,0 +1,143 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ArrowLeft, KanbanSquare, Plus, Columns3 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { requireTenant } from "@/lib/tenant";
+import { isAdminRole } from "@/lib/enums";
+import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
+import { taskVisibility, canAccessProject } from "@/lib/task-access";
+import { getProjectMembersView } from "@/actions/projects";
+import { ProjectMembers } from "@/components/project-members";
+import { taskCardSelect } from "@/lib/task-select";
+import { compareTasks } from "@/lib/tasks";
+import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { loadFilterOptions } from "@/lib/filter-data";
+import { TaskCard } from "@/components/task-card";
+import { EmptyState } from "@/components/empty-state";
+import { FilterBar } from "@/components/filter-bar";
+import { Button } from "@/components/ui/button";
+
+export default async function ProjectDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const { user, tenant } = await requireTenant();
+  const t = getDictionary(getActiveLocale());
+
+  const project = await prisma.project.findUnique({
+    where: { id: params.id },
+  });
+  if (!project || project.tenantId !== tenant.id) notFound();
+  // #26: non-admins may only open projects they're a member of (or have a task in)
+  if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
+
+  const isAdmin = isAdminRole(user.role);
+  const membersView = isAdmin ? await getProjectMembersView(project.id) : null;
+
+  const filters = parseTaskFilters(searchParams);
+  const base = { projectId: project.id, ...(await taskVisibility(user, tenant.id)) };
+  const where = { AND: [base, buildTaskWhere(filters)] };
+
+  const [options, total, tasks] = await Promise.all([
+    loadFilterOptions(tenant.id),
+    prisma.task.count({ where: base }),
+    prisma.task.findMany({ where, select: taskCardSelect }),
+  ]);
+  tasks.sort((a, b) => compareTasks(a, b));
+
+  return (
+    <div className="container py-6">
+      <Link
+        href="/projects"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+        {t["projects.title"]}
+      </Link>
+
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span
+              className="h-4 w-4 rounded-full"
+              style={{ backgroundColor: project.color }}
+            />
+            <h1 className="text-2xl font-bold">{project.name}</h1>
+          </div>
+          {project.description && (
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {project.description}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {isAdminRole(user.role) && (
+            <Button asChild variant="outline">
+              <Link href={`/projects/${project.id}/workflow`}>
+                <Columns3 className="me-1 h-4 w-4" />
+                {t["workflow.edit"]}
+              </Link>
+            </Button>
+          )}
+          <Button asChild variant="outline">
+            <Link href={`/projects/${project.id}/board`}>
+              <KanbanSquare className="me-1 h-4 w-4" />
+              {t["projects.openBoard"]}
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href={`/tasks/new?project=${project.id}`}>
+              <Plus className="me-1 h-4 w-4" />
+              {t["nav.newTask"]}
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {isAdmin && membersView && (
+        <div className="mb-6">
+          <ProjectMembers
+            projectId={project.id}
+            members={membersView.members}
+            candidates={membersView.candidates}
+          />
+        </div>
+      )}
+
+      <FilterBar
+        basePath={`/projects/${project.id}`}
+        projects={options.projects}
+        teams={options.teams}
+        users={options.users}
+        current={filters}
+        hide={["project"]}
+        resultCount={tasks.length}
+        totalCount={total}
+      />
+
+      {tasks.length === 0 ? (
+        <EmptyState
+          title={t["dashboard.empty"]}
+          action={
+            <Button asChild>
+              <Link href={`/tasks/new?project=${project.id}`}>
+                <Plus className="me-1 h-4 w-4" />
+                {t["nav.newTask"]}
+              </Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
