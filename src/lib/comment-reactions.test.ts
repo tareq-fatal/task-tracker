@@ -40,6 +40,13 @@ describe("comment reactions", () => {
     expect(isReactionType("thumbs_up")).toBe(true);
     expect(isReactionType("rocket")).toBe(false);
   });
+
+  it("customer-final palette: 👍 👁 ☑️ 🌷 🫡 😶 — no heart", () => {
+    for (const t of ["tulip", "salute", "no_mouth", "check", "seen"]) {
+      expect(isReactionType(t)).toBe(true);
+    }
+    expect(isReactionType("heart")).toBe(false); // ❤️ removed per customer
+  });
 });
 
 describe("comment/attachment delete permission", () => {
