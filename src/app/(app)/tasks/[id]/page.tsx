@@ -21,7 +21,7 @@ import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
 import { notify, mirrorToAdmins } from "@/lib/notifications";
-import { isAdminRole } from "@/lib/enums";
+import { isAdminRole, isStaffRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
 import { Ban } from "lucide-react";
@@ -122,7 +122,7 @@ export default async function TaskDetailPage({
 
   const isAssignee = task.assignees.some((a) => a.userId === user.id);
   const canView =
-    isAdminRole(user.role) || task.createdByUserId === user.id || isAssignee;
+    isStaffRole(user.role) || task.createdByUserId === user.id || isAssignee;
   // Friendly "no access" page instead of a bare 404 — an uninvolved user who
   // guesses/receives a task URL learns nothing about the task's content.
   if (!canView) {

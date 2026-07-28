@@ -1,0 +1,56 @@
+# =============================================================================
+# Task Tracker — backup sidecar (Docker Compose variant).
+#
+# Alternative to the systemd timer (infra/systemd/) — use this if you'd rather
+# keep the backup schedule inside Compose alongside the rest of the stack.
+# Runs infra/backup.sh once a day inside a small Alpine container that has
+# bash + postgresql-client + rclone installed, using a simple sleep-until-
+# next-run loop (no cron daemon needed inside the container).
+#
+# This is a MERGE FRAGMENT, same pattern as docker-compose.task-tracker.yml:
+#   - copy the `backup` service into the Coast-Shield prod compose file, or
+#   - run it standalone from here:
+#       docker compose -f docker-compose.backup.yml --env-file .env.backup up -d
+#
+# >>> CONFIRM THE PLACEHOLDERS MARKED `# CONFIRM:` AGAINST THE EXISTING STACK <<<
+#   - the external network Postgres lives on (so `backup` can reach it by name)
+#   - BACKUP_TIME below (24h HH:MM, container's UTC clock)
+# =============================================================================
+
+services:
+  backup:
+    image: alpine:3.20
+    container_name: task-tracker-backup
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        apk add --no-cache bash postgresql16-client rclone tzdata coreutils >/dev/null
+        exec /scripts/run-loop.sh
+    environment:
+      # 24h HH:MM (container clock, UTC by default) — when the daily backup fires.
+      BACKUP_TIME: "${BACKUP_TIME:-03:30}" # CONFIRM
+    env_file:
+      - .env.backup # DB creds, rclone remote config, retention, notifications
+    volumes:
+      # Uploads mounted READ-ONLY — this sidecar only ever reads them for backup.
+      - task_tracker_uploads:/uploads:ro
+      - ./backup.sh:/scripts/backup.sh:ro
+      - ./docker/backup-run-loop.sh:/scripts/run-loop.sh:ro
+    # Sidecar approach: UPLOADS_SOURCE points at the read-only bind above,
+    # instead of resolving the volume mountpoint via `docker volume inspect`
+    # (this container doesn't have (and shouldn't need) the Docker socket).
+    # Set this in .env.backup when using this compose file: UPLOADS_SOURCE=/uploads
+    networks:
+      - data # CONFIRM: same network as Postgres, so PGHOST resolves by service name
+
+volumes:
+  task_tracker_uploads:
+    external: true
+    name: task_tracker_uploads
+
+networks:
+  data:
+    external: true
+    name: coastshield_data # CONFIRM

@@ -8,7 +8,9 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials } from "@/lib/tasks";
 import { isAdminRole } from "@/lib/enums";
+import { can, canEditUserTarget, assignableRoles } from "@/lib/roles";
 import { NewUserDialog } from "@/components/new-user-dialog";
+import { UserAdminControls } from "@/components/user-admin-controls";
 import { DeleteUserButton } from "@/components/delete-user-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +18,12 @@ import { Card } from "@/components/ui/card";
 
 export default async function AdminUsersPage() {
   const { user: me, tenant } = await requireTenant();
-  if (!isAdminRole(me.role)) redirect("/");
+  // Admins AND sub-admins may open this page; what each may do per row is
+  // decided below (and re-checked server-side in every action).
+  if (!can(me.role, "manageUsersBasic")) redirect("/");
   const t = getDictionary(getActiveLocale());
+  const isAdmin = isAdminRole(me.role);
+  const roleOptions = assignableRoles(me.role) as string[];
 
   const users = await prisma.user.findMany({
     where: { tenantId: tenant.id },
@@ -31,7 +37,7 @@ export default async function AdminUsersPage() {
     <div className="container py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t["admin.users.title"]}</h1>
-        <NewUserDialog />
+        {isAdmin && <NewUserDialog roleOptions={roleOptions} />}
       </div>
 
       <Card className="divide-y overflow-hidden">
@@ -55,6 +61,9 @@ export default async function AdminUsersPage() {
                   <Badge variant={u.role === "Admin" ? "default" : "secondary"}>
                     {u.role}
                   </Badge>
+                  {u.deactivatedAt && (
+                    <Badge variant="destructive">{t["users.deactivatedBadge"]}</Badge>
+                  )}
                 </div>
                 <p className="truncate text-sm text-muted-foreground">
                   @{u.username}{u.email ? ` · ${u.email}` : ""}
@@ -71,7 +80,25 @@ export default async function AdminUsersPage() {
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground rtl:rotate-180" />
             </Link>
-            {u.id !== me.id && <DeleteUserButton userId={u.id} />}
+            {u.id !== me.id && (
+              <UserAdminControls
+                user={{
+                  id: u.id,
+                  name: u.name,
+                  email: u.email,
+                  phone: u.phone,
+                  locale: u.locale,
+                  role: u.role,
+                  deactivated: Boolean(u.deactivatedAt),
+                }}
+                editable={canEditUserTarget(me.role, u.role)}
+                canReactivate={isAdmin}
+                roleOptions={roleOptions}
+              />
+            )}
+            {isAdmin && u.id !== me.id && canEditUserTarget(me.role, u.role) && (
+              <DeleteUserButton userId={u.id} />
+            )}
           </div>
         ))}
       </Card>

@@ -1,0 +1,739 @@
+// Task Tracker — Prisma schema
+// PostgreSQL (production + dev). Enums are stored as strings;
+// allowed values are validated in the app layer (src/lib/enums.ts + zod schemas).
+//
+// binaryTargets: "native" covers local dev; "debian-openssl-3.0.x" covers the
+// production container (node:20-bookworm-slim → OpenSSL 3.0). If you ever build
+// on an Alpine/musl base instead, add "linux-musl-openssl-3.0.x".
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  slug           String  @unique // "objektus", "tarek", "marine"
+  name           String
+  logo           String? // white-label logo URL (/uploads/tenants/{slug}/logo.*)
+  primaryColor   String?
+  secondaryColor String?
+  accentColor    String?
+  themeName      String  @default("ocean-pro") // ocean-pro | sage-modern | coral-energy | custom | dark-only | light-only
+  ssoDomains     String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
+  // Feature flag: show billable/non-billable time UI. Off for military
+  // tenants (no invoicing), on by default for commercial ones.
+  billingEnabled Boolean @default(true)
+  // Optional Telegram broadcast group (bot must be added manually as admin —
+  // Telegram forbids bots from adding members). Events = CSV of notification
+  // event types that should ALSO be posted to the group.
+  telegramGroupChatId String?
+  telegramGroupEvents String?
+  createdAt    DateTime @default(now())
+
+  users         User[]
+  projects      Project[]
+  teams         Team[]
+  tasks         Task[]
+  authProviders TenantAuthProvider[]
+  plannerSyncs  PlannerSync[]
+  sprints       Sprint[]
+  webhooks      Webhook[]
+}
+
+model Sprint {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  goal      String?
+  startDate DateTime?
+  endDate   DateTime?
+  status    String    @default("planned") // planned | active | closed
+  createdAt DateTime  @default(now())
+
+  tasks Task[]
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model PlannerSync {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId    String    @unique // the local project mirrored to/from the plan
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  planId       String // MS Graph Planner plan id
+  groupId      String? // owning M365 group id (needed for some Graph calls)
+  direction    String    @default("pull") // "pull" | "push" | "two-way"
+  enabled      Boolean   @default(true)
+  intervalMin  Int       @default(5) // polling cadence for the scheduler
+  lastSyncedAt DateTime?
+  lastStatus   String? // last run summary (ok / error message)
+  deltaLink    String? // Graph delta query continuation token
+  createdAt    DateTime  @default(now())
+
+  @@unique([tenantId, planId])
+  @@index([tenantId])
+}
+
+model TenantAuthProvider {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  provider      String // "azure-ad" | "google" | "github" | "apple"
+  enabled       Boolean  @default(true)
+  autoProvision Boolean  @default(true) // auto-create a user on first SSO login
+  createdAt     DateTime @default(now())
+
+  @@unique([tenantId, provider])
+}
+
+model UserIdentity {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String // the provider's stable subject id
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique // login id — globally unique (unambiguous login)
+  email        String? // #31 — optional (users can be created without an email)
+  passwordHash String
+  mustChangePassword Boolean @default(false) // #31 — set for temp-password accounts
+  role         String   @default("User") // "SuperAdmin" | "Admin" | "User"
+  avatar       String? // url or emoji
+  locale       String   @default("ar") // "ar" | "en" | "de"
+  hasSeenTour  Boolean  @default(false)
+  onboardedAt  DateTime? // first-time onboarding done/skipped (welcome modal + optional sample project). null = not yet onboarded
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  // Notification global settings
+  quietHoursStart Int? // 0-23 local hour; null = off
+  quietHoursEnd   Int?
+  notifyDigest    Boolean @default(false) // batch email instead of instant
+
+  // Telegram notifications (follows the webPush channel preference).
+  // Linked via deep link t.me/<bot>?start=<telegramLinkToken>.
+  telegramChatId    String?
+  telegramLinkToken String?  @unique // one-time link token; cleared after linking
+  telegramLinkTokenAt DateTime? // minted at — tokens expire after 30 days
+  telegramMuted     Boolean  @default(false) // /mute in the bot
+  telegramHandle    String? // official @username from the ops roster (bulk onboarding)
+  telegramNickname  String? // full name as listed in the ops roster
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  sessions          Session[]
+  assignedTasks     Task[]             @relation("AssignedTo")
+  createdTasks      Task[]             @relation("CreatedBy")
+  createdProjects   Project[]          @relation("ProjectCreatedBy")
+  comments          TaskComment[]
+  pushSubscriptions PushSubscription[]
+  teamMemberships   TeamMember[]
+  projectMemberships ProjectMember[]
+  taskAssignments   TaskAssignee[]
+  commentReads      TaskCommentRead[]
+  createdTeams      Team[]             @relation("TeamCreatedBy")
+  identities        UserIdentity[]
+  activity          ActivityLog[]
+  notifications     Notification[]
+  notifyPrefs       NotificationPreference[]
+  notifyDevices     NotificationDevice[]
+  voiceNotes        VoiceNote[]
+  timeEntries       TaskTimeEntry[]
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  type      String // assigned | status | comment | mention | due_soon | overdue | blocker_resolved | recurring
+  title     String
+  body      String?
+  url       String?
+  taskId    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model NotificationPreference {
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType String
+  inApp     Boolean @default(true)
+  webPush   Boolean @default(true)
+  email     Boolean @default(false)
+  native    Boolean @default(true)
+
+  @@unique([userId, eventType])
+}
+
+model NotificationDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform  String // "android" | "ios"
+  token     String   @unique // FCM / APNs token
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Team {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  color           String   @default("#0ea5e9")
+  createdAt       DateTime @default(now())
+  createdByUserId String
+  createdBy       User     @relation("TeamCreatedBy", fields: [createdByUserId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  members TeamMember[]
+  tasks   Task[]
+
+  @@index([tenantId])
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  color         String   @default("#6366f1") // indigo
+  externalId    String?  @unique // e.g. MS Planner plan id (import idempotency)
+  createdAt     DateTime @default(now())
+  createdByUserId String
+  createdBy     User     @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id])
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  tasks        Task[]
+  plannerSync  PlannerSync?
+  sprints      Sprint[]
+  columns      WorkflowColumn[]
+  customFields CustomFieldDef[]
+  automations  AutomationRule[]
+  members      ProjectMember[]
+
+  @@index([tenantId])
+}
+
+// Explicit project access grant. When a project has ≥1 member, non-admin
+// members see ALL of that project's tasks (not just the ones assigned to them).
+// A project with no members behaves exactly as before (assigned-only visibility).
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  userId    String
+  tenantId  String
+  name      String
+  view      String // all | person | team | project | operations
+  entityId  String? // selected user/team/project id (for person/team/project)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model TaskTemplate {
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String // template label (e.g. "Bug Report")
+  category    String? // #22 — optional grouping label (e.g. "Engineering", "HR")
+  title       String // task title to pre-fill
+  description String?
+  type        String   @default("Task")
+  priority    String   @default("Medium")
+  storyPoints Int?
+  subtasks    String? // JSON array of subtask titles
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model AutomationRule {
+  id           String   @id @default(cuid())
+  tenantId     String
+  projectId    String? // null = all projects in the tenant
+  project      Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  enabled      Boolean  @default(true)
+  triggerType  String // status_to | priority_to | created
+  triggerValue String? // status/priority value (null for "created")
+  actionType   String // set_status | set_priority
+  actionValue  String
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model CustomFieldDef {
+  id        String   @id @default(cuid())
+  tenantId  String
+  projectId String? // null = applies to all projects in the tenant
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      String // text | number | select | date | checkbox
+  options   String? // JSON array of choices (select only)
+  order     Int      @default(0)
+  required  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  values CustomFieldValue[]
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
+model CustomFieldValue {
+  id      String         @id @default(cuid())
+  fieldId String
+  field   CustomFieldDef @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  taskId  String
+  task    Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  value   String // stringified; coerced per field type in the app layer
+
+  @@unique([fieldId, taskId])
+  @@index([taskId])
+}
+
+model WorkflowColumn {
+  id        String   @id @default(cuid())
+  tenantId  String
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#6366f1")
+  order     Int      @default(0)
+  wipLimit  Int? // max tasks allowed in this column (null = unlimited)
+  isInitial Boolean  @default(false) // new tasks land here
+  isFinal   Boolean  @default(false) // tasks here count as completed
+  status    String   @default("InProgress") // underlying base status: Todo | InProgress | Done
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+
+  @@index([projectId])
+  @@index([tenantId])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("Todo") // Todo | InProgress | Done | Archived
+  priority    String    @default("Medium") // Low | Medium | High | Critical
+  position    Int       @default(0) // ordering within a status column
+  startDate   DateTime? // Gantt schedule start (planned). Null → derived from createdAt.
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // External system linkage (MS Planner import idempotency)
+  externalId String? @unique
+  bucket     String? // original MS Planner bucket name, kept for reference
+
+  // Issue hierarchy: Epic > Story > Task > Subtask (Bug anywhere).
+  type        String  @default("Task") // Epic | Story | Task | Subtask | Bug
+  parentId    String?
+  parent      Task?   @relation("TaskHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Task[]  @relation("TaskHierarchy")
+  storyPoints Int?
+
+  // Scrum-board column (to-do | in-progress | waiting | to-verify | done |
+  // ready-for-golive). Null → derived from status. Independent of `bucket`.
+  scrumColumn String?
+
+  // Recurrence. A task with a rule OR a cron expression acts as a *series
+  // template*: the recurring-runner spawns a fresh instance each time
+  // recurringNextAt comes due, copying the template's content (title,
+  // description, priority, assignees, project, team, …). Spawned instances
+  // carry no recurrence of their own, so they never recurse.
+  //
+  //  - recurringRule   iCal-RRULE subset, e.g. "FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE"
+  //  - recurringCron   5-field cron ("min hour dom mon dow"), evaluated in
+  //                    recurringTz. When set, it takes precedence over the rule
+  //                    and enables arbitrary schedules ("0 9 * * 1-5").
+  //  - recurringTz     IANA zone the cron/preset is anchored to (default UTC),
+  //                    so "every day at 09:00" stays 09:00 across DST.
+  //  - end conditions  recurringUntil (stop after a date) and recurringEndCount
+  //                    (stop after N spawns); recurringCount tracks spawns so far.
+  //  - recurringPaused temporarily suspends spawning without losing the series.
+  recurringRule   String?
+  recurringCron   String?
+  recurringTz     String?
+  recurringNextAt DateTime?
+  recurringUntil    DateTime?
+  recurringEndCount Int?
+  recurringCount    Int       @default(0)
+  recurringPaused   Boolean   @default(false)
+
+  // Progress (0-100). Auto-derived from subtasks when any exist, else manual.
+  progress Int @default(0)
+
+  // Time tracking (hours)
+  estimatedHours Float?
+  spentHours     Float     @default(0)
+  timerStartedAt DateTime? // when a running timer was started (null = stopped)
+  completedAt    DateTime? // set when status becomes Done
+
+  // Primary assignee = "Hauptkopf" (the lead). Additional co-assignees live in
+  // TaskAssignee (#13). assignedToUserId stays the primary for cards/reports/filters.
+  assignedToUserId String?
+  assignedTo       User?   @relation("AssignedTo", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  assignees        TaskAssignee[]
+
+  // #24 — admin support: when set, the task is flagged as escalated (needs help).
+  // DEPRECATED 2026-07-19: escalation-support feature removed on customer
+  // request (priority=Critical covers the need). Column kept so existing rows
+  // stay intact; drop in a later cleanup migration once confirmed unused.
+  escalatedAt DateTime?
+
+  // Soft-delete: rows are never hard-deleted from the UI — old links land on
+  // a friendly "deleted" page and admins can restore. List reads exclude
+  // these automatically via the Prisma client extension in lib/prisma.ts.
+  deletedAt DateTime?
+  deletedBy String? // user id who deleted; resolved to a name on display
+
+  commentReads TaskCommentRead[]
+
+  createdByUserId String
+  createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
+
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  sprintId String?
+  sprint   Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  // Optional per-project custom workflow column. When a project defines columns,
+  // its board groups by this instead of `status`. Null = fall back to status board.
+  workflowColumnId String?
+  workflowColumn   WorkflowColumn? @relation(fields: [workflowColumnId], references: [id], onDelete: SetNull)
+
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  comments     TaskComment[]
+  attachments  TaskAttachment[]
+  voiceNotes   VoiceNote[]
+  subtasks     Subtask[]
+  customValues CustomFieldValue[]
+  linksFrom   TaskLink[]       @relation("LinksFrom")
+  linksTo     TaskLink[]       @relation("LinksTo")
+  activity    ActivityLog[]
+  timeEntries TaskTimeEntry[]
+
+  @@index([status])
+  @@index([assignedToUserId])
+  @@index([projectId])
+  @@index([teamId])
+  @@index([sprintId])
+  @@index([parentId])
+  @@index([tenantId])
+  @@index([workflowColumnId])
+  @@index([deletedAt])
+  @@index([recurringNextAt])
+}
+
+// #13 — every user assigned to a task (co-workers). The "Hauptkopf" (primary) is
+// Task.assignedToUserId, which is also mirrored as a row here. Backfilled from
+// existing assignedToUserId values so single-assignee tasks are unchanged.
+model TaskAssignee {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@index([taskId])
+}
+
+// #12 — per-user "read up to now" marker for a task's comment thread. A comment
+// counts as read by user X when X's lastReadAt >= the comment's createdAt.
+// Drives Telegram-style ✓ (sent) / ✓✓ (read by all other watchers) receipts.
+model TaskCommentRead {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([userId])
+}
+
+model TaskLink {
+  id           String   @id @default(cuid())
+  taskId       String
+  task         Task     @relation("LinksFrom", fields: [taskId], references: [id], onDelete: Cascade)
+  linkedTaskId String
+  linkedTask   Task     @relation("LinksTo", fields: [linkedTaskId], references: [id], onDelete: Cascade)
+  type         String // DependsOn | Blocks | RelatedTo | SubtaskOf
+  createdAt    DateTime @default(now())
+
+  @@unique([taskId, linkedTaskId, type])
+  @@index([taskId])
+  @@index([linkedTaskId])
+}
+
+model Subtask {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model DbAuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userName  String
+  sql       String
+  mode      String // "read" | "write" | "purge"
+  rowCount  Int?
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Async export job. Small exports (≤ EXPORT_SYNC_LIMIT tasks) are generated
+// inline in the request; larger ones are queued here and produced by the
+// /api/cron/exports runner, which emails the requester an unguessable download
+// link (see src/lib/export-runner.ts). Plain string ids (no relations) mirror
+// DbAuditLog — the row outlives the task/sprint it was generated from.
+model ExportJob {
+  id          String    @id @default(cuid())
+  token       String    @unique // unguessable download token used in the emailed link
+  tenantId    String
+  userId      String
+  userName    String
+  userEmail   String? // recipient for the "ready" email (null → no email)
+  locale      String    @default("ar") // ar | en | de — controls file language
+  kind        String // tasks-excel | sprint-pdf | activity-pdf | kanban-pdf
+  format      String // xlsx | pdf
+  params      String    @default("{}") // JSON: filters / selection / includeLogo
+  status      String    @default("pending") // pending | processing | done | error
+  taskCount   Int       @default(0)
+  fileName    String? // human filename, e.g. "tasks-objektus-2026-07-05.xlsx"
+  filePath    String? // public path, e.g. /uploads/exports/<id>.xlsx
+  sizeBytes   Int?
+  error       String?
+  attempts    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([userId])
+}
+
+model TaskTimeEntry {
+  id        String    @id @default(cuid())
+  taskId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenantId  String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime? // null = running
+  minutes   Int       @default(0) // computed on stop / set manually
+  note      String?
+  billable  Boolean   @default(true) // invoiceable time (toggle per entry)
+  source    String    @default("timer") // timer | manual
+  createdAt DateTime  @default(now())
+
+  @@index([taskId])
+  @@index([userId, endedAt])
+  @@index([tenantId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // created | status | assigned | priority | comment | due | reopened
+  detail    String? // human-readable detail (e.g. "Todo → Done")
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  voiceNote VoiceNote?
+
+  @@index([taskId])
+}
+
+model TaskAttachment {
+  id         String   @id @default(cuid())
+  taskId     String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fileName   String
+  filePath   String // public path, e.g. /uploads/xxxx.png
+  mimeType   String
+  sizeBytes  Int
+  uploadedAt DateTime @default(now())
+
+  @@index([taskId])
+}
+
+// Voice note (max 2 min, MediaRecorder). Attached to a task directly, or — when
+// commentId is set — recorded as a voice comment. Stored like attachments
+// (public/uploads + DB row). `waveform` is a JSON array of 0-100 peak ints
+// captured while recording, so playback can render bars without decoding audio.
+model VoiceNote {
+  id          String       @id @default(cuid())
+  taskId      String
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  commentId   String?      @unique
+  comment     TaskComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filePath    String // public path, e.g. /uploads/xxxx.webm
+  mimeType    String
+  sizeBytes   Int
+  durationSec Float
+  waveform    String // JSON int[] (0-100 peaks)
+  transcript  String? // filled by optional Whisper transcription (ENV opt-in)
+  createdAt   DateTime     @default(now())
+
+  @@index([taskId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Outbound webhooks: admins register a URL per event; on each matching event we
+// POST a signed JSON payload with retries. Every attempt is recorded in
+// WebhookDelivery for debugging (the event log).
+model Webhook {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  url       String
+  secret    String // HMAC-SHA256 signing secret (sent as X-Webhook-Signature)
+  events    String // comma-separated event types (task.created, task.completed, sprint.closed, comment.added)
+  preset    String   @default("generic") // generic | slack | teams | discord
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+}
+
+// One row per delivery attempt-set (a single event → single webhook). `attempts`
+// counts how many HTTP tries were made; the final outcome is in status/statusCode.
+model WebhookDelivery {
+  id          String    @id @default(cuid())
+  webhookId   String
+  webhook     Webhook   @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event       String
+  payload     String // the JSON body we sent (pretty-printed for the log)
+  status      String    @default("pending") // pending | success | failed
+  statusCode  Int? // last HTTP status received (null if the request never completed)
+  attempts    Int       @default(0)
+  error       String? // last error/response snippet (truncated)
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime? // when it finally succeeded (or gave up)
+
+  @@index([webhookId])
+  @@index([createdAt])
+}

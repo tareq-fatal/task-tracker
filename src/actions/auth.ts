@@ -30,6 +30,11 @@ export async function loginAction(
     return { error: "INVALID" };
   }
 
+  // Temporarily deactivated accounts (SubAdmin feature): friendly block.
+  if (user.deactivatedAt) {
+    return { error: "DEACTIVATED" };
+  }
+
   await createSession(user.id);
   if (isLocale(user.locale)) setLocaleCookie(user.locale);
   redirect("/");

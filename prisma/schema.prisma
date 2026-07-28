@@ -119,7 +119,12 @@ model User {
   email        String? // #31 — optional (users can be created without an email)
   passwordHash String
   mustChangePassword Boolean @default(false) // #31 — set for temp-password accounts
-  role         String   @default("User") // "SuperAdmin" | "Admin" | "User"
+  phone        String? // optional mobile number (editable by admins/sub-admins)
+  // Temporary deactivation (SubAdmin feature): login blocked with a friendly
+  // message; reactivation is admin-only. Nothing is deleted.
+  deactivatedAt DateTime?
+  deactivatedBy String?
+  role         String   @default("User") // "BackendAdmin" | "Admin" | "SubAdmin" | "User" (legacy "SuperAdmin")
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
   hasSeenTour  Boolean  @default(false)
