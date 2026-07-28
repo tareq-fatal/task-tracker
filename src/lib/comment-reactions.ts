@@ -1,14 +1,24 @@
 import { isAdminRole } from "./enums";
 
-/** Reaction palette — order = picker order. */
-export const REACTION_TYPES = ["thumbs_up", "seen", "heart", "check"] as const;
+/** Reaction palette — order = picker order. Customer-final 2026-07-28:
+ *  👍 👁 ☑️ 🌷 🫡 😶 — explicitly WITHOUT ❤️ (military context). */
+export const REACTION_TYPES = [
+  "thumbs_up",
+  "seen",
+  "check",
+  "tulip",
+  "salute",
+  "no_mouth",
+] as const;
 export type ReactionType = (typeof REACTION_TYPES)[number];
 
 export const REACTION_EMOJI: Record<ReactionType, string> = {
   thumbs_up: "👍",
   seen: "👁",
-  heart: "❤️",
-  check: "✅",
+  check: "☑️",
+  tulip: "🌷",
+  salute: "🫡",
+  no_mouth: "😶",
 };
 
 export function isReactionType(v: string): v is ReactionType {
