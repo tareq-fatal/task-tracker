@@ -898,6 +898,7 @@ export async function uploadAttachmentAction(
       filePath: `/uploads/${safeName}`,
       mimeType: file.type,
       sizeBytes: file.size,
+      uploadedBy: user.id, // enables "uploader may delete own attachment"
     },
   });
   await logActivity(taskId, user.id, "attachment", file.name);

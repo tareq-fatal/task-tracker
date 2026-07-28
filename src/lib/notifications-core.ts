@@ -10,6 +10,7 @@ export const NOTIFICATION_EVENTS = [
   "blocker_resolved",
   "recurring",
   "task_seen", // WhatsApp-style: assignee opened the task for the first time
+  "reaction", // someone reacted (👍/👁/…) on your comment — deduped per 5 min
   "admin_activity", // #35 — admins are told about every user change to a task
 ] as const;
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];

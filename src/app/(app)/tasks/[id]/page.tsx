@@ -20,6 +20,9 @@ import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
+import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
+import { AttachmentShell } from "@/components/attachment-shell";
+import { aggregateReactions, canDeleteContent } from "@/lib/comment-reactions";
 import { notify, mirrorToAdmins } from "@/lib/notifications";
 import { isAdminRole, isStaffRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
@@ -81,11 +84,15 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "asc" },
       },
       comments: {
-        include: { user: { select: { name: true } }, voiceNote: true },
+        include: {
+          user: { select: { name: true } },
+          voiceNote: true,
+          reactions: { include: { user: { select: { name: true } } } },
+        },
         orderBy: { createdAt: "asc" },
       },
       commentReads: { select: { userId: true, lastReadAt: true } },
-      attachments: { orderBy: { uploadedAt: "desc" } },
+      attachments: { where: { deletedAt: null }, orderBy: { uploadedAt: "desc" } },
       voiceNotes: {
         where: { commentId: null },
         include: { user: { select: { name: true } } },
@@ -220,6 +227,13 @@ export default async function TaskDetailPage({
           orderBy: { firstOpenedAt: "asc" },
         })
       : [];
+
+  // Names for "deleted by" on comment placeholders (batch lookup).
+  const deleterIds = [...new Set(task.comments.map((c) => c.deletedBy).filter(Boolean))] as string[];
+  const deleterRows = deleterIds.length
+    ? await prisma.user.findMany({ where: { id: { in: deleterIds } }, select: { id: true, name: true } })
+    : [];
+  const deleterNames = new Map(deleterRows.map((u) => [u.id, u.name]));
 
   // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
   const canEditContent = canEditTaskContent(user, task);
@@ -686,8 +700,13 @@ export default async function TaskDetailPage({
               const image = isImageMime(a.mimeType);
               const href = `/download/attachment/${a.id}${inline ? "?inline=1" : ""}`;
               return (
-                <a
+                <AttachmentShell
                   key={a.id}
+                  attachmentId={a.id}
+                  downloadHref={`/download/attachment/${a.id}`}
+                  canDelete={canDeleteContent(user.role, a.uploadedBy === user.id)}
+                >
+                <a
                   href={href}
                   {...(inline
                     ? { target: "_blank", rel: "noopener noreferrer" }
@@ -712,6 +731,7 @@ export default async function TaskDetailPage({
                     {formatBytes(a.sizeBytes)}
                   </span>
                 </a>
+                </AttachmentShell>
               );
             })}
           </div>
@@ -763,6 +783,27 @@ export default async function TaskDetailPage({
             // #12 — receipts on MY own comments: ✓ sent, ✓✓ read by all others
             const mine = c.userId === user.id;
             const readByAll = mine && commentReadByAll(c.createdAt.getTime(), otherWatchers, readsMap);
+            // Soft-deleted → grey placeholder (audit row stays); admin restore.
+            if (c.deletedAt) {
+              return (
+                <div key={c.id} className="flex gap-3">
+                  <Avatar className="h-8 w-8 shrink-0 opacity-50">
+                    <AvatarFallback className="bg-secondary text-xs">
+                      {initials(c.user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-1 items-center gap-3 rounded-lg border border-dashed bg-muted/40 p-3">
+                    <p className="flex-1 text-sm italic text-muted-foreground">
+                      {t["comments.deletedPlaceholder"]}
+                      <span className="ms-2 text-xs not-italic">
+                        ({deleterNames.get(c.deletedBy ?? "") ?? "—"} · {format(c.deletedAt, "dd.MM. HH:mm")})
+                      </span>
+                    </p>
+                    {isAdminRole(user.role) && <RestoreCommentButton commentId={c.id} />}
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={c.id} className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
@@ -770,6 +811,14 @@ export default async function TaskDetailPage({
                     {initials(c.user.name)}
                   </AvatarFallback>
                 </Avatar>
+                <CommentShell
+                  commentId={c.id}
+                  chips={aggregateReactions(
+                    c.reactions.map((r) => ({ type: r.type, userId: r.userId, userName: r.user.name })),
+                    user.id
+                  )}
+                  canDelete={canDeleteContent(user.role, mine)}
+                >
                 <div className="flex-1 rounded-lg border bg-card p-3">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{c.user.name}</span>
@@ -795,6 +844,7 @@ export default async function TaskDetailPage({
                     <p className="whitespace-pre-wrap text-sm">{c.content}</p>
                   )}
                 </div>
+                </CommentShell>
               </div>
             );
           })}
