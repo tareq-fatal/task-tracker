@@ -90,6 +90,12 @@ export async function canAccessProject(
   });
   if (member) return true;
 
+  const own = await prisma.project.findFirst({
+    where: { id: projectId, tenantId, createdByUserId: user.id },
+    select: { id: true },
+  });
+  if (own) return true;
+
   const assigned = await prisma.task.findFirst({
     where: { projectId, tenantId, assignees: { some: { userId: user.id } } },
     select: { id: true },
@@ -122,7 +128,7 @@ export async function visibleProjectIds(
 ): Promise<string[] | null> {
   if (isAdminRole(user.role)) return null;
 
-  const [members, assigned] = await Promise.all([
+  const [members, assigned, created] = await Promise.all([
     memberProjectIds(user.id, tenantId),
     prisma.task.findMany({
       where: {
@@ -133,8 +139,13 @@ export async function visibleProjectIds(
       select: { projectId: true },
       distinct: ["projectId"],
     }),
+    prisma.project.findMany({
+      where: { tenantId, createdByUserId: user.id },
+      select: { id: true },
+    }),
   ]);
   const ids = new Set(members);
   for (const t of assigned) if (t.projectId) ids.add(t.projectId);
+  for (const p of created) ids.add(p.id);
   return [...ids];
 }

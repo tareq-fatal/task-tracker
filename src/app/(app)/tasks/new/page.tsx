@@ -8,6 +8,7 @@ import { createTaskAction } from "@/actions/tasks";
 import { TaskForm } from "@/components/task-form";
 import { isAdminRole } from "@/lib/enums";
 import { taskParticipation } from "@/lib/task-access";
+import { scopedProjectOptions } from "@/lib/filter-data";
 
 export default async function NewTaskPage({
   searchParams,
@@ -19,7 +20,7 @@ export default async function NewTaskPage({
 
   const [users, projects, teams, parents] = await Promise.all([
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    scopedProjectOptions(user, tenant.id),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     // Parent picker: only tasks the user participates in (admins: all).
     prisma.task.findMany({ where: { ...(await taskParticipation(user, tenant.id)), type: { not: "Subtask" } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),

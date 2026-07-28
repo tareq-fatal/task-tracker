@@ -28,7 +28,7 @@ export default async function AdminTasksPage({
   const where = { AND: [{ tenantId: tenant.id }, buildTaskWhere(filters)] };
 
   const [options, total, resultCount, tasks] = await Promise.all([
-    loadFilterOptions(tenant.id),
+    loadFilterOptions(me, tenant.id),
     prisma.task.count({ where: { tenantId: tenant.id } }),
     prisma.task.count({ where }),
     prisma.task.findMany({
