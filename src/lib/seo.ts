@@ -30,6 +30,12 @@ export const SEO_COPY: Record<Locale, SeoCopy> = {
     description:
       "Task Tracker ist eine schlanke, mandantenfähige App für Aufgaben- und Projektmanagement mit Kanban-Boards, Sprints, Roadmaps und Teamarbeit.",
   },
+  tr: {
+    appName: "Görev Takibi",
+    title: "Görev Takibi — Ekipler için Görev ve Proje Yönetimi",
+    description:
+      "Görev Takibi; Kanban panoları, sprintler, yol haritaları ve ekip çalışmasıyla hafif, çok kiracılı bir görev ve proje yönetimi uygulamasıdır.",
+  },
 };
 
 /** Open Graph locale codes (BCP-47-ish `og:locale` format). */
@@ -37,6 +43,7 @@ export const OG_LOCALE: Record<Locale, string> = {
   ar: "ar_AR",
   en: "en_US",
   de: "de_DE",
+  tr: "tr_TR",
 };
 
 /**

@@ -1,6 +1,6 @@
 import type { Locale } from "@/lib/enums";
 
-const INTL_LOCALE: Record<Locale, string> = { ar: "ar", en: "en-GB", de: "de-DE" };
+const INTL_LOCALE: Record<Locale, string> = { ar: "ar", en: "en-GB", de: "de-DE", tr: "tr-TR" };
 
 /** Locale-aware short date (falls back to ISO on any Intl hiccup). */
 export function fmtDate(locale: Locale, d: Date | null | undefined): string {

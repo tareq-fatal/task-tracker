@@ -248,7 +248,9 @@ const ar: SampleProject = {
   ],
 };
 
-const byLocale: Record<Locale, SampleProject> = { de, en, ar };
+// Turkish sample project: reuse the English structure until a native
+// sample is authored (only used for the optional demo project).
+const byLocale: Record<Locale, SampleProject> = { de, en, ar, tr: en };
 
 export function sampleProjectFor(locale: string): SampleProject {
   return byLocale[(locale as Locale)] ?? de;

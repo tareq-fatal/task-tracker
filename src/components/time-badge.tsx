@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { ar, de, enUS } from "date-fns/locale";
+import { ar, de, enUS, tr } from "date-fns/locale";
 import { Clock, CalendarDays, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -15,7 +15,7 @@ import {
 import { useT } from "@/components/i18n-provider";
 import type { Locale } from "@/lib/enums";
 
-const DATE_LOCALES: Record<Locale, typeof ar> = { ar, de, en: enUS };
+const DATE_LOCALES: Record<Locale, typeof ar> = { ar, de, en: enUS, tr };
 
 export type TimeInfo = {
   status: string;
