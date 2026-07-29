@@ -19,8 +19,9 @@ import { Logo } from "@/components/logo";
 import { ApkDownloadLink } from "@/components/apk-download-link";
 import { SsoButtons } from "@/components/sso-buttons";
 import { configuredProviders } from "@/lib/sso";
+import { safeReturnUrl } from "@/lib/return-url";
 
-type LoginSearchParams = { sso?: string; lang?: string };
+type LoginSearchParams = { sso?: string; lang?: string; returnUrl?: string };
 
 // No locale-prefixed routes exist app-wide; `?lang=` gives crawlers a
 // distinct, indexable URL per language (rendered for real below, not just
@@ -64,7 +65,7 @@ export default async function LoginPage({
   searchParams: LoginSearchParams;
 }) {
   const user = await getCurrentUser();
-  if (user) redirect("/");
+  if (user) redirect(safeReturnUrl(searchParams?.returnUrl));
 
   const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
   const t = getDictionary(locale);
@@ -118,7 +119,7 @@ export default async function LoginPage({
                 {t["login.sso.error"]}
               </p>
             )}
-            <LoginForm />
+            <LoginForm returnUrl={safeReturnUrl(searchParams?.returnUrl)} />
             <SsoButtons providers={providers} />
             {showDemo && (
               <div className="mt-6 rounded-md bg-muted p-3 text-xs text-muted-foreground">
