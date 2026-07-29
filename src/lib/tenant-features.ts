@@ -6,6 +6,7 @@ export const TENANT_FEATURES = [
   "billingEnabled",
   "parentTasksEnabled",
   "storyPointsEnabled",
+  "translationEnabled",
 ] as const;
 
 export type TenantFeature = (typeof TENANT_FEATURES)[number];

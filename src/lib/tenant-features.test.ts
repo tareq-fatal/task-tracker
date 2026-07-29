@@ -7,6 +7,7 @@ describe("tenant feature flags", () => {
       "billingEnabled",
       "parentTasksEnabled",
       "storyPointsEnabled",
+      "translationEnabled",
     ]);
     for (const f of TENANT_FEATURES) expect(isTenantFeature(f)).toBe(true);
   });
