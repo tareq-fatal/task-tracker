@@ -923,7 +923,15 @@ export default async function TaskDetailPage({
           {t["activity.title"]}
         </h2>
         <ActivityFeed
-          items={task.activity.map((a) => ({
+          items={(isAdmin
+            ? task.activity
+            : // Consistent with hiding deleted content entirely from
+              // non-admins: the "X deleted a comment/attachment" audit rows
+              // are admin-only too.
+              task.activity.filter(
+                (a) => a.type !== "comment_deleted" && a.type !== "attachment_deleted"
+              )
+          ).map((a) => ({
             id: a.id,
             type: a.type,
             detail: a.detail,
