@@ -21,7 +21,7 @@ import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
 import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
-import { AttachmentShell } from "@/components/attachment-shell";
+import { AttachmentDeleteButton } from "@/components/attachment-delete-button";
 import { aggregateReactions, canDeleteContent, canReact } from "@/lib/comment-reactions";
 import { notify, mirrorToAdmins } from "@/lib/notifications";
 import { isAdminRole, isStaffRole } from "@/lib/enums";
@@ -700,18 +700,13 @@ export default async function TaskDetailPage({
               const image = isImageMime(a.mimeType);
               const href = `/download/attachment/${a.id}${inline ? "?inline=1" : ""}`;
               return (
-                <AttachmentShell
-                  key={a.id}
-                  attachmentId={a.id}
-                  downloadHref={`/download/attachment/${a.id}`}
-                  canDelete={canDeleteContent(user.role, a.uploadedBy === user.id)}
-                >
+                <div key={a.id} className="flex items-center gap-1">
                 <a
                   href={href}
                   {...(inline
                     ? { target: "_blank", rel: "noopener noreferrer" }
                     : { download: a.fileName })}
-                  className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
+                  className="flex flex-1 items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
                 >
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -731,7 +726,10 @@ export default async function TaskDetailPage({
                     {formatBytes(a.sizeBytes)}
                   </span>
                 </a>
-                </AttachmentShell>
+                {canDeleteContent(user.role, a.uploadedBy === user.id) && (
+                  <AttachmentDeleteButton attachmentId={a.id} />
+                )}
+                </div>
               );
             })}
           </div>
