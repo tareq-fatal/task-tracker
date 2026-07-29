@@ -2,7 +2,7 @@ import type { Locale } from "./enums";
 
 // Map our app locale to a BCP-47 tag with the right regional conventions:
 // DE → 28.06.2026 / 1.234,56 · EN → 6/28/2026 / 1,234.56 · AR → Arabic digits
-const TAG: Record<Locale, string> = { ar: "ar-EG", de: "de-DE", en: "en-US" };
+const TAG: Record<Locale, string> = { ar: "ar-EG", de: "de-DE", en: "en-US", tr: "tr-TR" };
 
 function asDate(d: Date | string | number): Date {
   return d instanceof Date ? d : new Date(d);

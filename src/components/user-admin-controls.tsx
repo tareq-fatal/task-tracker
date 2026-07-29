@@ -152,6 +152,7 @@ export function UserAdminControls({
                 <option value="ar">العربية</option>
                 <option value="de">Deutsch</option>
                 <option value="en">English</option>
+                <option value="tr">Türkçe</option>
               </select>
               {err && <p className="text-xs text-destructive">{err}</p>}
               <div className="flex justify-end gap-2">

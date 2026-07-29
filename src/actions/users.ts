@@ -106,7 +106,7 @@ export async function updateUserBasicAction(
   if (!name) return { error: "EMPTY_NAME" };
   const email = input.email.trim().toLowerCase() || null;
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: "BAD_EMAIL" };
-  const locale = ["ar", "de", "en"].includes(input.locale) ? input.locale : target.locale;
+  const locale = ["ar", "de", "en", "tr"].includes(input.locale) ? input.locale : target.locale;
   if (email && email !== target.email) {
     const clash = await prisma.user.findFirst({
       where: { email, tenantId: tenant.id, id: { not: userId } },

@@ -54,7 +54,7 @@ export function isTaskLinkType(v: string): v is TaskLinkType {
 }
 
 // Arabic is the primary language (RTL); English and German follow.
-export const LOCALES = ["ar", "en", "de"] as const;
+export const LOCALES = ["ar", "en", "de", "tr"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = "ar";

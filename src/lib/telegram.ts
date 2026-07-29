@@ -64,6 +64,7 @@ export async function sendTelegramMessage(
 function openLabel(locale: string): string {
   if (locale === "de") return "Aufgabe öffnen";
   if (locale === "en") return "Open task";
+  if (locale === "tr") return "Görevi aç";
   return "فتح المهمة";
 }
 
