@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -138,11 +138,20 @@ export default async function TaskDetailPage({
   if (!task || task.tenantId !== tenant.id) notFound();
 
   const isAssignee = task.assignees.some((a) => a.userId === user.id);
+  const isAdmin = isAdminRole(user.role);
   const canView =
     isStaffRole(user.role) || task.createdByUserId === user.id || isAssignee;
   // Friendly "no access" page instead of a bare 404 — an uninvolved user who
   // guesses/receives a task URL learns nothing about the task's content.
   if (!canView) {
+    // Customer principle: non-admins never see a blocking "no access" page —
+    // silent redirect to their list plus a short toast. ONE exception: links
+    // from Telegram (?src=tg), where the in-app browser may hold a stale
+    // session of another account — there the identity line + account switch
+    // must stay reachable (fix for the "notified but no access" case).
+    if (!isAdmin && searchParams?.src !== "tg") {
+      redirect("/tasks?notice=task-unavailable");
+    }
     return (
       <div className="container max-w-xl py-16 text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
@@ -172,6 +181,21 @@ export default async function TaskDetailPage({
   // Soft-deleted → friendly "task was deleted" page (HTTP 200) for everyone
   // involved instead of a bare 404; admins additionally get a restore button.
   if (task.deletedAt) {
+    // Non-admins get a neutral "not available" — no deletion details, no
+    // deleter name, nothing to be annoyed about (customer principle).
+    if (!isAdmin) {
+      return (
+        <div className="container max-w-xl py-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Ban className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h1 className="text-xl font-bold">{t["noAccess.unavailableTask"]}</h1>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href="/">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
+      );
+    }
     const deletedByUser = task.deletedBy
       ? await prisma.user.findUnique({ where: { id: task.deletedBy }, select: { name: true } })
       : null;
@@ -291,7 +315,12 @@ export default async function TaskDetailPage({
 
   const isBlocked = openStatus(task.status) && blockedBy.length > 0;
 
-  const isAdmin = isAdminRole(user.role);
+  // Deleted comments exist ONLY for admins (grey placeholder + restore);
+  // everyone else gets the list as if the comment was never there — the
+  // header count shrinks accordingly (customer order 2026-07-29).
+  const visibleComments = isAdmin
+    ? task.comments
+    : task.comments.filter((c) => !c.deletedAt);
 
   // #12 — read-receipts: watchers = all assignees + creator; a comment I wrote is
   // ✓✓ once every OTHER watcher has read past it.
@@ -793,13 +822,13 @@ export default async function TaskDetailPage({
       {/* Comments */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {t["task.comments"]} ({task.comments.length})
+          {t["task.comments"]} ({visibleComments.length})
         </h2>
         <div className="mb-4 space-y-3">
-          {task.comments.length === 0 && (
+          {visibleComments.length === 0 && (
             <p className="text-sm text-muted-foreground">{t["task.noComments"]}</p>
           )}
-          {task.comments.map((c) => {
+          {visibleComments.map((c) => {
             // #12 — receipts on MY own comments: ✓ sent, ✓✓ read by all others
             const mine = c.userId === user.id;
             const readByAll = mine && commentReadByAll(c.createdAt.getTime(), otherWatchers, readsMap);
