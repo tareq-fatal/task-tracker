@@ -19,6 +19,7 @@ import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
+import { SwitchAccountButton } from "@/components/switch-account-button";
 
 export default async function ProjectDetailPage({
   params,
@@ -44,9 +45,17 @@ export default async function ProjectDetailPage({
         </div>
         <h1 className="text-xl font-bold">{t["noAccess.project.title"]}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.project.text"]}</p>
-        <Button asChild variant="outline" className="mt-6">
-          <Link href="/projects">{t["deleted.back"]}</Link>
-        </Button>
+        <p className="mt-4 text-sm font-medium">
+          {t["noAccess.signedInAs"]
+            .replace("{name}", user.name)
+            .replace("{username}", user.username)}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <SwitchAccountButton returnUrl={`/projects/${project.id}`} />
+          <Button asChild variant="outline">
+            <Link href="/projects">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
       </div>
     );
   }

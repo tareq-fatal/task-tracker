@@ -22,6 +22,7 @@ import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
 import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
 import { CommentTranslation } from "@/components/comment-translation";
+import { SwitchAccountButton } from "@/components/switch-account-button";
 import { translationConfigured } from "@/lib/translate";
 import { AttachmentDeleteButton } from "@/components/attachment-delete-button";
 import { aggregateReactions, canDeleteContent, canReact } from "@/lib/comment-reactions";
@@ -149,9 +150,21 @@ export default async function TaskDetailPage({
         </div>
         <h1 className="text-xl font-bold">{t["noAccess.title"]}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.text"]}</p>
-        <Button asChild variant="outline" className="mt-6">
-          <Link href="/">{t["deleted.back"]}</Link>
-        </Button>
+        {/* Identity line — the Telegram in-app browser keeps its own cookie
+            jar, so this page is often reached with a DIFFERENT (stale)
+            account than the one the notification targeted. Showing who is
+            logged in + a one-tap account switch resolves that dead end. */}
+        <p className="mt-4 text-sm font-medium">
+          {t["noAccess.signedInAs"]
+            .replace("{name}", user.name)
+            .replace("{username}", user.username)}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <SwitchAccountButton returnUrl={`/tasks/${task.id}`} />
+          <Button asChild variant="outline">
+            <Link href="/">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
       </div>
     );
   }
