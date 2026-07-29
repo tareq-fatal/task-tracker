@@ -110,10 +110,13 @@ export async function getProjectDeleteStats(
   if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
   const project = await prisma.project.findUnique({ where: { id: projectId }, select: { tenantId: true } });
   if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
+  // tenantId is redundant once the project is tenant-checked above, but it keeps
+  // a task that somehow carries a foreign tenantId out of the count — and out of
+  // the cascade below (security audit 2026-07, defense in depth).
   const [tasks, comments, attachments] = await Promise.all([
-    prisma.task.count({ where: { projectId } }),
-    prisma.taskComment.count({ where: { task: { projectId, deletedAt: null } } }),
-    prisma.taskAttachment.count({ where: { task: { projectId, deletedAt: null } } }),
+    prisma.task.count({ where: { projectId, tenantId: tenant.id } }),
+    prisma.taskComment.count({ where: { task: { projectId, tenantId: tenant.id, deletedAt: null } } }),
+    prisma.taskAttachment.count({ where: { task: { projectId, tenantId: tenant.id, deletedAt: null } } }),
   ]);
   return { tasks, comments, attachments };
 }
@@ -130,7 +133,7 @@ export async function deleteProjectAction(projectId: string): Promise<void> {
   // deleted individually before.
   const ts = new Date();
   await prisma.task.updateMany({
-    where: { projectId, deletedAt: null },
+    where: { projectId, tenantId: tenant.id, deletedAt: null },
     data: { deletedAt: ts, deletedBy: user.id },
   });
   await prisma.project.update({
@@ -162,7 +165,7 @@ export async function restoreProjectAction(projectId: string): Promise<{ ok: boo
   if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
   if (!project.deletedAt) return { ok: true };
   await prisma.task.updateMany({
-    where: { projectId, deletedAt: project.deletedAt },
+    where: { projectId, tenantId: tenant.id, deletedAt: project.deletedAt },
     data: { deletedAt: null, deletedBy: null },
   });
   await prisma.project.update({

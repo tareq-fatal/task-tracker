@@ -8,6 +8,7 @@ import {
   SSO_PROVIDERS,
   PROVIDER_LABELS,
   isProviderConfigured,
+  parseDomains,
 } from "@/lib/sso";
 
 export type SsoSettingsState = { ok?: boolean; error?: string };
@@ -50,6 +51,23 @@ export async function saveTenantSsoAction(
   if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
 
   const domains = (formData.get("domains")?.toString() ?? "").trim() || null;
+
+  // A domain may be claimed by exactly ONE tenant. Without this, any tenant
+  // admin could claim a foreign organisation's domain and capture its new SSO
+  // sign-ins — the callback routes purely by domain and auto-provisions the
+  // arriving user into whichever tenant it matches first, i.e. a cross-tenant
+  // account takeover (security audit 2026-07).
+  const wanted = parseDomains(domains);
+  if (wanted.length) {
+    const others = await prisma.tenant.findMany({
+      where: { id: { not: tenant.id }, ssoDomains: { not: null } },
+      select: { ssoDomains: true },
+    });
+    const taken = new Set(others.flatMap((t) => parseDomains(t.ssoDomains)));
+    const clash = wanted.find((d) => taken.has(d));
+    if (clash) return { error: `DOMAIN_CLAIMED:${clash}` };
+  }
+
   await prisma.tenant.update({
     where: { id: tenant.id },
     data: { ssoDomains: domains },

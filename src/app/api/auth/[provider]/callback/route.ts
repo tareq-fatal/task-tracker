@@ -76,7 +76,14 @@ async function handle(
     const tenants = await prisma.tenant.findMany({
       where: { ssoDomains: { not: null } },
     });
-    const tenant = tenants.find((t) => emailMatchesDomains(email, t.ssoDomains));
+    // Fail CLOSED when more than one tenant claims this domain. `findMany` has
+    // no ordering, so picking the first match would hand the user to a
+    // non-deterministic tenant — and to whichever one claimed the domain last
+    // (security audit 2026-07). saveTenantSsoAction now rejects new collisions;
+    // this guards the ones that may already exist in the database.
+    const matches = tenants.filter((t) => emailMatchesDomains(email, t.ssoDomains));
+    if (matches.length > 1) return fail(req, "ambiguous_tenant");
+    const tenant = matches[0];
     if (!tenant) return fail(req, "no_tenant");
 
     // 3. Provider must be enabled for that tenant.

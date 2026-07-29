@@ -107,9 +107,11 @@ export async function runImportAction(
     return { ok: false, error: e?.message ?? "PARSE_ERROR" };
   }
 
-  // 1) Project (idempotent by externalId = plan id), scoped to active tenant
+  // 1) Project (idempotent by externalId = plan id), scoped to active tenant.
+  // The key MUST include tenantId — on the bare externalId this upsert matched
+  // and overwrote a foreign tenant's project (security audit 2026-07).
   const project = await prisma.project.upsert({
-    where: { externalId: wb.planId },
+    where: { tenantId_externalId: { tenantId: tenant.id, externalId: wb.planId } },
     update: { name: wb.planName },
     create: {
       name: wb.planName,
@@ -188,7 +190,7 @@ export async function runImportAction(
       assignedToUserId: assignee,
     };
     await prisma.task.upsert({
-      where: { externalId: tk.externalId },
+      where: { tenantId_externalId: { tenantId: tenant.id, externalId: tk.externalId } },
       update: common,
       create: {
         ...common,
