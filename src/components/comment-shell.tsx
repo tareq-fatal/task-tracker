@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, SmilePlus, Trash2, RotateCcw, Loader2 } from "lucide-react";
+import { SmilePlus, Trash2, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/i18n-provider";
@@ -17,16 +17,12 @@ import {
   type ReactionChip,
 } from "@/lib/comment-reactions";
 
-const LONG_PRESS_MS = 500;
-
 /**
- * Client wrapper around one (server-rendered) comment body:
- *  - reaction chips below (👍 3 · 👁 5, own reactions highlighted, names in
- *    the tooltip) + a picker via the hover "+" button
- *  - desktop right-click / mobile long-press opens a context menu with
- *    delete (author/admin only), react and copy-text
- *  - delete confirms first, is a SOFT delete, and admins get restore on the
- *    grey "deleted" placeholder (rendered by the server page, not here)
+ * Toolbar under one (server-rendered) comment. Customer-final UX
+ * (2026-07-29, replaces the removed right-click/long-press menu):
+ *  - reaction chips (visible to everyone; clickable for admins only)
+ *  - a VISIBLE dezent 🗑️ icon for whoever may delete (author or admin —
+ *    server-enforced too); click → confirmation modal → soft delete
  */
 export function CommentShell({
   commentId,
@@ -44,73 +40,22 @@ export function CommentShell({
 }) {
   const { t } = useT();
   const router = useRouter();
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, start] = useTransition();
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Long-press ghost-click guard: after the menu opens under a finger, the
-  // touchend still synthesizes a click that would land on the backdrop and
-  // close the menu instantly ("menu flashes and disappears"). We suppress the
-  // click after a fired long-press and ignore backdrop clicks for 400 ms.
-  const longPressFired = useRef(false);
-  const openedAtRef = useRef(0);
 
   const react = (type: string) =>
     start(async () => {
       await toggleReactionAction(commentId, type).catch(() => {});
       setPickerOpen(false);
-      setMenuAt(null);
       router.refresh();
     });
 
-  function openMenu(x: number, y: number) {
-    openedAtRef.current = Date.now();
-    // Clamp so the menu never renders off-screen on mobile.
-    setMenuAt({ x: Math.min(x, window.innerWidth - 190), y: Math.min(y, window.innerHeight - 170) });
-  }
-
   return (
-    <div
-      onContextMenu={(e) => {
-        e.preventDefault();
-        openMenu(e.clientX, e.clientY);
-      }}
-      onTouchStart={(e) => {
-        const t0 = e.touches[0];
-        longPressFired.current = false;
-        pressTimer.current = setTimeout(() => {
-          longPressFired.current = true;
-          openMenu(t0.clientX, t0.clientY);
-        }, LONG_PRESS_MS);
-      }}
-      onTouchEnd={(e) => {
-        if (pressTimer.current) clearTimeout(pressTimer.current);
-        if (longPressFired.current) {
-          // kill the synthetic click that follows this touchend
-          e.preventDefault();
-          longPressFired.current = false;
-        }
-      }}
-      onTouchMove={() => pressTimer.current && clearTimeout(pressTimer.current)}
-      onClickCapture={(e) => {
-        // any stray click right after a long-press open must not reach
-        // links/buttons underneath or the backdrop
-        if (
-          Date.now() - openedAtRef.current < 400 &&
-          !(e.target as HTMLElement).closest("[data-ctx-menu]")
-        ) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      }}
-      style={{ WebkitTouchCallout: "none" }}
-      className="group"
-    >
-      <div ref={bodyRef}>{children}</div>
+    <div className="group flex-1">
+      {children}
 
-      {/* Reactions row */}
+      {/* Toolbar: reactions (start) + delete icon (end) */}
       <div className="mt-1 flex flex-wrap items-center gap-1">
         {chips.map((c) =>
           canReact ? (
@@ -140,92 +85,45 @@ export function CommentShell({
             </span>
           )
         )}
-        {canReact && (
-        <div className="relative">
-          <button
-            onClick={() => setPickerOpen((o) => !o)}
-            aria-label={t("comments.addReaction")}
-            className={cn(
-              "rounded-full border bg-card p-1 text-muted-foreground transition-opacity hover:bg-secondary",
-              chips.length === 0 && "opacity-0 group-hover:opacity-100 focus:opacity-100"
-            )}
-          >
-            <SmilePlus className="h-3.5 w-3.5" />
-          </button>
-          {pickerOpen && (
-            <div className="absolute bottom-7 start-0 z-40 flex gap-1 rounded-full border bg-background p-1 shadow-lg">
-              {REACTION_TYPES.map((type) => (
-                <button
-                  key={type}
-                  disabled={pending}
-                  onClick={() => react(type)}
-                  className="rounded-full px-1.5 py-0.5 text-base hover:bg-secondary"
-                >
-                  {REACTION_EMOJI[type]}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        )}
-      </div>
 
-      {/* Context menu */}
-      {menuAt && (
-        <>
-          <button
-            aria-label={t("nav.close")}
-            className="fixed inset-0 z-40 cursor-default"
-            onClick={() => {
-              if (Date.now() - openedAtRef.current < 400) return; // ghost click
-              setMenuAt(null);
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setMenuAt(null);
-            }}
-          />
-          <div
-            data-ctx-menu
-            className="fixed z-50 overflow-hidden border bg-background text-sm shadow-2xl max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-2xl max-sm:pb-[env(safe-area-inset-bottom)] max-sm:pt-2 max-sm:text-base sm:w-44 sm:rounded-xl sm:py-1"
-            style={typeof window !== "undefined" && window.innerWidth >= 640 ? { left: menuAt.x, top: menuAt.y } : undefined}
-          >
-            {canReact && (
-              <button
-                className="flex w-full items-center gap-2 px-3 py-2 hover:bg-secondary"
-                onClick={() => {
-                  setMenuAt(null);
-                  setPickerOpen(true);
-                }}
-              >
-                <SmilePlus className="h-4 w-4" /> {t("comments.addReaction")}
-              </button>
-            )}
+        {canReact && (
+          <div className="relative">
             <button
-              className="flex w-full items-center gap-2 px-3 py-2 hover:bg-secondary"
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(bodyRef.current?.innerText ?? "");
-                } catch {}
-                setMenuAt(null);
-              }}
+              onClick={() => setPickerOpen((o) => !o)}
+              aria-label={t("comments.addReaction")}
+              className="rounded-full border bg-card p-1 text-muted-foreground transition-colors hover:bg-secondary"
             >
-              <Copy className="h-4 w-4" /> {t("comments.copy")}
+              <SmilePlus className="h-3.5 w-3.5" />
             </button>
-            {canDelete && (
-              <button
-                className="flex w-full items-center gap-2 px-3 py-2 text-destructive hover:bg-destructive/10"
-                onClick={() => {
-                  setMenuAt(null);
-                  setConfirmOpen(true);
-                }}
-              >
-                <Trash2 className="h-4 w-4" /> {t("comments.delete")}
-              </button>
+            {pickerOpen && (
+              <div className="absolute bottom-7 start-0 z-40 flex gap-1 rounded-full border bg-background p-1 shadow-lg">
+                {REACTION_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    disabled={pending}
+                    onClick={() => react(type)}
+                    className="rounded-full px-1.5 py-0.5 text-base hover:bg-secondary"
+                  >
+                    {REACTION_EMOJI[type]}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
-        </>
-      )}
+        )}
+
+        {/* Visible, discoverable delete — dezent grey, red on hover */}
+        {canDelete && (
+          <button
+            onClick={() => setConfirmOpen(true)}
+            aria-label={t("comments.delete")}
+            title={t("comments.delete")}
+            className="ms-auto rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
       {/* Delete confirmation */}
       {confirmOpen && (
