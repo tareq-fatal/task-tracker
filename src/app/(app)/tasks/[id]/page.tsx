@@ -21,6 +21,8 @@ import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
 import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
+import { CommentTranslation } from "@/components/comment-translation";
+import { translationConfigured } from "@/lib/translate";
 import { AttachmentDeleteButton } from "@/components/attachment-delete-button";
 import { aggregateReactions, canDeleteContent, canReact } from "@/lib/comment-reactions";
 import { notify, mirrorToAdmins } from "@/lib/notifications";
@@ -69,7 +71,11 @@ export default async function TaskDetailPage({
   searchParams?: { src?: string };
 }) {
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
+  // Auto-translate is offered only when the server has a DeepL key AND the
+  // tenant switch is on; then only for foreign-language text comments.
+  const translationOn = translationConfigured() && tenant.translationEnabled;
 
   const task = await prisma.task.findUnique({
     where: { id: params.id },
@@ -88,6 +94,9 @@ export default async function TaskDetailPage({
           user: { select: { name: true } },
           voiceNote: true,
           reactions: { include: { user: { select: { name: true } } } },
+          // Cached translation for the viewer's language (if any) — lets the
+          // page render FB-style "translated by default" with zero API calls.
+          translations: { where: { targetLang: locale } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -838,6 +847,17 @@ export default async function TaskDetailPage({
                       durationSec={c.voiceNote.durationSec}
                       transcript={c.voiceNote.transcript}
                       compact
+                    />
+                  ) : translationOn && !mine && c.language && c.language !== locale ? (
+                    <CommentTranslation
+                      commentId={c.id}
+                      original={c.content}
+                      targetLang={locale}
+                      initial={
+                        c.translations[0]
+                          ? { text: c.translations[0].text, sourceLanguage: c.translations[0].sourceLang }
+                          : null
+                      }
                     />
                   ) : (
                     <p className="whitespace-pre-wrap text-sm">{c.content}</p>

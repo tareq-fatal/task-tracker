@@ -8,7 +8,7 @@ import { can } from "@/lib/roles";
 import { isTenantFeature } from "@/lib/tenant-features";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
-export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean };
+export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
 
 async function requireSuper() {
   const { user } = await requireTenant();
@@ -30,6 +30,7 @@ export async function getTenants(): Promise<TenantRow[]> {
     billingEnabled: t.billingEnabled,
     parentTasksEnabled: t.parentTasksEnabled,
     storyPointsEnabled: t.storyPointsEnabled,
+    translationEnabled: t.translationEnabled,
   }));
 }
 
