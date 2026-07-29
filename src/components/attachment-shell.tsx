@@ -28,8 +28,15 @@ export function AttachmentShell({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, start] = useTransition();
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Long-press ghost-click guard: after the menu opens under a finger, the
+  // touchend still synthesizes a click that would land on the backdrop and
+  // close the menu instantly ("menu flashes and disappears"). We suppress the
+  // click after a fired long-press and ignore backdrop clicks for 400 ms.
+  const longPressFired = useRef(false);
+  const openedAtRef = useRef(0);
 
   function openMenu(x: number, y: number) {
+    openedAtRef.current = Date.now();
     setMenuAt({ x: Math.min(x, window.innerWidth - 190), y: Math.min(y, window.innerHeight - 150) });
   }
 
@@ -41,10 +48,33 @@ export function AttachmentShell({
       }}
       onTouchStart={(e) => {
         const t0 = e.touches[0];
-        pressTimer.current = setTimeout(() => openMenu(t0.clientX, t0.clientY), LONG_PRESS_MS);
+        longPressFired.current = false;
+        pressTimer.current = setTimeout(() => {
+          longPressFired.current = true;
+          openMenu(t0.clientX, t0.clientY);
+        }, LONG_PRESS_MS);
       }}
-      onTouchEnd={() => pressTimer.current && clearTimeout(pressTimer.current)}
+      onTouchEnd={(e) => {
+        if (pressTimer.current) clearTimeout(pressTimer.current);
+        if (longPressFired.current) {
+          // kill the synthetic click that follows this touchend
+          e.preventDefault();
+          longPressFired.current = false;
+        }
+      }}
       onTouchMove={() => pressTimer.current && clearTimeout(pressTimer.current)}
+      onClickCapture={(e) => {
+        // any stray click right after a long-press open must not reach
+        // links/buttons underneath or the backdrop
+        if (
+          Date.now() - openedAtRef.current < 400 &&
+          !(e.target as HTMLElement).closest("[data-ctx-menu]")
+        ) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }}
+      style={{ WebkitTouchCallout: "none" }}
     >
       {children}
 
@@ -53,15 +83,19 @@ export function AttachmentShell({
           <button
             aria-label={t("nav.close")}
             className="fixed inset-0 z-40 cursor-default"
-            onClick={() => setMenuAt(null)}
+            onClick={() => {
+              if (Date.now() - openedAtRef.current < 400) return; // ghost click
+              setMenuAt(null);
+            }}
             onContextMenu={(e) => {
               e.preventDefault();
               setMenuAt(null);
             }}
           />
           <div
-            className="fixed z-50 w-44 overflow-hidden rounded-xl border bg-background py-1 text-sm shadow-2xl"
-            style={{ left: menuAt.x, top: menuAt.y }}
+            data-ctx-menu
+            className="fixed z-50 overflow-hidden border bg-background text-sm shadow-2xl max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-2xl max-sm:pb-[env(safe-area-inset-bottom)] max-sm:pt-2 max-sm:text-base sm:w-44 sm:rounded-xl sm:py-1"
+            style={typeof window !== "undefined" && window.innerWidth >= 640 ? { left: menuAt.x, top: menuAt.y } : undefined}
           >
             <a
               href={downloadHref}
