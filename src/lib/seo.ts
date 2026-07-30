@@ -1,8 +1,14 @@
 import type { Locale } from "./enums";
 
-/** Public base URL — used for canonical links, sitemap, OG/JSON-LD absolute URLs. */
+/** Public base URL — used for canonical links, sitemap, OG/JSON-LD absolute URLs.
+ *
+ * `||`, not `??`: NEXT_PUBLIC_APP_URL is inlined at build time, so a build that
+ * passes it as an empty string (an unset `--build-arg`, e.g. the self-hosted
+ * installer's pre-built image) leaves `""` here rather than `undefined`. With
+ * `??` that empty string wins and every `new URL(SITE_URL)` below throws
+ * "Invalid URL", 500-ing every page. */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL ?? "https://tasks.coastshield.net";
+  process.env.NEXT_PUBLIC_APP_URL || "https://tasks.coastshield.net";
 
 type SeoCopy = {
   appName: string;

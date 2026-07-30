@@ -61,6 +61,9 @@ e2e/fixtures/*.xlsx
 /android/app/release
 releases/*.apk
 
+# Build output of deployment/task-tracker-usb/make-bundle.sh
+/dist/
+/dist-offline/
 # Local USB/offline deployment artifacts — never in git (images are >250 MB)
 dist-offline/
 deployment/**/*.tar

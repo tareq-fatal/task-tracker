@@ -36,6 +36,16 @@ FROM base AS builder
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# NEXT_PUBLIC_* values are INLINED by `next build` — they cannot be changed at
+# runtime via env. Both are optional (empty = current behaviour: push disabled,
+# canonical URLs fall back to the default in src/lib/seo.ts); the self-hosted
+# installer (deployment/task-tracker-usb/install.sh) passes them so a customer
+# build gets its own VAPID key and its own domain in canonical/OG links.
+ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
+ARG NEXT_PUBLIC_APP_URL=""
+ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 # `npm run build` = `prisma generate && next build`; standalone output is
 # configured in next.config.mjs (output: "standalone").
 RUN npm run build
