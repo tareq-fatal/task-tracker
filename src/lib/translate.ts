@@ -1,15 +1,29 @@
 import type { Locale } from "./enums";
 
-// Server-side DeepL client for comment auto-translation. The API key never
-// reaches the client — translation happens exclusively through
+// Server-side translation clients for comment auto-translation. Keys/URLs
+// never reach the client — translation happens exclusively through
 // POST /api/comments/[id]/translate.
 //
-// No DEEPL_API_KEY  →  the whole feature is OFF (no links in the UI, the
-// tenant admin panel shows a "set DEEPL_API_KEY" hint). Free-tier keys
-// (suffix ":fx") talk to api-free.deepl.com, paid keys to api.deepl.com.
+// Providers, in preference order:
+//   1. DeepL   — DEEPL_API_KEY set (":fx" suffix → api-free.deepl.com)
+//   2. LibreTranslate — LIBRETRANSLATE_URL set (self-hosted container on the
+//      VPS, customer decision 2026-07-29: no external service, no API cost)
+// Neither configured → the whole feature is OFF (no links in the UI, the
+// tenant admin panel shows a hint).
 
 export function translationConfigured(): boolean {
-  return Boolean(process.env.DEEPL_API_KEY);
+  return Boolean(process.env.DEEPL_API_KEY || process.env.LIBRETRANSLATE_URL);
+}
+
+/** Provider dispatcher — the API route calls this, not a specific client. */
+export async function translateText(
+  text: string,
+  target: Locale,
+  source?: Locale | null
+): Promise<{ text: string; detectedSource: string }> {
+  if (process.env.DEEPL_API_KEY) return deeplTranslate(text, target, source);
+  if (process.env.LIBRETRANSLATE_URL) return libreTranslate(text, target, source);
+  throw new TranslateError("not_configured");
 }
 
 function apiBase(key: string): string {
@@ -71,6 +85,48 @@ export async function deeplTranslate(
   return {
     text: first.text,
     detectedSource: (first.detected_source_language ?? source ?? "").toLowerCase(),
+  };
+}
+
+/**
+ * LibreTranslate (self-hosted). Speaks lowercase ISO codes directly, so our
+ * Locale values pass through as-is; `source: "auto"` enables its detector and
+ * the response then carries `detectedLanguage.language`.
+ */
+export async function libreTranslate(
+  text: string,
+  target: Locale,
+  source?: Locale | null
+): Promise<{ text: string; detectedSource: string }> {
+  const base = process.env.LIBRETRANSLATE_URL;
+  if (!base) throw new TranslateError("not_configured");
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      q: text,
+      source: source ?? "auto",
+      target,
+      format: "text",
+      ...(process.env.LIBRETRANSLATE_API_KEY
+        ? { api_key: process.env.LIBRETRANSLATE_API_KEY }
+        : {}),
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (res.status === 429) throw new TranslateError("rate_limited");
+  if (!res.ok) throw new TranslateError("upstream");
+  const json = (await res.json().catch(() => null)) as {
+    translatedText?: string;
+    detectedLanguage?: { language?: string };
+  } | null;
+  if (typeof json?.translatedText !== "string" || !json.translatedText) {
+    throw new TranslateError("upstream");
+  }
+  return {
+    text: json.translatedText,
+    detectedSource: (json.detectedLanguage?.language ?? source ?? "").toLowerCase(),
   };
 }
 

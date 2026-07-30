@@ -4,7 +4,7 @@ import { requireTenant } from "@/lib/tenant";
 import { isStaffRole, isLocale } from "@/lib/enums";
 import {
   translationConfigured,
-  deeplTranslate,
+  translateText,
   checkTranslateRateLimit,
   TranslateError,
 } from "@/lib/translate";
@@ -93,7 +93,7 @@ export async function POST(
   }
 
   try {
-    const result = await deeplTranslate(
+    const result = await translateText(
       comment.content,
       target,
       isLocale(comment.language) ? comment.language : null
