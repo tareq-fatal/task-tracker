@@ -26,7 +26,9 @@ export async function getProjectColumns(projectId: string): Promise<ColumnLite[]
   const cols = await prisma.workflowColumn.findMany({
     where: { projectId, tenantId: tenant.id },
     orderBy: { order: "asc" },
-    include: { _count: { select: { tasks: true } } },
+    // filtered relation count — plain _count would include soft-deleted tasks
+    // (nested counts bypass the client-extension guard in lib/prisma.ts)
+    include: { _count: { select: { tasks: { where: { deletedAt: null } } } } },
   });
   return cols.map((c) => ({
     id: c.id, name: c.name, color: c.color, order: c.order,

@@ -20,6 +20,20 @@ const createClient = () => {
   //    which now lands on the deleted-task page instead of a 404.
   return base.$extends({
     query: {
+      project: {
+        findMany({ args, query }) {
+          args.where = { AND: [{ deletedAt: null }, args.where ?? {}] };
+          return query(args);
+        },
+        findFirst({ args, query }) {
+          args.where = { AND: [{ deletedAt: null }, args.where ?? {}] };
+          return query(args);
+        },
+        count({ args, query }) {
+          args.where = { AND: [{ deletedAt: null }, args.where ?? {}] };
+          return query(args);
+        },
+      },
       task: {
         findMany({ args, query }) {
           args.where = { AND: [{ deletedAt: null }, args.where ?? {}] };

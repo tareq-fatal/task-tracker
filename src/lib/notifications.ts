@@ -109,6 +109,38 @@ export async function notify(input: NotifyInput): Promise<void> {
   }
 }
 
+/**
+ * Admin personal broadcast: mirror an event ONCE to every tenant admin who
+ * opted in (Settings → "receive all events") and has Telegram linked — minus
+ * the actor and the actual recipients (they already got the real thing).
+ * Best-effort; never throws.
+ */
+export async function mirrorToAdmins(
+  tenantId: string,
+  payload: { title: string; body?: string; url?: string },
+  excludeUserIds: string[]
+): Promise<void> {
+  try {
+    const admins = await prisma.user.findMany({
+      where: {
+        tenantId,
+        role: { in: ["Admin", "BackendAdmin", "SuperAdmin"] },
+        notifyAllTenantEvents: true,
+        telegramChatId: { not: null },
+        id: { notIn: excludeUserIds.filter(Boolean) },
+      },
+      select: { id: true },
+    });
+    await Promise.all(
+      admins.map((a) =>
+        notifyUserTelegram(a.id, payload).catch(() => {})
+      )
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
 export async function notifyMany(
   recipientUserIds: string[],
   base: Omit<NotifyInput, "recipientUserId">
@@ -125,6 +157,14 @@ export async function notifyMany(
     body: base.body,
     url: base.url,
   }).catch(() => {});
+  // Admin personal broadcast — once per event, skipping actor + recipients.
+  if (base.type !== "admin_activity") {
+    await mirrorToAdmins(
+      base.tenantId,
+      { title: groupTitle, body: base.body, url: base.url },
+      [...unique, base.actorUserId ?? ""]
+    ).catch(() => {});
+  }
 }
 
 /** Native push via FCM legacy HTTP. No-op without FCM_SERVER_KEY. */

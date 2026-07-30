@@ -1,0 +1,106 @@
+# =============================================================================
+# Task Tracker — self-contained stack: PostgreSQL + app.
+#
+# Demonstrates the production posture: secrets as files (Docker secrets, not
+# plaintext env), healthchecks + ordered startup on both services, a non-root
+# app (baked into the image), and resource limits.
+#
+#   1. Create the secret files (gitignored):
+#        cp secrets/session_secret.txt.example secrets/session_secret.txt
+#        cp secrets/postgres_password.txt.example secrets/postgres_password.txt
+#        cp secrets/database_url.txt.example secrets/database_url.txt
+#      then edit each to a real value (keep the password consistent between
+#      postgres_password.txt and the password inside database_url.txt).
+#   2. docker compose up -d --build
+#   3. open http://localhost:3000
+#
+# For the Coast-Shield prod stack (external Postgres + Caddy) use the fragment
+# in infra/docker-compose.task-tracker.yml instead.
+# =============================================================================
+
+name: task-tracker
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: tasktracker
+      POSTGRES_DB: tasktracker
+      # Password is read from a file, never from a plaintext env value.
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasktracker -d tasktracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: task-tracker:latest
+    restart: unless-stopped
+    # Don't start (or migrate) until Postgres is actually accepting connections.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      # Secrets are resolved from files by the entrypoint (the *_FILE convention).
+      DATABASE_URL_FILE: /run/secrets/database_url
+      SESSION_SECRET_FILE: /run/secrets/session_secret
+    secrets:
+      - database_url
+      - session_secret
+    ports:
+      - "3000:3000"
+    volumes:
+      # Persist uploaded attachments across redeploys.
+      - uploads:/app/public/uploads
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  database_url:
+    file: ./secrets/database_url.txt
+  session_secret:
+    file: ./secrets/session_secret.txt
+
+volumes:
+  pg_data:
+  uploads:
+
+networks:
+  internal:

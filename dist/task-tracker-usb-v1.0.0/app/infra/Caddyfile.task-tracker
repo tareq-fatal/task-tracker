@@ -1,0 +1,36 @@
+# =============================================================================
+# Task Tracker — Caddy site block for tasks.coastshield.net
+#
+# Append this block to the Coast-Shield Caddyfile (or `import` it):
+#     /home/marisight/marisight/infra/prod/Caddyfile
+#
+# Caddy obtains & renews the Let's Encrypt certificate automatically and
+# terminates TLS. It also sets X-Forwarded-Proto / X-Forwarded-For / X-Real-IP
+# on reverse_proxy by default, so Next.js sees the correct https scheme.
+#
+# Reload after editing:   docker exec caddy caddy reload --config /etc/caddy/Caddyfile
+# =============================================================================
+
+tasks.coastshield.net {
+	encode zstd gzip
+
+	# `task-tracker` is the compose service name; Caddy must share a network
+	# with it (the `proxy` network in docker-compose.task-tracker.yml).
+	reverse_proxy task-tracker:3000
+
+	header {
+		# HSTS — force HTTPS for 1 year incl. subdomains (only enable once the
+		# cert is confirmed working, otherwise you can lock yourself out of http).
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Don't leak the server software.
+		-Server
+	}
+
+	# Allow large-ish attachment uploads (server action bodySizeLimit is 6mb).
+	request_body {
+		max_size 12MB
+	}
+}

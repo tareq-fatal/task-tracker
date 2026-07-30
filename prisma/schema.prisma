@@ -26,14 +26,20 @@ model Tenant {
   accentColor    String?
   themeName      String  @default("ocean-pro") // ocean-pro | sage-modern | coral-energy | custom | dark-only | light-only
   ssoDomains     String? // comma-separated email domains routed to this tenant (e.g. "objektus.de")
-  // Feature flag: show billable/non-billable time UI. Off for military
-  // tenants (no invoicing), on by default for commercial ones.
-  billingEnabled Boolean @default(true)
+  // Feature flags: per-tenant UI toggles (BackendAdmin only). Values already
+  // stored in the DB are kept when a feature is switched off — only the UI
+  // hides. Extend by adding more Boolean columns following this pattern.
+  billingEnabled     Boolean @default(true) // billable/non-billable time UI
+  parentTasksEnabled Boolean @default(true) // "العنصر الأب" parent-task selector + breadcrumb
+  storyPointsEnabled Boolean @default(true) // story-points field + chip
   // Optional Telegram broadcast group (bot must be added manually as admin —
   // Telegram forbids bots from adding members). Events = CSV of notification
   // event types that should ALSO be posted to the group.
   telegramGroupChatId String?
   telegramGroupEvents String?
+  // Comment auto-translation (X/FB style). Tenant switch — the feature is
+  // additionally gated server-wide by DEEPL_API_KEY being configured.
+  translationEnabled Boolean @default(true)
   createdAt    DateTime @default(now())
 
   users         User[]
@@ -116,7 +122,12 @@ model User {
   email        String? // #31 — optional (users can be created without an email)
   passwordHash String
   mustChangePassword Boolean @default(false) // #31 — set for temp-password accounts
-  role         String   @default("User") // "SuperAdmin" | "Admin" | "User"
+  phone        String? // optional mobile number (editable by admins/sub-admins)
+  // Temporary deactivation (SubAdmin feature): login blocked with a friendly
+  // message; reactivation is admin-only. Nothing is deleted.
+  deactivatedAt DateTime?
+  deactivatedBy String?
+  role         String   @default("User") // "BackendAdmin" | "Admin" | "SubAdmin" | "User" (legacy "SuperAdmin")
   avatar       String? // url or emoji
   locale       String   @default("ar") // "ar" | "en" | "de"
   hasSeenTour  Boolean  @default(false)
@@ -128,6 +139,9 @@ model User {
   quietHoursStart Int? // 0-23 local hour; null = off
   quietHoursEnd   Int?
   notifyDigest    Boolean @default(false) // batch email instead of instant
+  // Admin-only: mirror EVERY tenant event to this admin's Telegram chat
+  // (feed-equivalent for the pocket). Ignored for non-admin roles.
+  notifyAllTenantEvents Boolean @default(false)
 
   // Telegram notifications (follows the webPush channel preference).
   // Linked via deep link t.me/<bot>?start=<telegramLinkToken>.
@@ -151,6 +165,8 @@ model User {
   projectMemberships ProjectMember[]
   taskAssignments   TaskAssignee[]
   commentReads      TaskCommentRead[]
+  commentReactions  CommentReaction[]
+  taskReadReceipts  TaskReadReceipt[]
   createdTeams      Team[]             @relation("TeamCreatedBy")
   identities        UserIdentity[]
   activity          ActivityLog[]
@@ -250,6 +266,10 @@ model Project {
   id            String   @id @default(cuid())
   name          String
   description   String?
+  // Soft-delete (mirrors Task): list reads exclude these via the client
+  // extension in lib/prisma.ts; old links show a friendly "deleted" page.
+  deletedAt     DateTime?
+  deletedBy     String?
   color         String   @default("#6366f1") // indigo
   externalId    String?  @unique // e.g. MS Planner plan id (import idempotency)
   createdAt     DateTime @default(now())
@@ -268,6 +288,7 @@ model Project {
   members      ProjectMember[]
 
   @@index([tenantId])
+  @@index([deletedAt])
 }
 
 // Explicit project access grant. When a project has ≥1 member, non-admin
@@ -459,6 +480,7 @@ model Task {
   deletedBy String? // user id who deleted; resolved to a name on display
 
   commentReads TaskCommentRead[]
+  readReceipts TaskReadReceipt[]
 
   createdByUserId String
   createdBy       User    @relation("CreatedBy", fields: [createdByUserId], references: [id])
@@ -624,6 +646,22 @@ model TaskTimeEntry {
   @@index([tenantId])
 }
 
+// WhatsApp-style task read receipt: ONE row per (task, user), created the
+// first time a non-creator opens the task detail. Drives the "seen by X at Y"
+// line for creators/admins and the task_seen notification.
+model TaskReadReceipt {
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstOpenedAt DateTime @default(now())
+  source        String   @default("web") // web | telegram
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+}
+
 model ActivityLog {
   id        String   @id @default(cuid())
   taskId    String
@@ -644,11 +682,50 @@ model TaskComment {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
+  // Detected source language at post time (ar|de|en|tr); heuristic, with the
+  // author's UI locale as fallback. Drives the auto-translate UI.
+  language  String?
   createdAt DateTime @default(now())
+  // Soft-delete (admin or author): row kept for audit, rendered as a grey
+  // "this comment was deleted" placeholder; admins can restore.
+  deletedAt DateTime?
+  deletedBy String?
 
-  voiceNote VoiceNote?
+  voiceNote    VoiceNote?
+  reactions    CommentReaction[]
+  translations CommentTranslation[]
 
   @@index([taskId])
+}
+
+// Cached machine translations of a comment, one row per target language.
+// Comments are immutable (only soft-delete/restore), so a cached row never
+// goes stale — it is deleted with the comment via the FK cascade.
+model CommentTranslation {
+  id         String      @id @default(cuid())
+  commentId  String
+  comment    TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  targetLang String // ar | de | en | tr
+  sourceLang String // language DeepL actually detected (lowercased)
+  text       String
+  createdAt  DateTime    @default(now())
+
+  @@unique([commentId, targetLang])
+}
+
+// Emoji reactions on comments (👍 thumbs_up, 👁 seen, ❤️ heart, ✅ check).
+// One row per (comment, user, type); toggling deletes the row again.
+model CommentReaction {
+  id        String      @id @default(cuid())
+  commentId String
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // thumbs_up | seen | heart | check
+  createdAt DateTime    @default(now())
+
+  @@unique([commentId, userId, type])
+  @@index([commentId])
 }
 
 model TaskAttachment {
@@ -659,6 +736,9 @@ model TaskAttachment {
   filePath   String // public path, e.g. /uploads/xxxx.png
   mimeType   String
   sizeBytes  Int
+  uploadedBy String? // uploader (tracked since 2026-07-28; older rows null)
+  deletedAt  DateTime? // soft-delete: hidden from UI, kept for audit
+  deletedBy  String?
   uploadedAt DateTime @default(now())
 
   @@index([taskId])

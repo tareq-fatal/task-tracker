@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
 import { requireTenant, setTenantCookie } from "@/lib/tenant";
 import { can } from "@/lib/roles";
+import { isTenantFeature } from "@/lib/tenant-features";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
-export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean };
+export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
 
 async function requireSuper() {
   const { user } = await requireTenant();
@@ -21,13 +22,34 @@ export async function getTenants(): Promise<TenantRow[]> {
   await requireSuper();
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { users: true, tasks: true, projects: true } } },
+    include: { _count: { select: { users: true, tasks: { where: { deletedAt: null } }, projects: { where: { deletedAt: null } } } } },
   });
   return tenants.map((t) => ({
     id: t.id, slug: t.slug, name: t.name, primaryColor: t.primaryColor,
     users: t._count.users, tasks: t._count.tasks, projects: t._count.projects,
     billingEnabled: t.billingEnabled,
+    parentTasksEnabled: t.parentTasksEnabled,
+    storyPointsEnabled: t.storyPointsEnabled,
+    translationEnabled: t.translationEnabled,
   }));
+}
+
+/** BackendAdmin-only: flip one whitelisted per-tenant feature flag. Takes
+ *  effect on the next render — no restart needed. */
+export async function setTenantFeatureAction(
+  tenantId: string,
+  feature: string,
+  enabled: boolean
+): Promise<TenantState> {
+  await requireSuper();
+  if (!isTenantFeature(feature)) return { error: "BAD_FEATURE" };
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: { [feature]: enabled },
+  });
+  revalidatePath("/admin/mandanten");
+  revalidatePath("/", "layout");
+  return { ok: true };
 }
 
 /** BackendAdmin-only feature flag: billable/non-billable UI per tenant.

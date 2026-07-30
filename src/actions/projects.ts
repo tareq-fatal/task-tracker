@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
+import { can } from "@/lib/roles";
 import { projectSchema } from "@/lib/validation";
 
 export type ProjectFormState = { error?: string };
@@ -101,13 +102,74 @@ export async function removeProjectMemberAction(
   revalidatePath(`/projects/${projectId}`);
 }
 
+/** Counts shown in the delete-confirmation dialog. Admin-only. */
+export async function getProjectDeleteStats(
+  projectId: string
+): Promise<{ tasks: number; comments: number; attachments: number }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { tenantId: true } });
+  if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
+  const [tasks, comments, attachments] = await Promise.all([
+    prisma.task.count({ where: { projectId } }),
+    prisma.taskComment.count({ where: { task: { projectId, deletedAt: null } } }),
+    prisma.taskAttachment.count({ where: { task: { projectId, deletedAt: null } } }),
+  ]);
+  return { tasks, comments, attachments };
+}
+
 export async function deleteProjectAction(projectId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
   const project = await prisma.project.findUnique({ where: { id: projectId } });
   if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
-  // #37 — deleting a project is admin-only (users can't create OR delete projects).
-  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
-  await prisma.project.delete({ where: { id: projectId } });
+  // #37 — deleting a project is admin-only (users can't create OR delete
+  // projects); capability-gated so the rule is unit-testable (manageProjects).
+  if (!can(user.role, "manageProjects")) throw new Error("FORBIDDEN");
+  // SOFT delete, cascading to the project's live tasks with the SAME
+  // timestamp — restore brings back exactly this set and nothing that was
+  // deleted individually before.
+  const ts = new Date();
+  await prisma.task.updateMany({
+    where: { projectId, deletedAt: null },
+    data: { deletedAt: ts, deletedBy: user.id },
+  });
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deletedAt: ts, deletedBy: user.id },
+  });
+  // Audit trail (same channel as tenant deletion).
+  await prisma.dbAuditLog
+    .create({
+      data: {
+        userId: user.id,
+        userName: user.name,
+        sql: `[DELETE PROJECT] ${project.name} (${projectId}) in tenant ${tenant.slug}`,
+        mode: "write",
+      },
+    })
+    .catch(() => {});
   revalidatePath("/projects");
+  revalidatePath("/");
   redirect("/projects");
+}
+
+/** Undo a project soft delete — restores the project AND exactly the tasks
+ *  that were cascade-deleted with it (matched by the shared timestamp). */
+export async function restoreProjectAction(projectId: string): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) throw new Error("FORBIDDEN");
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project || project.tenantId !== tenant.id) throw new Error("NOT_FOUND");
+  if (!project.deletedAt) return { ok: true };
+  await prisma.task.updateMany({
+    where: { projectId, deletedAt: project.deletedAt },
+    data: { deletedAt: null, deletedBy: null },
+  });
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { deletedAt: null, deletedBy: null },
+  });
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
 }

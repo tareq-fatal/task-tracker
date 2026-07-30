@@ -16,21 +16,23 @@ describe("taskVisibilityClause (#26 project membership)", () => {
     expect(taskVisibilityClause(legacy, T, [])).toEqual({ tenantId: T });
   });
 
-  it("a non-admin with NO member projects sees tasks they're an assignee of", () => {
-    expect(taskVisibilityClause(user, T, [])).toEqual({
-      tenantId: T,
-      assignees: { some: { userId: "u1" } },
-    });
+  const INVOLVED_ONLY = {
+    tenantId: T,
+    OR: [
+      { assignees: { some: { userId: "u1" } } },
+      { assignedToUserId: "u1" },
+      { createdByUserId: "u1" },
+    ],
+  };
+
+  it("a non-admin sees ONLY tasks they're involved in (creator/primary/co-assignee)", () => {
+    expect(taskVisibilityClause(user, T, [])).toEqual(INVOLVED_ONLY);
   });
 
-  it("a member sees their assigned tasks OR any task in their member projects", () => {
-    expect(taskVisibilityClause(user, T, ["p1", "p2"])).toEqual({
-      tenantId: T,
-      OR: [
-        { assignees: { some: { userId: "u1" } } },
-        { projectId: { in: ["p1", "p2"] } },
-      ],
-    });
+  it("HARDENED: project membership grants NO task visibility anymore", () => {
+    // Same clause with or without member projects — an uninvolved member sees
+    // zero foreign tasks in a shared project ("er sieht nur seinen Kram").
+    expect(taskVisibilityClause(user, T, ["p1", "p2"])).toEqual(INVOLVED_ONLY);
   });
 
   it("always pins the tenant — never leaks across tenants", () => {

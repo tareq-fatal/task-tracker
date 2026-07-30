@@ -28,6 +28,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     },
   });
   if (!att || att.task.tenantId !== tenant.id) return new NextResponse("Not found", { status: 404 });
+  if (att.deletedAt) return new NextResponse("Not found", { status: 404 }); // soft-deleted
   // Same visibility as the task detail page: admin, creator, or ANY assignee —
   // co-assignees (#13 TaskAssignee) included, not just the primary Hauptkopf.
   const canView =

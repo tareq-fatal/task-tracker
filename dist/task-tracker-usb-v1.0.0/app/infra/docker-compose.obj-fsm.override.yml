@@ -1,0 +1,24 @@
+# =============================================================================
+# OBJ-FSM — give the existing Caddy container access to the static files.
+#
+# OBJ-FSM has NO service of its own (it's just static files). Caddy serves it
+# from a host bind mount. Add this single bind mount to the EXISTING caddy
+# service in /home/marisight/marisight/infra/prod/docker-compose.prod.yml:
+#
+#     services:
+#       caddy:                      # CONFIRM: your real Caddy service name
+#         volumes:
+#           - /srv/obj-fsm:/srv/obj-fsm:ro
+#
+# This file is a ready-to-use override fragment for the same purpose. If your
+# Caddy service is literally named `caddy`, you can just layer it:
+#
+#     docker compose -f docker-compose.prod.yml -f docker-compose.obj-fsm.override.yml up -d caddy
+#
+# (compose appends the volumes list across files).
+# =============================================================================
+
+services:
+  caddy: # CONFIRM: match the existing Caddy service name
+    volumes:
+      - /srv/obj-fsm:/srv/obj-fsm:ro

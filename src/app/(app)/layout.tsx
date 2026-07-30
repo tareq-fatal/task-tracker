@@ -5,6 +5,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
+import { NoticeToast } from "@/components/notice-toast";
 import { AppShell } from "@/components/app-shell";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { UpdatePrompt } from "@/components/update-prompt";
@@ -35,6 +36,7 @@ export default async function AppLayout({
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
+        <NoticeToast />
         <SentryUserContext user={user} />
         <AppShell
           user={user}

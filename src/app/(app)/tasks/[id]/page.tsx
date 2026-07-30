@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import {
   ArrowLeft,
@@ -20,7 +20,14 @@ import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
-import { isAdminRole } from "@/lib/enums";
+import { CommentShell, RestoreCommentButton } from "@/components/comment-shell";
+import { CommentTranslation } from "@/components/comment-translation";
+import { SwitchAccountButton } from "@/components/switch-account-button";
+import { translationConfigured } from "@/lib/translate";
+import { AttachmentDeleteButton } from "@/components/attachment-delete-button";
+import { aggregateReactions, canDeleteContent, canReact } from "@/lib/comment-reactions";
+import { notify, mirrorToAdmins } from "@/lib/notifications";
+import { isAdminRole, isStaffRole } from "@/lib/enums";
 import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
 import { Ban } from "lucide-react";
@@ -59,11 +66,17 @@ function formatBytes(n: number): string {
 
 export default async function TaskDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { src?: string };
 }) {
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
+  // Auto-translate is offered only when the server has a DeepL key AND the
+  // tenant switch is on; then only for foreign-language text comments.
+  const translationOn = translationConfigured() && tenant.translationEnabled;
 
   const task = await prisma.task.findUnique({
     where: { id: params.id },
@@ -78,11 +91,18 @@ export default async function TaskDetailPage({
         orderBy: { createdAt: "asc" },
       },
       comments: {
-        include: { user: { select: { name: true } }, voiceNote: true },
+        include: {
+          user: { select: { name: true } },
+          voiceNote: true,
+          reactions: { include: { user: { select: { name: true } } } },
+          // Cached translation for the viewer's language (if any) — lets the
+          // page render FB-style "translated by default" with zero API calls.
+          translations: { where: { targetLang: locale } },
+        },
         orderBy: { createdAt: "asc" },
       },
       commentReads: { select: { userId: true, lastReadAt: true } },
-      attachments: { orderBy: { uploadedAt: "desc" } },
+      attachments: { where: { deletedAt: null }, orderBy: { uploadedAt: "desc" } },
       voiceNotes: {
         where: { commentId: null },
         include: { user: { select: { name: true } } },
@@ -118,13 +138,64 @@ export default async function TaskDetailPage({
   if (!task || task.tenantId !== tenant.id) notFound();
 
   const isAssignee = task.assignees.some((a) => a.userId === user.id);
+  const isAdmin = isAdminRole(user.role);
   const canView =
-    isAdminRole(user.role) || task.createdByUserId === user.id || isAssignee;
-  if (!canView) notFound();
+    isStaffRole(user.role) || task.createdByUserId === user.id || isAssignee;
+  // Friendly "no access" page instead of a bare 404 — an uninvolved user who
+  // guesses/receives a task URL learns nothing about the task's content.
+  if (!canView) {
+    // Customer principle: non-admins never see a blocking "no access" page —
+    // silent redirect to their list plus a short toast. ONE exception: links
+    // from Telegram (?src=tg), where the in-app browser may hold a stale
+    // session of another account — there the identity line + account switch
+    // must stay reachable (fix for the "notified but no access" case).
+    if (!isAdmin && searchParams?.src !== "tg") {
+      redirect("/tasks?notice=task-unavailable");
+    }
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Ban className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["noAccess.title"]}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.text"]}</p>
+        {/* Identity line — the Telegram in-app browser keeps its own cookie
+            jar, so this page is often reached with a DIFFERENT (stale)
+            account than the one the notification targeted. Showing who is
+            logged in + a one-tap account switch resolves that dead end. */}
+        <p className="mt-4 text-sm font-medium">
+          {t["noAccess.signedInAs"]
+            .replace("{name}", user.name)
+            .replace("{username}", user.username)}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <SwitchAccountButton returnUrl={`/tasks/${task.id}`} />
+          <Button asChild variant="outline">
+            <Link href="/">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Soft-deleted → friendly "task was deleted" page (HTTP 200) for everyone
   // involved instead of a bare 404; admins additionally get a restore button.
   if (task.deletedAt) {
+    // Non-admins get a neutral "not available" — no deletion details, no
+    // deleter name, nothing to be annoyed about (customer principle).
+    if (!isAdmin) {
+      return (
+        <div className="container max-w-xl py-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Ban className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h1 className="text-xl font-bold">{t["noAccess.unavailableTask"]}</h1>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href="/">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
+      );
+    }
     const deletedByUser = task.deletedBy
       ? await prisma.user.findUnique({ where: { id: task.deletedBy }, select: { name: true } })
       : null;
@@ -155,6 +226,60 @@ export default async function TaskDetailPage({
       </div>
     );
   }
+
+  // 👁 Read receipt (WhatsApp-style): first open by a non-creator writes ONE
+  // row and notifies the creator (push + Telegram). Reloads are a no-op via
+  // the unique(taskId,userId) constraint. Telegram deep links carry ?src=tg.
+  const isCreator = task.createdByUserId === user.id;
+  if (!isCreator) {
+    const receipt = await prisma.taskReadReceipt
+      .create({
+        data: {
+          taskId: task.id,
+          userId: user.id,
+          source: searchParams?.src === "tg" ? "telegram" : "web",
+        },
+      })
+      .catch(() => null); // unique violation → already seen before
+    if (receipt) {
+      const opened = receipt.firstOpenedAt;
+      const stamp = `${String(opened.getDate()).padStart(2, "0")}.${String(opened.getMonth() + 1).padStart(2, "0")}.${opened.getFullYear()} ${String(opened.getHours()).padStart(2, "0")}:${String(opened.getMinutes()).padStart(2, "0")}`;
+      const seenBody = `«${task.title}»\n👁 ${user.name} — ${stamp}`;
+      await notify({
+        recipientUserId: task.createdByUserId,
+        tenantId: tenant.id,
+        type: "task_seen",
+        titleKey: "notif.t.taskSeen",
+        body: seenBody,
+        url: `/tasks/${task.id}`,
+        taskId: task.id,
+        actorUserId: user.id,
+      }).catch(() => {});
+      // single-recipient event → admin personal broadcast handled here
+      await mirrorToAdmins(
+        tenant.id,
+        { title: "👁", body: seenBody, url: `/tasks/${task.id}` },
+        [task.createdByUserId, user.id]
+      ).catch(() => {});
+    }
+  }
+
+  // Seen-by line — only creators/admins get to see who opened the task when.
+  const readReceipts =
+    isCreator || isAdminRole(user.role)
+      ? await prisma.taskReadReceipt.findMany({
+          where: { taskId: task.id },
+          include: { user: { select: { name: true } } },
+          orderBy: { firstOpenedAt: "asc" },
+        })
+      : [];
+
+  // Names for "deleted by" on comment placeholders (batch lookup).
+  const deleterIds = [...new Set(task.comments.map((c) => c.deletedBy).filter(Boolean))] as string[];
+  const deleterRows = deleterIds.length
+    ? await prisma.user.findMany({ where: { id: { in: deleterIds } }, select: { id: true, name: true } })
+    : [];
+  const deleterNames = new Map(deleterRows.map((u) => [u.id, u.name]));
 
   // #36 — content edit (title/desc/assignee/due/priority/…) is creator-or-admin only.
   const canEditContent = canEditTaskContent(user, task);
@@ -190,7 +315,12 @@ export default async function TaskDetailPage({
 
   const isBlocked = openStatus(task.status) && blockedBy.length > 0;
 
-  const isAdmin = isAdminRole(user.role);
+  // Deleted comments exist ONLY for admins (grey placeholder + restore);
+  // everyone else gets the list as if the comment was never there — the
+  // header count shrinks accordingly (customer order 2026-07-29).
+  const visibleComments = isAdmin
+    ? task.comments
+    : task.comments.filter((c) => !c.deletedAt);
 
   // #12 — read-receipts: watchers = all assignees + creator; a comment I wrote is
   // ✓✓ once every OTHER watcher has read past it.
@@ -243,7 +373,7 @@ export default async function TaskDetailPage({
         {t["common.back"]}
       </Link>
 
-      {task.parent && (
+      {tenant.parentTasksEnabled && task.parent && (
         <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
           <TypeBadge type={task.parent.type} />
           <Link href={`/tasks/${task.parent.id}`} className="hover:underline">
@@ -281,7 +411,7 @@ export default async function TaskDetailPage({
         <TypeBadge type={task.type} />
         <StatusBadge status={task.status} />
         <PriorityBadge priority={task.priority} />
-        {task.storyPoints != null && (
+        {tenant.storyPointsEnabled && task.storyPoints != null && (
           <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
             {task.storyPoints} SP
           </span>
@@ -299,6 +429,25 @@ export default async function TaskDetailPage({
           </Link>
         )}
       </div>
+
+      {/* 👁 Read receipts — creators/admins see who opened the task when */}
+      {(isCreator || isAdminRole(user.role)) && (
+        <p className="mb-4 text-xs text-muted-foreground">
+          {readReceipts.length === 0 ? (
+            <>☐ {t["seen.none"]}</>
+          ) : (
+            <>
+              <span className="font-semibold text-sky-600">✓✓</span> {t["seen.by"]}:{" "}
+              {readReceipts
+                .map(
+                  (r) =>
+                    `${r.user.name} (${format(r.firstOpenedAt, "dd.MM. HH:mm")}${r.source === "telegram" ? " · TG" : ""})`
+                )
+                .join("، ")}
+            </>
+          )}
+        </p>
+      )}
 
       {/* Dependencies — blocked banner + clickable chips, visible to everyone */}
       {isBlocked && (
@@ -602,13 +751,13 @@ export default async function TaskDetailPage({
               const image = isImageMime(a.mimeType);
               const href = `/download/attachment/${a.id}${inline ? "?inline=1" : ""}`;
               return (
+                <div key={a.id} className="flex items-center gap-1">
                 <a
-                  key={a.id}
                   href={href}
                   {...(inline
                     ? { target: "_blank", rel: "noopener noreferrer" }
                     : { download: a.fileName })}
-                  className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
+                  className="flex flex-1 items-center gap-3 rounded-lg border bg-card p-3 text-sm hover:bg-secondary/50"
                 >
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -628,6 +777,10 @@ export default async function TaskDetailPage({
                     {formatBytes(a.sizeBytes)}
                   </span>
                 </a>
+                {canDeleteContent(user.role, a.uploadedBy === user.id) && (
+                  <AttachmentDeleteButton attachmentId={a.id} />
+                )}
+                </div>
               );
             })}
           </div>
@@ -669,16 +822,37 @@ export default async function TaskDetailPage({
       {/* Comments */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {t["task.comments"]} ({task.comments.length})
+          {t["task.comments"]} ({visibleComments.length})
         </h2>
         <div className="mb-4 space-y-3">
-          {task.comments.length === 0 && (
+          {visibleComments.length === 0 && (
             <p className="text-sm text-muted-foreground">{t["task.noComments"]}</p>
           )}
-          {task.comments.map((c) => {
+          {visibleComments.map((c) => {
             // #12 — receipts on MY own comments: ✓ sent, ✓✓ read by all others
             const mine = c.userId === user.id;
             const readByAll = mine && commentReadByAll(c.createdAt.getTime(), otherWatchers, readsMap);
+            // Soft-deleted → grey placeholder (audit row stays); admin restore.
+            if (c.deletedAt) {
+              return (
+                <div key={c.id} className="flex gap-3">
+                  <Avatar className="h-8 w-8 shrink-0 opacity-50">
+                    <AvatarFallback className="bg-secondary text-xs">
+                      {initials(c.user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-1 items-center gap-3 rounded-lg border border-dashed bg-muted/40 p-3">
+                    <p className="flex-1 text-sm italic text-muted-foreground">
+                      {t["comments.deletedPlaceholder"]}
+                      <span className="ms-2 text-xs not-italic">
+                        ({deleterNames.get(c.deletedBy ?? "") ?? "—"} · {format(c.deletedAt, "dd.MM. HH:mm")})
+                      </span>
+                    </p>
+                    {isAdminRole(user.role) && <RestoreCommentButton commentId={c.id} />}
+                  </div>
+                </div>
+              );
+            }
             return (
               <div key={c.id} className="flex gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
@@ -686,6 +860,15 @@ export default async function TaskDetailPage({
                     {initials(c.user.name)}
                   </AvatarFallback>
                 </Avatar>
+                <CommentShell
+                  commentId={c.id}
+                  chips={aggregateReactions(
+                    c.reactions.map((r) => ({ type: r.type, userId: r.userId, userName: r.user.name })),
+                    user.id
+                  )}
+                  canDelete={canDeleteContent(user.role, mine)}
+                  canReact={canReact(user.role)}
+                >
                 <div className="flex-1 rounded-lg border bg-card p-3">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{c.user.name}</span>
@@ -707,10 +890,22 @@ export default async function TaskDetailPage({
                       transcript={c.voiceNote.transcript}
                       compact
                     />
+                  ) : translationOn && !mine && c.language && c.language !== locale ? (
+                    <CommentTranslation
+                      commentId={c.id}
+                      original={c.content}
+                      targetLang={locale}
+                      initial={
+                        c.translations[0]
+                          ? { text: c.translations[0].text, sourceLanguage: c.translations[0].sourceLang }
+                          : null
+                      }
+                    />
                   ) : (
                     <p className="whitespace-pre-wrap text-sm">{c.content}</p>
                   )}
                 </div>
+                </CommentShell>
               </div>
             );
           })}
@@ -728,7 +923,15 @@ export default async function TaskDetailPage({
           {t["activity.title"]}
         </h2>
         <ActivityFeed
-          items={task.activity.map((a) => ({
+          items={(isAdmin
+            ? task.activity
+            : // Consistent with hiding deleted content entirely from
+              // non-admins: the "X deleted a comment/attachment" audit rows
+              // are admin-only too.
+              task.activity.filter(
+                (a) => a.type !== "comment_deleted" && a.type !== "attachment_deleted"
+              )
+          ).map((a) => ({
             id: a.id,
             type: a.type,
             detail: a.detail,

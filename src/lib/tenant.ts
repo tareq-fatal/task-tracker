@@ -13,6 +13,9 @@ export type ActiveTenant = {
   primaryColor: string | null;
   logo: string | null;
   billingEnabled: boolean;
+  parentTasksEnabled: boolean;
+  storyPointsEnabled: boolean;
+  translationEnabled: boolean;
 };
 
 export function setTenantCookie(slug: string): void {

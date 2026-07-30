@@ -25,7 +25,7 @@ export default async function BoardPage({
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
-    loadFilterOptions(tenant.id),
+    loadFilterOptions(user, tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({
       where,

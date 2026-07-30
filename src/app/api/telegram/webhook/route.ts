@@ -13,58 +13,69 @@ const L = {
     ar: "✅ تم ربط حسابك بنجاح! ستصلك إشعارات المهام هنا.",
     de: "✅ Konto verknüpft! Aufgaben-Benachrichtigungen kommen jetzt hier an.",
     en: "✅ Account linked! Task notifications will arrive here.",
+    tr: "✅ Hesabınız başarıyla bağlandı! Görev bildirimleri buraya gelecek.",
   },
   badToken: {
     ar: "⚠️ رمز الربط غير صالح أو منتهي. افتح التطبيق ← الإعدادات ← «الربط مع تيليغرام» وحاول مجددًا.",
     de: "⚠️ Ungültiger oder abgelaufener Code. App → Einstellungen → „Mit Telegram verbinden“ und erneut versuchen.",
     en: "⚠️ Invalid or expired code. Open the app → Settings → “Connect Telegram” and try again.",
+    tr: "⚠️ Bağlantı kodu geçersiz veya süresi dolmuş. Uygulamayı açın ← Ayarlar ← «Telegram'ı bağla» ve tekrar deneyin.",
   },
   start: {
     ar: "مرحبًا 👋 هذا بوت إشعارات متعقب المهام. لربط حسابك: افتح التطبيق ← الإعدادات ← «الربط مع تيليغرام».",
     de: "Hallo 👋 Das ist der Benachrichtigungs-Bot des Task Trackers. Zum Verbinden: App öffnen → Einstellungen → „Mit Telegram verbinden“.",
     en: "Hi 👋 This is the Task Tracker notification bot. To link your account: open the app → Settings → “Connect Telegram”.",
+    tr: "Merhaba 👋 Bu, Görev Takibi bildirim botudur. Hesabınızı bağlamak için: Uygulamayı açın ← Ayarlar ← «Telegram'ı bağla».",
   },
   unlinked: {
     ar: "🔌 تم فصل الحساب. لن تصلك إشعارات بعد الآن.",
     de: "🔌 Verbindung getrennt. Du erhältst keine Benachrichtigungen mehr.",
     en: "🔌 Unlinked. You will no longer receive notifications.",
+    tr: "🔌 Hesap bağlantısı kesildi. Artık bildirim almayacaksınız.",
   },
   muted: {
     ar: "🔕 تم إيقاف الإشعارات مؤقتًا. أرسل /unmute لإعادتها.",
     de: "🔕 Benachrichtigungen pausiert. /unmute zum Reaktivieren.",
     en: "🔕 Notifications paused. Send /unmute to resume.",
+    tr: "🔕 Bildirimler geçici olarak durduruldu. Geri açmak için /unmute gönderin.",
   },
   unmuted: {
     ar: "🔔 عادت الإشعارات للعمل.",
     de: "🔔 Benachrichtigungen wieder aktiv.",
     en: "🔔 Notifications resumed.",
+    tr: "🔔 Bildirimler yeniden etkin.",
   },
   help: {
     ar: "الأوامر:\n/start — ربط الحساب\n/unlink — فصل الحساب\n/mute — إيقاف مؤقت\n/unmute — إعادة التفعيل",
     de: "Befehle:\n/start — Konto verbinden\n/unlink — trennen\n/mute — pausieren\n/unmute — reaktivieren",
     en: "Commands:\n/start — link account\n/unlink — unlink\n/mute — pause\n/unmute — resume",
+    tr: "Komutlar:\n/start — hesabı bağla\n/unlink — bağlantıyı kes\n/mute — geçici durdur\n/unmute — yeniden etkinleştir",
   },
   notLinked: {
     ar: "هذا الحساب غير مرتبط بعد. افتح التطبيق ← الإعدادات ← «الربط مع تيليغرام».",
     de: "Noch nicht verknüpft. App → Einstellungen → „Mit Telegram verbinden“.",
     en: "Not linked yet. Open the app → Settings → “Connect Telegram”.",
+    tr: "Bu hesap henüz bağlı değil. Uygulamayı açın ← Ayarlar ← «Telegram'ı bağla».",
   },
   alreadyLinked: {
     ar: "أنت متصل بالفعل ✅ ستصلك الإشعارات هنا. اكتب /help للأوامر.",
     de: "Du bist bereits verbunden ✅ — Benachrichtigungen kommen hier an. Tippe /help für die Befehle.",
     en: "You are already connected ✅ — notifications arrive here. Type /help for commands.",
+    tr: "Zaten bağlısınız ✅ Bildirimler buraya gelecek. Komutlar için /help yazın.",
   },
   unknown: {
     ar: "لم أفهم هذه الرسالة. اكتب /help لعرض الأوامر.",
     de: "Das habe ich nicht verstanden. Tippe /help für die Befehle.",
     en: "I did not understand that. Type /help for the commands.",
+    tr: "Bu mesajı anlayamadım. Komutları görmek için /help yazın.",
   },
 } as const;
 
 type MsgKey = keyof typeof L;
 
 function msg(key: MsgKey, locale: string | null | undefined): string {
-  const l = locale === "de" || locale === "en" ? locale : "ar";
+  const l =
+    locale === "de" || locale === "en" || locale === "tr" ? locale : "ar";
   return L[key][l];
 }
 

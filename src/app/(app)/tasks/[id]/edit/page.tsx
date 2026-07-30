@@ -12,6 +12,7 @@ import { isAdminRole } from "@/lib/enums";
 import { canEditTaskContent, taskParticipation } from "@/lib/task-access";
 import { TaskForm } from "@/components/task-form";
 import { describeRule, ruleInterval, ruleWeekdays } from "@/lib/recurrence";
+import { scopedProjectOptions } from "@/lib/filter-data";
 
 export default async function EditTaskPage({
   params,
@@ -32,7 +33,7 @@ export default async function EditTaskPage({
 
   const [users, projects, teams, parents, assigneeRows] = await Promise.all([
     prisma.user.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.project.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    scopedProjectOptions(user, tenant.id),
     prisma.team.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     // Parent picker: participation-scoped; the CURRENT parent is always kept
     // selectable so an existing reference never breaks in the form.
@@ -74,6 +75,8 @@ export default async function EditTaskPage({
         parents={parents}
         canAssign={isAdminRole(user.role)}
         isEdit
+        showStoryPoints={tenant.storyPointsEnabled}
+        showParent={tenant.parentTasksEnabled}
         defaults={{
           title: task.title,
           description: task.description ?? "",

@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, KanbanSquare, Plus, Columns3 } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban } from "lucide-react";
+import { DeleteProjectButton } from "@/components/delete-project-button";
+import { RestoreProjectButton } from "@/components/restore-project-button";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
@@ -17,6 +19,7 @@ import { TaskCard } from "@/components/task-card";
 import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
+import { SwitchAccountButton } from "@/components/switch-account-button";
 
 export default async function ProjectDetailPage({
   params,
@@ -32,10 +35,76 @@ export default async function ProjectDetailPage({
     where: { id: params.id },
   });
   if (!project || project.tenantId !== tenant.id) notFound();
-  // #26: non-admins may only open projects they're a member of (or have a task in)
-  if (!(await canAccessProject(user, tenant.id, project.id))) notFound();
-
   const isAdmin = isAdminRole(user.role);
+  // Non-admins may only open projects they're involved in (member, creator,
+  // or own task inside). Customer principle: they get a silent redirect with
+  // a short toast — the blocking info page stays admin-only (debugging).
+  if (!(await canAccessProject(user, tenant.id, project.id))) {
+    if (!isAdmin) redirect("/projects?notice=project-unavailable");
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Ban className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["noAccess.project.title"]}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t["noAccess.project.text"]}</p>
+        <p className="mt-4 text-sm font-medium">
+          {t["noAccess.signedInAs"]
+            .replace("{name}", user.name)
+            .replace("{username}", user.username)}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          <SwitchAccountButton returnUrl={`/projects/${project.id}`} />
+          <Button asChild variant="outline">
+            <Link href="/projects">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Soft-deleted → friendly "project was deleted" page (HTTP 200) instead of
+  // a 404; admins additionally get a restore that also brings back the tasks
+  // that were cascade-deleted with the project.
+  if (project.deletedAt) {
+    // Non-admins: neutral "not available", no deletion details.
+    if (!isAdmin) {
+      return (
+        <div className="container max-w-xl py-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+            <Ban className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h1 className="text-xl font-bold">{t["noAccess.unavailableProject"]}</h1>
+          <Button asChild variant="outline" className="mt-6">
+            <Link href="/projects">{t["deleted.back"]}</Link>
+          </Button>
+        </div>
+      );
+    }
+    const deletedByUser = project.deletedBy
+      ? await prisma.user.findUnique({ where: { id: project.deletedBy }, select: { name: true } })
+      : null;
+    return (
+      <div className="container max-w-xl py-16 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+          <Trash2 className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-bold">{t["project.deleted.banner"]}</h1>
+        <p className="mt-2 text-lg italic text-muted-foreground line-through">{project.name}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {t["deleted.by"]
+            .replace("{name}", deletedByUser?.name ?? "—")
+            .replace("{date}", project.deletedAt.toLocaleDateString(getActiveLocale()))}
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link href="/projects">{t["deleted.back"]}</Link>
+          </Button>
+          {isAdmin && <RestoreProjectButton projectId={project.id} />}
+        </div>
+      </div>
+    );
+  }
   const membersView = isAdmin ? await getProjectMembersView(project.id) : null;
 
   const filters = parseTaskFilters(searchParams);
@@ -43,7 +112,7 @@ export default async function ProjectDetailPage({
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([
-    loadFilterOptions(tenant.id),
+    loadFilterOptions(user, tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
   ]);
@@ -74,7 +143,10 @@ export default async function ProjectDetailPage({
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <DeleteProjectButton projectId={project.id} projectName={project.name} />
+          )}
           {isAdminRole(user.role) && (
             <Button asChild variant="outline">
               <Link href={`/projects/${project.id}/workflow`}>

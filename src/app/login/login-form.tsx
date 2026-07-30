@@ -19,12 +19,14 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ returnUrl = "/" }: { returnUrl?: string }) {
   const { t } = useT();
   const [state, formAction] = useFormState<LoginState, FormData>(loginAction, {});
 
   return (
     <form action={formAction} className="space-y-4">
+      {/* Deep-link target (Telegram/push) — server-side sanitized again. */}
+      <input type="hidden" name="returnUrl" value={returnUrl} />
       <div className="space-y-2">
         <Label htmlFor="username">{t("login.username")}</Label>
         <Input
@@ -47,7 +49,9 @@ export function LoginForm() {
         />
       </div>
       {state.error && (
-        <p className="text-sm font-medium text-destructive">{t("login.error")}</p>
+        <p className="text-sm font-medium text-destructive">
+          {state.error === "DEACTIVATED" ? t("login.deactivated") : t("login.error")}
+        </p>
       )}
       <SubmitButton />
     </form>

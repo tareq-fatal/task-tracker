@@ -1,0 +1,15 @@
+[Unit]
+Description=Task Tracker — PostgreSQL + uploads backup
+# Only makes sense once Docker (for `docker volume inspect`) is up.
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Path where the task-tracker repo is checked out on the VPS (matches
+# APP_DIR in infra/deploy-tasks.sh). Adjust if your checkout lives elsewhere.
+WorkingDirectory=/home/marisight/apps/task-tracker/infra
+EnvironmentFile=/home/marisight/apps/task-tracker/infra/.env.backup
+ExecStart=/usr/bin/env bash /home/marisight/apps/task-tracker/infra/backup.sh --verbose
+# Backups can legitimately take a while (large uploads tree); give it room.
+TimeoutStartSec=1800

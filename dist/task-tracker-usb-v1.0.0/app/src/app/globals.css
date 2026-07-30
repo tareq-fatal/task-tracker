@@ -1,0 +1,253 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  "Ocean-Pro" — fresh, vivid, premium. Airy white canvas with an Indigo→Pink
+  brand gradient, Indigo primary, Emerald success accent, Rose for danger.
+*/
+@layer base {
+  :root {
+    --background: 240 24% 99%; /* airy white w/ a hint of indigo */
+    --foreground: 222 30% 16%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 16%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 16%;
+
+    /* Indigo primary (#4f46e5) */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 30% 96%;
+    --secondary-foreground: 222 30% 16%;
+
+    --muted: 240 30% 96%;
+    --muted-foreground: 222 14% 40%;
+
+    /* Emerald success accent (#10b981) */
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Rose for destructive / overdue (#e11d48) */
+    --destructive: 347 77% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 24% 91%;
+    --input: 240 24% 91%;
+    --ring: 243 75% 59%;
+
+    --radius: 0.85rem;
+
+    /* brand gradient stops */
+    --brand-from: 243 75% 59%; /* indigo */
+    --brand-via: 292 84% 61%; /* fuchsia */
+    --brand-to: 330 81% 60%; /* pink */
+  }
+
+  /* Dark theme — real tokens (not just an inverse). Applied via .dark on <html>. */
+  .dark {
+    color-scheme: dark;
+    --background: 222 30% 8%;
+    --foreground: 240 20% 92%;
+    --card: 222 26% 11%;
+    --card-foreground: 240 20% 92%;
+    --popover: 222 26% 11%;
+    --popover-foreground: 240 20% 92%;
+    --primary: 243 80% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 240 20% 92%;
+    --muted: 222 20% 18%;
+    --muted-foreground: 240 12% 66%;
+    --accent: 160 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 347 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 16% 22%;
+    --input: 222 16% 22%;
+    --ring: 243 80% 68%;
+    --brand-from: 243 80% 66%;
+    --brand-via: 292 80% 64%;
+    --brand-to: 330 78% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.015em;
+  }
+  ::selection {
+    background-color: hsl(243 75% 59% / 0.18);
+  }
+}
+
+/* ---- Brand utilities (Ocean-Pro) -------------------------------------- */
+.brand-gradient {
+  background-image: linear-gradient(
+    110deg,
+    hsl(var(--brand-from)),
+    hsl(var(--brand-via)),
+    hsl(var(--brand-to))
+  );
+}
+.brand-text {
+  background-image: linear-gradient(
+    110deg,
+    hsl(var(--brand-from)),
+    hsl(var(--brand-to))
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Frosted glass (modals, sticky bars) */
+.glass {
+  background-color: hsl(0 0% 100% / 0.72);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+/* Subtle glow ring for active/brand elements */
+.glow {
+  box-shadow: 0 0 0 1px hsl(var(--brand-from) / 0.25),
+    0 8px 24px -8px hsl(var(--brand-from) / 0.35);
+}
+
+/* Keyboard selection (j/k shortcuts): ring around the focused task link */
+a[data-kbd-selected] {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 0.75rem;
+}
+
+/* ---- Motion ----------------------------------------------------------- */
+/* Page transition (used by app/template.tsx) */
+@keyframes tt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none; /* end at no-transform so we don't leave a containing
+                        block for position:fixed descendants (breaks Joyride) */
+  }
+}
+.tt-page-in {
+  animation: tt-page-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Floating hero element */
+@keyframes tt-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.tt-float {
+  animation: tt-float 5s ease-in-out infinite;
+}
+/* Pulsing brand rings (login hero) */
+@keyframes tt-pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.5; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.tt-pulse-ring {
+  animation: tt-pulse-ring 2.8s ease-out infinite;
+}
+/* Staggered list entrance: children rise with incremental delay */
+.stagger > * {
+  animation: tt-rise 0.32s ease-out both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.30s; }
+.stagger > *:nth-child(n + 9) { animation-delay: 0.34s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tt-page-in, .tt-float, .tt-pulse-ring, .stagger > *, .tt-rise {
+    animation: none !important;
+  }
+}
+
+/* Horizontal Kanban: thin scrollbar + mobile swipe snapping */
+.board-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(214 32% 85%) transparent;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+}
+.board-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.board-scroll::-webkit-scrollbar-thumb {
+  background-color: hsl(214 32% 85%);
+  border-radius: 9999px;
+}
+.board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.board-col {
+  scroll-snap-align: center;
+}
+@media (min-width: 640px) {
+  /* On desktop, don't force-snap — let the whole board scroll freely */
+  .board-scroll {
+    scroll-snap-type: none;
+  }
+}
+
+/* Soft entrance for lists/cards */
+@keyframes tt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.tt-rise {
+  animation: tt-rise 0.28s ease-out both;
+}
+
+/* Material-style tap ripple for notification rows */
+@keyframes notif-ripple {
+  from {
+    transform: scale(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.notif-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: currentColor;
+  pointer-events: none;
+  animation: notif-ripple 0.5s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notif-ripple {
+    animation: none;
+    opacity: 0;
+  }
+}

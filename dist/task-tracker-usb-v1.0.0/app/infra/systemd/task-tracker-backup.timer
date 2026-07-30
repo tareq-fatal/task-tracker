@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily Task Tracker backup (03:30)
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# If the VPS was down at 03:30 (reboot, maintenance), run the missed backup
+# as soon as the system is back up instead of silently skipping the day.
+Persistent=true
+# Spread load slightly if this ever runs alongside other timers on the host.
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
-import { ar, de, enUS } from "date-fns/locale";
+import { ar, de, enUS, tr } from "date-fns/locale";
 import {
   Bell,
   UserPlus,
@@ -45,7 +45,7 @@ const ICONS: Record<string, React.ElementType> = {
   bell: Bell,
 };
 
-const DATE_LOCALES: Record<Locale, typeof ar> = { ar, de, en: enUS };
+const DATE_LOCALES: Record<Locale, typeof ar> = { ar, de, en: enUS, tr };
 const SWIPE_THRESHOLD = 72;
 
 export function NotificationBell() {

@@ -46,7 +46,7 @@ export default async function TeamDetailPage({
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, statsTasks, tasks] = await Promise.all([
-    loadFilterOptions(tenant.id),
+    loadFilterOptions(me, tenant.id),
     prisma.task.findMany({
       where: base,
       select: { status: true, dueDate: true },

@@ -1,13 +1,22 @@
 // BackendAdmin (Tarek) spans all tenants + DB console + tenant creation.
 // "SuperAdmin" is the legacy name — still accepted everywhere so nothing breaks
 // before/if the data migration renames a row.
-export const ROLES = ["BackendAdmin", "Admin", "User"] as const;
+export const ROLES = ["BackendAdmin", "Admin", "SubAdmin", "User"] as const;
 export type Role = (typeof ROLES)[number];
 
 const BACKEND = new Set(["BackendAdmin", "SuperAdmin"]);
 
 export function isAdminRole(role: string): boolean {
   return role === "Admin" || BACKEND.has(role);
+}
+/** SubAdmin: helps run the tenant — edits regular users, READS everything,
+ *  but no destructive/critical actions and no role management. */
+export function isSubAdmin(role: string): boolean {
+  return role === "SubAdmin";
+}
+/** Admin, BackendAdmin or SubAdmin — roles with tenant-wide READ access. */
+export function isStaffRole(role: string): boolean {
+  return isAdminRole(role) || isSubAdmin(role);
 }
 /** True for the backend/system admin (new "BackendAdmin" or legacy "SuperAdmin"). */
 export function isSuperAdmin(role: string): boolean {
@@ -45,7 +54,7 @@ export function isTaskLinkType(v: string): v is TaskLinkType {
 }
 
 // Arabic is the primary language (RTL); English and German follow.
-export const LOCALES = ["ar", "en", "de"] as const;
+export const LOCALES = ["ar", "en", "de", "tr"] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = "ar";

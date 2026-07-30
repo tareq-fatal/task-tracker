@@ -92,25 +92,7 @@ keine Installation — Sie bekommen Ihre Zugangsdaten und legen sofort los.
 
 ## Preise
 
-> **Hinweis für Tarek:** Die folgenden Zahlen sind ein Vorschlag / Platzhalter.
-> Bitte vor Weitergabe an den Kunden anpassen. Diese Box vor dem Versand
-> entfernen.
-
-### Option 1 — Eigener Server
-- **500 €** einmalig — USB-Paket inkl. 1 Stunde Installations-Unterstützung
-- **50 €/Monat** optional — laufender Support (Updates, Fragen, Hilfe bei
-  Störungen)
-
-### Option 2 — Wir hosten
-- **100 €/Monat** — alles inklusive: Betrieb, Updates, Sicherungen, Support
-
-### Zum Vergleich
-
-| | einmalig | monatlich |
-| --- | --- | --- |
-| Option 1 (ohne Support) | 500 € | — |
-| Option 1 (mit Support) | 500 € | 50 € |
-| Option 2 (Managed) | — | 100 € |
+Preise werden individuell vereinbart — sprechen Sie uns an.
 
 Ein späterer Wechsel zwischen den Optionen ist möglich: Ihre Daten lassen sich
 aus der einen Variante sichern und in die andere übernehmen.
