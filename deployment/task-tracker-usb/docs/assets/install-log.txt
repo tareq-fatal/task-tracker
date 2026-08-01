@@ -1,0 +1,99 @@
+﻿# Real output of a complete 'sudo ./install.sh --offline' run on a clean
+# Ubuntu 24.04 container, captured 2026-07-22.
+# Two presentational edits, nothing else:
+#   - the generated administrator password is masked
+#   - the test harness install path is shown as the real default /opt/task-tracker
+
+  ┌──────────────────────────────────────────────┐
+  │            T A S K   T R A C K E R           │
+  │              USB Installation                │
+  └──────────────────────────────────────────────┘
+    Offline mode — nothing will be downloaded.
+
+▶ Checking the machine
+  ✓ Operating system: Ubuntu 24.04.4 LTS (supported)
+  ✓ Architecture: x86_64
+  ✓ Memory: 11852 MB
+  ✓ Free disk space: 912 GB
+  ✓ Ports 8099 and 8443 are free
+  ✓ All required base programs are present
+
+▶ Checking Docker
+  ✓ Docker is installed (Docker version 29.6.2)
+  ✓ Docker daemon is running
+  ✓ Docker Compose is available (docker compose)
+
+▶ Configuration
+  ✓ Address: http://172.17.0.2:8099 (plain HTTP — LAN install)
+
+▶ Generating passwords and secrets
+  ✓ Database password
+  ✓ Session secret
+  ✓ Sync/cron secret
+  ✓ Web-Push keypair (from the pre-built image)
+
+▶ Installing to /opt/task-tracker
+  ✓ Scripts and stack definition copied
+  ✓ Configuration written to /opt/task-tracker/.env (readable by root only)
+  ✓ Web-server configuration written
+
+▶ Loading the container images from this stick
+    Loading base.tar.gz …
+    Loading task-tracker.tar.gz …
+  ✓ 2 image archive(s) loaded
+
+▶ Starting Task Tracker
+ Network task-tracker_internal Creating 
+ Network task-tracker_internal Created 
+ Volume task-tracker_caddy_data Creating 
+ Volume task-tracker_caddy_data Created 
+ Volume task-tracker_caddy_config Creating 
+ Volume task-tracker_caddy_config Created 
+ Volume task-tracker_pg_data Creating 
+ Volume task-tracker_pg_data Created 
+ Volume task-tracker_uploads Creating 
+ Volume task-tracker_uploads Created 
+ Container task-tracker-postgres-1 Creating 
+ Container task-tracker-postgres-1 Created 
+ Container task-tracker-app-1 Creating 
+ Container task-tracker-app-1 Created 
+ Container task-tracker-caddy-1 Creating 
+ Container task-tracker-caddy-1 Created 
+ Container task-tracker-postgres-1 Starting 
+ Container task-tracker-postgres-1 Started 
+ Container task-tracker-postgres-1 Waiting 
+ Container task-tracker-postgres-1 Healthy 
+ Container task-tracker-app-1 Starting 
+ Container task-tracker-app-1 Started 
+ Container task-tracker-caddy-1 Starting 
+ Container task-tracker-caddy-1 Started 
+  ✓ Containers started
+    Waiting for the database migrations to finish…
+  ✓ Application is healthy — database migrations applied
+
+▶ Setting up the administrator account
+ task-tracker-app-1 Copying /opt/task-tracker/lib/bootstrap-admin.cjs to task-tracker-app-1:/app/bootstrap-admin.cjs
+ task-tracker-app-1 Copied /opt/task-tracker/lib/bootstrap-admin.cjs to task-tracker-app-1:/app/bootstrap-admin.cjs
+  ✓ Administrator 'admin' created
+
+▶ Setting up the nightly backup
+  ! Could not activate the backup timer — run ./backup.sh by hand instead.
+
+  ┌──────────────────────────────────────────────┐
+  │        Installation complete.  ✓             │
+  └──────────────────────────────────────────────┘
+
+  Address   http://172.17.0.2:8099
+  Login     admin
+  Password  ••••••••••••••••••••
+
+  ! Write this password down now — change it after the first login.
+    It is also saved in /opt/task-tracker/ACCESS.txt (root only).
+
+    Everyday commands (run them in /opt/task-tracker):
+      ./backup.sh     make a backup now
+      ./restore.sh    restore a backup
+      ./update.sh     update to a newer version
+      ./uninstall.sh  remove Task Tracker
+
+EXIT=0

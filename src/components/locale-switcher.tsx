@@ -18,6 +18,7 @@ const LABELS: Record<Locale, string> = {
   ar: "العربية",
   en: "English",
   de: "Deutsch",
+  tr: "Türkçe",
 };
 
 export function LocaleSwitcher({ current }: { current: Locale }) {

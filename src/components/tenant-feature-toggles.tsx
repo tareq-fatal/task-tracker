@@ -12,9 +12,13 @@ import type { TenantFeature } from "@/lib/tenant-features";
 export function TenantFeatureToggles({
   tenantId,
   flags,
+  translationConfigured = true,
 }: {
   tenantId: string;
   flags: Record<TenantFeature, boolean>;
+  /** Whether DEEPL_API_KEY is set on the server — without it the translation
+   *  toggle is moot, so it shows a hint instead of pretending to work. */
+  translationConfigured?: boolean;
 }) {
   const { t } = useT();
   const [state, setState] = useState(flags);
@@ -24,6 +28,7 @@ export function TenantFeatureToggles({
     { key: "billingEnabled", label: "tenants.billing", hint: "tenants.billingHint" },
     { key: "parentTasksEnabled", label: "tenants.parentTasks", hint: "tenants.parentTasksHint" },
     { key: "storyPointsEnabled", label: "tenants.storyPoints", hint: "tenants.storyPointsHint" },
+    { key: "translationEnabled", label: "tenants.translation", hint: "tenants.translationHint" },
   ];
 
   return (
@@ -51,6 +56,11 @@ export function TenantFeatureToggles({
           {t(r.label)}
         </label>
       ))}
+      {!translationConfigured && (
+        <p className="max-w-[16rem] text-[11px] leading-snug text-amber-600">
+          {t("tenants.translationNoKey")}
+        </p>
+      )}
     </div>
   );
 }

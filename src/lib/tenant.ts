@@ -15,6 +15,7 @@ export type ActiveTenant = {
   billingEnabled: boolean;
   parentTasksEnabled: boolean;
   storyPointsEnabled: boolean;
+  translationEnabled: boolean;
 };
 
 export function setTenantCookie(slug: string): void {

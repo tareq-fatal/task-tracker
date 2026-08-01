@@ -37,6 +37,9 @@ model Tenant {
   // event types that should ALSO be posted to the group.
   telegramGroupChatId String?
   telegramGroupEvents String?
+  // Comment auto-translation (X/FB style). Tenant switch — the feature is
+  // additionally gated server-wide by DEEPL_API_KEY being configured.
+  translationEnabled Boolean @default(true)
   createdAt    DateTime @default(now())
 
   users         User[]
@@ -685,16 +688,35 @@ model TaskComment {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content   String
+  // Detected source language at post time (ar|de|en|tr); heuristic, with the
+  // author's UI locale as fallback. Drives the auto-translate UI.
+  language  String?
   createdAt DateTime @default(now())
   // Soft-delete (admin or author): row kept for audit, rendered as a grey
   // "this comment was deleted" placeholder; admins can restore.
   deletedAt DateTime?
   deletedBy String?
 
-  voiceNote VoiceNote?
-  reactions CommentReaction[]
+  voiceNote    VoiceNote?
+  reactions    CommentReaction[]
+  translations CommentTranslation[]
 
   @@index([taskId])
+}
+
+// Cached machine translations of a comment, one row per target language.
+// Comments are immutable (only soft-delete/restore), so a cached row never
+// goes stale — it is deleted with the comment via the FK cascade.
+model CommentTranslation {
+  id         String      @id @default(cuid())
+  commentId  String
+  comment    TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  targetLang String // ar | de | en | tr
+  sourceLang String // language DeepL actually detected (lowercased)
+  text       String
+  createdAt  DateTime    @default(now())
+
+  @@unique([commentId, targetLang])
 }
 
 // Emoji reactions on comments (👍 thumbs_up, 👁 seen, ❤️ heart, ✅ check).

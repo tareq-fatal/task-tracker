@@ -28,6 +28,7 @@ import {
 import { transcribeVoiceNote } from "@/lib/transcription";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
+import { detectCommentLanguage } from "@/lib/lang-detect";
 import { applyAutomations } from "@/lib/automation-run";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
@@ -823,8 +824,11 @@ export async function addCommentAction(
   const parsed = commentSchema.safeParse({ content: formData.get("content") });
   if (!parsed.success) return { error: "INVALID" };
 
+  // Source language for auto-translation: heuristic detection, and when the
+  // text is too short/ambiguous, the author's UI locale (per the order).
+  const language = detectCommentLanguage(parsed.data.content) ?? user.locale;
   await prisma.taskComment.create({
-    data: { taskId, userId: user.id, content: parsed.data.content },
+    data: { taskId, userId: user.id, content: parsed.data.content, language },
   });
   await logActivity(taskId, user.id, "comment", parsed.data.content.slice(0, 80));
 
