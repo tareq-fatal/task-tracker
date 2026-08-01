@@ -12,6 +12,14 @@ name: Deploy to VPS (tasks.coastshield.net)
 # It SSHes in and runs infra/deploy-tasks.sh, which pulls main, rebuilds the
 # image and restarts the container (prisma migrate deploy runs on boot).
 #
+# Before the redeploy, a safety-net step (a) dumps the prod DB to
+# /home/marisight/backups/task-tracker/pre-deploy/<stamp>.sql.gz on the VPS
+# (last 7 kept) and (b) tags the currently running image as
+# task-tracker:rollback + task-tracker:rollback-<stamp>. Rollback = on the VPS:
+#   docker tag task-tracker:rollback task-tracker:latest
+#   cd /home/marisight/marisight/infra/prod && docker compose -f docker-compose.prod.yml up -d task-tracker
+# (plus, if a migration must be undone, restore the pre-deploy dump).
+#
 # NOTE: the box that actually serves prod must already have the repo cloned at
 # /home/marisight/apps/task-tracker and the compose stack at
 # /home/marisight/marisight/infra/prod (see docs/PRODUCTION-DEPLOY.md).
@@ -39,6 +47,33 @@ jobs:
           chmod 600 ~/.ssh/id_deploy
           HOST='${{ secrets.VPS_HOST }}'; HOST="${HOST:-13.140.146.101}"
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Pre-deploy safety net (DB dump + rollback image tag)
+        run: |
+          HOST='${{ secrets.VPS_HOST }}';  HOST="${HOST:-13.140.146.101}"
+          USER='${{ secrets.VPS_USER }}';  USER="${USER:-root}"
+          ssh -i ~/.ssh/id_deploy "$USER@$HOST" 'bash -s' <<'EOS'
+          set -euo pipefail
+          STAMP=$(date -u +%Y%m%d-%H%M%S)
+          DIR=/home/marisight/backups/task-tracker/pre-deploy
+          mkdir -p "$DIR"
+          PGC=$(docker ps --format '{{.Names}}' | grep -i -m1 postgres) \
+            || { echo "::error::no running postgres container found — aborting before deploy"; exit 1; }
+          echo "dumping DB from container $PGC"
+          docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" --format=plain --no-owner --no-privileges tasktracker' \
+            | gzip -9 > "$DIR/$STAMP.sql.gz"
+          [ -s "$DIR/$STAMP.sql.gz" ] || { echo "::error::pre-deploy dump is empty"; exit 1; }
+          # keep the last 7 pre-deploy dumps
+          ls -1t "$DIR"/*.sql.gz 2>/dev/null | tail -n +8 | xargs -r rm --
+          if docker image inspect task-tracker:latest >/dev/null 2>&1; then
+            docker tag task-tracker:latest "task-tracker:rollback-$STAMP"
+            docker tag task-tracker:latest task-tracker:rollback
+            echo "rollback image tagged: task-tracker:rollback-$STAMP"
+          else
+            echo "no task-tracker:latest image yet — first deploy, nothing to tag"
+          fi
+          echo "pre-deploy dump: $DIR/$STAMP.sql.gz ($(du -h "$DIR/$STAMP.sql.gz" | cut -f1))"
+          EOS
 
       - name: Redeploy
         run: |
