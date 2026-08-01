@@ -18,19 +18,19 @@ const DEFAULT = THEMES[0];
 
 type TenantBrand = { themeName?: string | null; primaryColor?: string | null; secondaryColor?: string | null; accentColor?: string | null };
 
-/** Resolve the effective colours + scheme for a tenant. Custom uses the tenant's
- *  own colours; a preset theme uses its palette. */
+/** Resolve the effective colours + scheme for a tenant. The tenant's saved
+ *  colours always win; the preset palette only fills the gaps.
+ *  Kunden-Report 2026-08, Bug 4: saved colours were silently ignored unless
+ *  themeName was exactly "custom" — the branding form accepted and persisted
+ *  hex values that then never applied anywhere. */
 export function resolveBranding(t: TenantBrand): Branding {
   const preset = THEMES.find((x) => x.name === t.themeName) ?? DEFAULT;
-  if (preset.name === "custom") {
-    return {
-      primary: t.primaryColor || DEFAULT.primary,
-      secondary: t.secondaryColor || DEFAULT.secondary,
-      accent: t.accentColor || DEFAULT.accent,
-      scheme: "auto",
-    };
-  }
-  return { primary: preset.primary, secondary: preset.secondary, accent: preset.accent, scheme: preset.scheme };
+  return {
+    primary: t.primaryColor || preset.primary,
+    secondary: t.secondaryColor || preset.secondary,
+    accent: t.accentColor || preset.accent,
+    scheme: preset.scheme,
+  };
 }
 
 /** Convert #rrggbb to the shadcn HSL triplet "H S% L%". */
@@ -55,8 +55,23 @@ export function hexToHsl(hex: string): string {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
-/** CSS to inject into the app root, overriding the Ocean-Pro defaults. */
+/** Readable text colour (HSL triplet) on top of the given hex colour. */
+export function hslForegroundFor(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "0 0% 100%";
+  const int = parseInt(m[1], 16);
+  const r = (int >> 16) & 255, g = (int >> 8) & 255, b = int & 255;
+  // perceived luminance (BT.709 weights) — enough for a white/dark text switch
+  const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return lum > 160 ? "222 47% 11%" : "0 0% 100%";
+}
+
+/** CSS to inject into the app root, overriding the Ocean-Pro defaults.
+ *  Scoped `:root,.dark` because globals.css re-declares these vars inside
+ *  `.dark` at equal specificity — without the double scope, dark mode would
+ *  clobber the tenant colours depending on stylesheet order. */
 export function brandStyle(b: Branding): string {
   const p = hexToHsl(b.primary), s = hexToHsl(b.secondary), a = hexToHsl(b.accent);
-  return `:root{--brand-from:${p};--brand-via:${s};--brand-to:${a};--primary:${p};--ring:${p};}`;
+  const fg = hslForegroundFor(b.primary);
+  return `:root,.dark{--brand-from:${p};--brand-via:${s};--brand-to:${a};--brand-foreground:${fg};--primary:${p};--primary-foreground:${fg};--ring:${p};}`;
 }

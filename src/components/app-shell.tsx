@@ -140,14 +140,14 @@ function NavLink({
       className={cn(
         "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
         active
-          ? "bg-gradient-to-r from-indigo-500/15 to-emerald-500/10 text-indigo-700"
+          ? "bg-gradient-to-r from-[hsl(var(--brand-from)/0.15)] to-[hsl(var(--brand-to)/0.10)] text-[hsl(var(--primary))]"
           : "text-muted-foreground hover:bg-secondary/70 hover:text-foreground"
       )}
     >
       {active && (
-        <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-indigo-500 to-pink-500" />
+        <span className="absolute inset-y-1.5 start-0 w-1 rounded-full bg-gradient-to-b from-[hsl(var(--brand-from))] to-[hsl(var(--brand-to))]" />
       )}
-      <Icon className={cn("h-5 w-5", active && "text-indigo-600")} />
+      <Icon className={cn("h-5 w-5", active && "text-[hsl(var(--primary))]")} />
       {t(item.label)}
     </Link>
   );
@@ -289,7 +289,7 @@ export function AppShell({
           <div className="flex items-center gap-3 rounded-xl px-2 py-2">
             <Link href="/settings">
               <Avatar className="h-9 w-9 border">
-                <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
+                <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--brand-from))] to-[hsl(var(--brand-to))] text-xs text-[hsl(var(--brand-foreground))]">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -331,7 +331,7 @@ export function AppShell({
             {/* Mobile section chip */}
             {activeItem && (
               <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
-                <activeItem.icon className="h-3.5 w-3.5 text-indigo-600" />
+                <activeItem.icon className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                 {t(activeItem.label)}
               </span>
             )}
@@ -356,7 +356,7 @@ export function AppShell({
                   className="md:hidden"
                 >
                   <Avatar className="h-9 w-9 border">
-                    <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-pink-500 text-xs text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--brand-from))] to-[hsl(var(--brand-to))] text-xs text-[hsl(var(--brand-foreground))]">
                       {initials(user.name)}
                     </AvatarFallback>
                   </Avatar>
@@ -482,13 +482,13 @@ export function AppShell({
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] transition-colors",
-                active ? "text-indigo-600" : "text-muted-foreground"
+                active ? "text-[hsl(var(--primary))]" : "text-muted-foreground"
               )}
             >
               <span
                 className={cn(
                   "flex h-7 items-center justify-center rounded-full px-3 transition-all",
-                  active && "bg-gradient-to-r from-indigo-500/15 to-emerald-500/15"
+                  active && "bg-gradient-to-r from-[hsl(var(--brand-from)/0.15)] to-[hsl(var(--brand-to)/0.15)]"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -501,7 +501,7 @@ export function AppShell({
           onClick={() => setMoreOpen((o) => !o)}
           className={cn(
             "flex flex-1 flex-col items-center gap-0.5 px-2 py-1.5 text-[11px] transition-colors",
-            moreOpen || moreActive ? "text-indigo-600" : "text-muted-foreground"
+            moreOpen || moreActive ? "text-[hsl(var(--primary))]" : "text-muted-foreground"
           )}
           aria-label={t("nav.more")}
           aria-expanded={moreOpen}
@@ -509,7 +509,7 @@ export function AppShell({
           <span
             className={cn(
               "flex h-7 items-center justify-center rounded-full px-3 transition-all",
-              (moreOpen || moreActive) && "bg-gradient-to-r from-indigo-500/15 to-emerald-500/15"
+              (moreOpen || moreActive) && "bg-gradient-to-r from-[hsl(var(--brand-from)/0.15)] to-[hsl(var(--brand-to)/0.15)]"
             )}
           >
             <Menu className="h-5 w-5" />

@@ -18,10 +18,17 @@ describe("hexToHsl", () => {
 });
 
 describe("resolveBranding", () => {
-  it("uses a preset palette for a named theme", () => {
-    const b = resolveBranding({ themeName: "sage-modern", primaryColor: "#ff0000" });
-    expect(b.primary).toBe("#059669"); // preset wins over tenant colour for presets
+  it("saved tenant colours override the preset palette (Bug 4, 2026-08)", () => {
+    const b = resolveBranding({ themeName: "sage-modern", primaryColor: "#28238b" });
+    expect(b.primary).toBe("#28238b"); // the customer's saved colour wins
+    expect(b.secondary).toBe("#10b981"); // unset colours fall back to the preset
     expect(b.scheme).toBe("auto");
+  });
+
+  it("uses the pure preset palette when no colours are stored", () => {
+    const b = resolveBranding({ themeName: "sage-modern" });
+    expect(b.primary).toBe("#059669");
+    expect(b.accent).toBe("#fb923c");
   });
   it("uses the tenant's own colours for custom", () => {
     const b = resolveBranding({ themeName: "custom", primaryColor: "#123456", accentColor: "#abcdef" });
@@ -41,5 +48,17 @@ describe("brandStyle", () => {
     const css = brandStyle(resolveBranding({ themeName: "ocean-pro" }));
     expect(css).toContain("--brand-from:243 75% 59%");
     expect(css).toContain("--primary:243 75% 59%");
+  });
+
+  it("scopes to :root AND .dark so dark mode keeps tenant colours", () => {
+    const css = brandStyle(resolveBranding({ themeName: "ocean-pro" }));
+    expect(css.startsWith(":root,.dark{")).toBe(true);
+  });
+
+  it("picks a readable foreground for light brand colours", () => {
+    const dark = brandStyle(resolveBranding({ themeName: "custom", primaryColor: "#28238b" }));
+    expect(dark).toContain("--brand-foreground:0 0% 100%");
+    const light = brandStyle(resolveBranding({ themeName: "custom", primaryColor: "#fbbf24" }));
+    expect(light).toContain("--brand-foreground:222 47% 11%");
   });
 });

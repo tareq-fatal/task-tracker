@@ -8,10 +8,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Gradient variants run over the tenant-brand CSS vars (Kunden-Report
+        // 2026-08, Bug 4): the palette was hard-coded indigo/pink here, so
+        // tenant colours never reached the most visible element in the app.
         default:
-          "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-sm hover:-translate-y-px hover:shadow-lg hover:shadow-indigo-500/25 hover:brightness-105",
+          "bg-gradient-to-r from-[hsl(var(--brand-from))] to-[hsl(var(--brand-to))] text-[hsl(var(--brand-foreground))] shadow-sm hover:-translate-y-px hover:shadow-lg hover:shadow-[hsl(var(--brand-from)/0.25)] hover:brightness-105",
         brand:
-          "bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500 text-white shadow-md shadow-indigo-500/20 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-fuchsia-500/30 hover:brightness-105",
+          "bg-gradient-to-r from-[hsl(var(--brand-from))] via-[hsl(var(--brand-via))] to-[hsl(var(--brand-to))] text-[hsl(var(--brand-foreground))] shadow-md shadow-[hsl(var(--brand-from)/0.2)] hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[hsl(var(--brand-via)/0.3)] hover:brightness-105",
         solid: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90",

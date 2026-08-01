@@ -21,10 +21,29 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const isCustom = theme === "custom";
-  const preset = THEMES.find((x) => x.name === theme) ?? THEMES[0];
-  // effective colours: custom uses the pickers, presets use their palette
-  const cols = isCustom ? { primary, secondary, accent } : { primary: preset.primary, secondary: preset.secondary, accent: preset.accent };
+  // Kunden-Report 2026-08, Bug 4: the pickers are the single source of truth.
+  // The preview used to render the preset palette whenever a preset was
+  // selected — entered hex values were shown in the (disabled) inputs but
+  // never applied. Now: picking a preset FILLS the pickers, editing a picker
+  // switches to "custom", and the preview always mirrors the picker state.
+  const cols = { primary, secondary, accent };
+
+  function pickTheme(name: string) {
+    setTheme(name);
+    const p = THEMES.find((x) => x.name === name);
+    if (p && name !== "custom") {
+      setPrimary(p.primary);
+      setSecondary(p.secondary);
+      setAccent(p.accent);
+    }
+  }
+
+  function setColor(set: (v: string) => void) {
+    return (v: string) => {
+      set(v);
+      if (theme !== "custom") setTheme("custom");
+    };
+  }
 
   function save() {
     setSaved(false);
@@ -44,8 +63,8 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
     <div className="space-y-1">
       <Label>{label}</Label>
       <div className="flex items-center gap-2">
-        <input type="color" aria-label={label} value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="h-9 w-10 cursor-pointer rounded border bg-transparent p-0.5 disabled:opacity-40" />
-        <Input aria-label={`${label} (hex)`} value={value} onChange={(e) => set(e.target.value)} disabled={!isCustom} className="w-28 font-mono text-xs" />
+        <input type="color" aria-label={label} value={value} onChange={(e) => setColor(set)(e.target.value)} className="h-9 w-10 cursor-pointer rounded border bg-transparent p-0.5" />
+        <Input aria-label={`${label} (hex)`} value={value} onChange={(e) => setColor(set)(e.target.value)} className="w-28 font-mono text-xs" />
       </div>
     </div>
   );
@@ -56,7 +75,7 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
       <div className="space-y-5">
         <div className="space-y-1">
           <Label>{t("brand.theme")}</Label>
-          <select aria-label={t("brand.theme")} value={theme} onChange={(e) => setTheme(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
+          <select aria-label={t("brand.theme")} value={theme} onChange={(e) => pickTheme(e.target.value)} className="h-10 w-full rounded-md border bg-background px-2 text-sm">
             {THEMES.map((th) => <option key={th.name} value={th.name}>{th.label}</option>)}
           </select>
         </div>
