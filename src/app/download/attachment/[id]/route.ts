@@ -14,7 +14,14 @@ import { isInlineViewable } from "@/lib/attachment-view";
 // octet-stream download. `nosniff` is always set so a declared type can't be
 // re-sniffed into something executable.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const { user, tenant } = await requireTenant();
+  let auth;
+  try {
+    auth = await requireTenant();
+  } catch {
+    // No session → clean 401 instead of an unhandled-throw 500.
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+  const { user, tenant } = auth;
   const att = await prisma.taskAttachment.findUnique({
     where: { id: params.id },
     include: {
