@@ -19,6 +19,7 @@ APP_DIR="${APP_DIR:-/home/marisight/apps/task-tracker}"            # cloned repo
 COMPOSE_DIR="${COMPOSE_DIR:-/home/marisight/marisight/infra/prod}"  # holds the compose file
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"             # or docker-compose.task-tracker.yml
 SERVICE="task-tracker"
+PG_CONTAINER="${PG_CONTAINER:-marisight-db}"  # Prod-Postgres (Image: postgis/postgis)
 REPO_URL="${REPO_URL:-https://github.com/tareq-fatal/task-tracker.git}"
 BRANCH="${BRANCH:-main}"
 
@@ -54,7 +55,7 @@ if [ "${SKIP_BACKUP:-0}" != "1" ]; then
   mkdir -p "$BACKUP_DIR"
   # Container per IMAGE erkennen — die Namen hier heissen marisight-db(-test),
   # "postgres" steht nur im Image. PG_CONTAINER uebersteuert die Erkennung.
-  PGC="${PG_CONTAINER:-$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' 'tolower($2) ~ /postgres/ && $1 !~ /test/ {print $1; exit}')}"
+  PGC="${PG_CONTAINER:-$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' 'tolower($2) ~ /postgres|postgis|pgvector/ && $1 !~ /test/ {print $1; exit}')}"
   [ -n "$PGC" ] || { echo "no running postgres container found — aborting before deploy" >&2; exit 1; }
   docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" --format=plain --no-owner --no-privileges tasktracker' \
     | gzip -9 > "$BACKUP_DIR/$STAMP.sql.gz"
