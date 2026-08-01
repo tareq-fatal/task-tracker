@@ -14,6 +14,7 @@ import {
   progressSchema,
   MAX_UPLOAD_BYTES,
   ALLOWED_MIME,
+  MIME_EXTENSION,
   ALLOWED_AUDIO_MIME,
   MAX_VOICE_SECONDS,
 } from "@/lib/validation";
@@ -307,6 +308,50 @@ async function hierarchyFromForm(
   return { type, parentId, storyPoints };
 }
 
+/**
+ * Resolve the project/team/assignee relations against the ACTIVE TENANT.
+ *
+ * These three ids arrive straight from the form and were previously written to
+ * Prisma unchecked, so a user could attach their task to another tenant's
+ * project, team or user — which leaked that tenant's project name and user
+ * profile back into the attacker's board, pushed notifications to a foreign
+ * user, and made the task deletable by the foreign project's admin
+ * (security audit 2026-07). An id from outside the tenant resolves to null,
+ * matching how hierarchyFromForm already drops an out-of-tenant parentId.
+ */
+async function scopedRelations(
+  tenantId: string,
+  d: { projectId?: string | null; teamId?: string | null; assignedToUserId?: string | null }
+): Promise<{ projectId: string | null; teamId: string | null; assignedToUserId: string | null }> {
+  const [project, team, assignee] = await Promise.all([
+    d.projectId
+      ? prisma.project.findFirst({ where: { id: d.projectId, tenantId }, select: { id: true } })
+      : null,
+    d.teamId
+      ? prisma.team.findFirst({ where: { id: d.teamId, tenantId }, select: { id: true } })
+      : null,
+    d.assignedToUserId
+      ? prisma.user.findFirst({ where: { id: d.assignedToUserId, tenantId }, select: { id: true } })
+      : null,
+  ]);
+  return {
+    projectId: project?.id ?? null,
+    teamId: team?.id ?? null,
+    assignedToUserId: assignee?.id ?? null,
+  };
+}
+
+/** Keep only those assignee ids that belong to the active tenant (see above). */
+async function scopedAssigneeIds(tenantId: string, ids: string[]): Promise<string[]> {
+  const wanted = [...new Set(ids.filter(Boolean))];
+  if (wanted.length === 0) return [];
+  const rows = await prisma.user.findMany({
+    where: { id: { in: wanted }, tenantId },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
 function revalidateTaskViews(taskId?: string) {
   revalidatePath("/");
   revalidatePath("/board");
@@ -399,9 +444,12 @@ export async function createTaskAction(
   // Non-admins may only create tasks assigned to themselves.
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
   // #13 — admins may add co-assignees; the primary above is the Hauptkopf.
-  const extraAssignees = isAdminRole(user.role) ? additionalAssigneeIds(formData) : [];
+  const extraAssignees = isAdminRole(user.role)
+    ? await scopedAssigneeIds(tenant.id, additionalAssigneeIds(formData))
+    : [];
   const recur = recurrenceFromForm(formData, d.dueDate);
   const hier = await hierarchyFromForm(formData, tenant.id);
+  const rel = await scopedRelations(tenant.id, { ...d, assignedToUserId: assignee });
 
   const task = await prisma.task.create({
     data: {
@@ -412,9 +460,9 @@ export async function createTaskAction(
       type: hier.type,
       parentId: hier.parentId,
       storyPoints: hier.storyPoints,
-      assignedToUserId: assignee,
-      projectId: d.projectId,
-      teamId: d.teamId,
+      assignedToUserId: rel.assignedToUserId,
+      projectId: rel.projectId,
+      teamId: rel.teamId,
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
@@ -427,7 +475,7 @@ export async function createTaskAction(
   });
 
   // #13 — record the full assignee set (Hauptkopf + co-assignees).
-  await syncAssignees(task.id, [assignee, ...extraAssignees]);
+  await syncAssignees(task.id, [rel.assignedToUserId, ...extraAssignees]);
 
   await logActivity(task.id, user.id, "created");
   await applyAutomations(tenant.id, task.id, { type: "created", projectId: task.projectId });
@@ -440,7 +488,7 @@ export async function createTaskAction(
   });
 
   // Notify every assignee (except the creator) of the new task.
-  const notifyIds = [assignee, ...extraAssignees].filter(
+  const notifyIds = [rel.assignedToUserId, ...extraAssignees].filter(
     (x): x is string => Boolean(x) && x !== user.id
   );
   if (notifyIds.length) {
@@ -486,8 +534,12 @@ export async function updateTaskAction(
 
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
   // Whoever reaches here (creator or admin) may set the primary + co-assignees (#13).
-  const assignee = d.assignedToUserId || null;
-  const extraAssignees = additionalAssigneeIds(formData);
+  const extraAssignees = await scopedAssigneeIds(tenant.id, additionalAssigneeIds(formData));
+  const rel = await scopedRelations(tenant.id, {
+    ...d,
+    assignedToUserId: d.assignedToUserId || null,
+  });
+  const assignee = rel.assignedToUserId;
   const recur = recurrenceFromForm(formData, d.dueDate);
   // Reset the spawn counter + pause flag when the schedule itself changes (a new
   // series starts fresh); keep them when the schedule is unchanged so an edit to
@@ -507,9 +559,9 @@ export async function updateTaskAction(
       type: hier.type,
       parentId: hier.parentId,
       storyPoints: hier.storyPoints,
-      assignedToUserId: assignee,
-      projectId: d.projectId,
-      teamId: d.teamId,
+      assignedToUserId: rel.assignedToUserId,
+      projectId: rel.projectId,
+      teamId: rel.teamId,
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
       spentHours: d.spentHours,
@@ -883,7 +935,11 @@ export async function uploadAttachmentAction(
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const ext = path.extname(file.name) || "";
+  // Extension comes from the validated MIME, NOT from the user's filename.
+  const ext = MIME_EXTENSION[file.type];
+  if (!ext) {
+    return { error: "BAD_TYPE" };
+  }
   const safeName = `${randomBytes(12).toString("hex")}${ext}`;
   const uploadDir = path.join(process.cwd(), "public", "uploads");
   try {

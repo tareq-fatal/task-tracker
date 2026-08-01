@@ -37,11 +37,28 @@ loadEnv();
 const prisma = new PrismaClient();
 
 const ADMIN_USERNAME = (process.env.ADMIN_USERNAME ?? "admin").toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "Admin-2026!";
 const ADMIN_EMAIL = (
   process.env.ADMIN_EMAIL ?? "admin@task-tracker.local"
 ).toLowerCase();
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "Demo-2026!";
+
+// No password fallbacks. These previously defaulted to literals that are
+// published in .env.example, so a deploy that simply forgot to set them got a
+// SuperAdmin whose password was public (security audit 2026-07). Fail loudly
+// instead — this script is documented as safe to run on every deploy, so a
+// silent weak default is the worst possible failure mode.
+function requiredSecret(name: string): string {
+  const v = process.env[name];
+  if (!v || v.trim().length < 12) {
+    throw new Error(
+      `${name} must be set to at least 12 characters before bootstrapping. ` +
+        `Set it in the environment (or via ${name}_FILE) and re-run.`
+    );
+  }
+  return v;
+}
+
+const ADMIN_PASSWORD = requiredSecret("ADMIN_PASSWORD");
+const DEMO_PASSWORD = requiredSecret("DEMO_PASSWORD");
 
 async function main() {
   console.log("🏢 Bootstrapping tenants (non-destructive)…");
@@ -116,6 +133,7 @@ async function main() {
       role: "SuperAdmin",
       locale: "de",
       hasSeenTour: true,
+      mustChangePassword: true,
       tenantId: OBJ,
     },
   });
@@ -138,6 +156,7 @@ async function main() {
         role: "Admin",
         locale: "de",
         hasSeenTour: true,
+        mustChangePassword: true,
         tenantId,
       },
     });

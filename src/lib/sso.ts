@@ -167,17 +167,22 @@ export async function fetchUserInfo(
   return { sub: String(u.sub ?? ""), email: String(u.email ?? ""), name: String(u.name ?? u.email ?? "") };
 }
 
+/** Normalize a tenant's comma-separated ssoDomains into a lowercase list. */
+export function parseDomains(ssoDomains: string | null | undefined): string[] {
+  if (!ssoDomains) return [];
+  return ssoDomains
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 /** Match an email's domain against a tenant's comma-separated ssoDomains. */
 export function emailMatchesDomains(
   email: string,
   ssoDomains: string | null | undefined
 ): boolean {
-  if (!email || !ssoDomains) return false;
+  if (!email) return false;
   const domain = email.split("@")[1]?.toLowerCase().trim();
   if (!domain) return false;
-  return ssoDomains
-    .split(",")
-    .map((d) => d.trim().toLowerCase())
-    .filter(Boolean)
-    .includes(domain);
+  return parseDomains(ssoDomains).includes(domain);
 }

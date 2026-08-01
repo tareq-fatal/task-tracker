@@ -70,7 +70,7 @@ export function BrandingSettings({ initial, tenantName }: { initial: BrandingDat
         <div className="space-y-1">
           <Label>{t("brand.logo")}</Label>
           <div className="flex items-center gap-2">
-            <input ref={fileRef} type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
             <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => fileRef.current?.click()}>
               <Upload className="me-1 h-4 w-4" /> {t("brand.upload")}
             </Button>

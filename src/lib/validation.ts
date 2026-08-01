@@ -101,6 +101,32 @@ export const settingsSchema = z.object({
 });
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+/**
+ * The on-disk extension for each accepted type. Derive the stored filename's
+ * extension from THIS map, never from the uploaded file's name: the two were
+ * unlinked, so a file declaring an allowed MIME while being named `x.html`
+ * landed on disk as `.html` — and everything under public/ is served statically
+ * (with a content-type from the extension) after the next server start
+ * (security audit 2026-07).
+ */
+export const MIME_EXTENSION: Record<string, string> = {
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/gif": ".gif",
+  "image/webp": ".webp",
+  "application/pdf": ".pdf",
+  "application/msword": ".doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/vnd.ms-excel": ".xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
+  "application/vnd.ms-powerpoint": ".ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": ".pptx",
+  "text/plain": ".txt",
+  "text/csv": ".csv",
+  "application/zip": ".zip",
+};
+
 export const ALLOWED_MIME = [
   "image/png",
   "image/jpeg",

@@ -48,7 +48,9 @@ export async function createSampleProjectAction(): Promise<{
   const externalId = `onboarding-sample:${user.id}`;
 
   // Idempotency — if this user already has a sample project, just return it.
-  const existing = await prisma.project.findUnique({ where: { externalId } });
+  const existing = await prisma.project.findFirst({
+    where: { externalId, tenantId: tenant.id },
+  });
   if (existing) return { ok: true, projectId: existing.id };
 
   const data = sampleProjectFor(user.locale);

@@ -13,7 +13,12 @@ export type BrandingData = { themeName: string; primaryColor: string; secondaryC
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const MAX_LOGO = 2 * 1024 * 1024; // 2 MB
-const LOGO_TYPES: Record<string, string> = { "image/png": "png", "image/svg+xml": "svg", "image/jpeg": "jpg", "image/webp": "webp" };
+// No SVG. An SVG can carry <script>, and uploads land under public/, which Next
+// re-scans on every server start and then serves statically — ahead of the route
+// handler that sets the sandbox CSP. After any redeploy the logo was therefore
+// served as image/svg+xml with no CSP, executing on the app's own origin
+// (security audit 2026-07). Raster formats only.
+const LOGO_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
 
 async function requireBrandingAdmin() {
   const { user, tenant } = await requireTenant();

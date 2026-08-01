@@ -271,7 +271,10 @@ model Project {
   deletedAt     DateTime?
   deletedBy     String?
   color         String   @default("#6366f1") // indigo
-  externalId    String?  @unique // e.g. MS Planner plan id (import idempotency)
+  // MS Planner plan id (import idempotency). Unique PER TENANT, never globally:
+  // a global unique made the import upsert match a foreign tenant's row and
+  // overwrite it (security audit 2026-07, cross-tenant write).
+  externalId    String?
   createdAt     DateTime @default(now())
   createdByUserId String
   createdBy     User     @relation("ProjectCreatedBy", fields: [createdByUserId], references: [id])
@@ -287,6 +290,7 @@ model Project {
   automations  AutomationRule[]
   members      ProjectMember[]
 
+  @@unique([tenantId, externalId])
   @@index([tenantId])
   @@index([deletedAt])
 }
@@ -413,8 +417,9 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  // External system linkage (MS Planner import idempotency)
-  externalId String? @unique
+  // External system linkage (MS Planner import idempotency). Unique PER TENANT,
+  // never globally — see the note on Project.externalId.
+  externalId String?
   bucket     String? // original MS Planner bucket name, kept for reference
 
   // Issue hierarchy: Epic > Story > Task > Subtask (Bug anywhere).
@@ -512,6 +517,7 @@ model Task {
   activity    ActivityLog[]
   timeEntries TaskTimeEntry[]
 
+  @@unique([tenantId, externalId])
   @@index([status])
   @@index([assignedToUserId])
   @@index([projectId])
