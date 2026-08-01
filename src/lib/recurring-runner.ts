@@ -81,7 +81,7 @@ export async function spawnRecurringInstance(template: Task, dueDate: Date): Pro
 export async function advanceSeries(template: Task, now: Date): Promise<number> {
   const dueAt = template.recurringNextAt;
   if (!dueAt) return 0;
-  const decision = decideDue(seriesOf(template), dueAt);
+  const decision = decideDue(seriesOf(template), dueAt, now);
 
   if (decision.action === "skip") return 0;
 
@@ -90,24 +90,27 @@ export async function advanceSeries(template: Task, now: Date): Promise<number> 
     return 0;
   }
 
+  // Claim the occurrence BEFORE spawning: the conditional update only matches
+  // while recurringNextAt still equals dueAt, so a concurrent second runner
+  // (double-scheduled cron, overlapping invocations) sees count === 0 and
+  // spawns nothing. decideDue's `now` additionally collapses a backlog into a
+  // single spawn. Both paths previously duplicated tasks (Kunden-Report
+  // 2026-08, Bug 1).
+  const claimed = await prisma.task.updateMany({
+    where: { id: template.id, recurringNextAt: dueAt },
+    data: decision.next
+      ? { recurringNextAt: decision.next, recurringCount: { increment: 1 } }
+      : {
+          // Last occurrence: count the spawn, then retire the series.
+          recurringCount: { increment: 1 },
+          recurringRule: null,
+          recurringCron: null,
+          recurringNextAt: null,
+        },
+  });
+  if (claimed.count === 0) return 0;
+
   await spawnRecurringInstance(template, dueAt);
-  if (decision.next) {
-    await prisma.task.update({
-      where: { id: template.id },
-      data: { recurringNextAt: decision.next, recurringCount: { increment: 1 } },
-    });
-  } else {
-    // Last occurrence: count the spawn, then retire the series.
-    await prisma.task.update({
-      where: { id: template.id },
-      data: {
-        recurringCount: { increment: 1 },
-        recurringRule: null,
-        recurringCron: null,
-        recurringNextAt: null,
-      },
-    });
-  }
   return 1;
 }
 
@@ -122,8 +125,8 @@ export async function clearRecurrence(taskId: string): Promise<void> {
 /**
  * Spawn the next instance of every recurring series whose recurringNextAt is
  * due and which isn't paused, advancing each series afterwards. Called from the
- * cron route (see src/app/api/cron/recurring/route.ts). Processes at most one
- * occurrence per series per run — the scheduler cadence keeps this in step.
+ * cron route (see src/app/api/cron/recurring/route.ts). Spawns at most one
+ * instance per series per run; missed occurrences are collapsed, not replayed.
  */
 export async function runDueRecurring(now = new Date()): Promise<{ created: number; scanned: number }> {
   const due = await prisma.task.findMany({

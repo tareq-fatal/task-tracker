@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   nextFire,
+  nextFireAfter,
   reachedEndCount,
   pastUntil,
   decideDue,
@@ -93,5 +94,55 @@ describe("decideDue", () => {
       dueAt
     );
     expect(d).toEqual({ action: "finished" });
+  });
+});
+
+// Kunden-Report 2026-08, Bug 1: a series that fell behind must yield ONE
+// spawn with the follow-up past `now` — not one copy per cron run until the
+// backlog drains (that duplicated tasks in /list and /admin/tasks).
+describe("catch-up collapse", () => {
+  const dueAt = new Date("2026-06-01T09:00:00Z");
+
+  it("nextFireAfter skips every missed occurrence but keeps the time-of-day", () => {
+    const now = new Date("2026-06-24T14:30:00Z");
+    const next = nextFireAfter({ rule: "FREQ=DAILY", cron: null, tz: null }, dueAt, now);
+    expect(next?.toISOString()).toBe("2026-06-25T09:00:00.000Z");
+  });
+
+  it("nextFireAfter equals nextFire when the series is on time", () => {
+    const next = nextFireAfter({ rule: "FREQ=DAILY", cron: null, tz: null }, dueAt, dueAt);
+    expect(next?.toISOString()).toBe("2026-06-02T09:00:00.000Z");
+  });
+
+  it("decideDue with `now` collapses a 3-week backlog into a single spawn", () => {
+    const now = new Date("2026-06-24T14:30:00Z");
+    const d = decideDue({ ...base, rule: "FREQ=DAILY" }, dueAt, now);
+    expect(d.action).toBe("spawn");
+    if (d.action === "spawn") {
+      // follow-up is strictly after now → the next cron run spawns nothing.
+      expect(d.next!.getTime()).toBeGreaterThan(now.getTime());
+      expect(d.next?.toISOString()).toBe("2026-06-25T09:00:00.000Z");
+    }
+  });
+
+  it("collapse still honours the until date", () => {
+    const now = new Date("2026-06-24T14:30:00Z");
+    const d = decideDue(
+      { ...base, rule: "FREQ=DAILY", until: new Date("2026-06-10T00:00:00Z") },
+      dueAt,
+      now
+    );
+    // dueAt itself is before until → spawns, but the collapsed follow-up
+    // (after now) is past until → series retires.
+    expect(d).toEqual({ action: "spawn", next: null });
+  });
+
+  it("weekly BYDAY backlog lands on the next listed weekday after now", () => {
+    const now = new Date("2026-06-24T14:30:00Z"); // Wed
+    const d = decideDue({ ...base, rule: "FREQ=WEEKLY;BYDAY=MO" }, dueAt, now);
+    expect(d.action).toBe("spawn");
+    if (d.action === "spawn") {
+      expect(d.next?.toISOString()).toBe("2026-06-29T09:00:00.000Z"); // next Monday
+    }
   });
 });

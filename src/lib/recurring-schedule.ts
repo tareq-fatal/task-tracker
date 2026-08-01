@@ -25,6 +25,25 @@ export function nextFire(s: Pick<SeriesSchedule, "rule" | "cron" | "tz">, from: 
   return nextOccurrence(s.rule, from);
 }
 
+/**
+ * Like nextFire, but skips every occurrence that already lies in the past:
+ * the first fire time strictly after BOTH `from` and `now`. Keeps the series'
+ * phase and time-of-day (it walks occurrence by occurrence from `from` instead
+ * of re-anchoring at `now`). Bounded — a pathological backlog beyond the guard
+ * returns the furthest occurrence reached; the next run continues from there.
+ */
+export function nextFireAfter(
+  s: Pick<SeriesSchedule, "rule" | "cron" | "tz">,
+  from: Date,
+  now: Date
+): Date | null {
+  let next = nextFire(s, from);
+  for (let guard = 0; next && next.getTime() <= now.getTime() && guard < 1000; guard++) {
+    next = nextFire(s, next);
+  }
+  return next;
+}
+
 /** True once the series has spawned its full allotment. */
 export function reachedEndCount(count: number, endCount: number | null): boolean {
   return endCount != null && count >= endCount;
@@ -48,13 +67,19 @@ export type DueDecision =
  *    (no spawn; the caller clears the recurrence).
  *  - otherwise spawn one instance, then compute the follow-up occurrence,
  *    clearing it (next = null) when the end-count or until-date is reached.
+ *
+ * `now` collapses catch-up: when a series fell behind (cron outage, imported
+ * with an old date), the follow-up is the first occurrence after `now` — one
+ * spawn total, NOT one per missed occurrence. Kunden-Report 2026-08 Bug 1:
+ * the per-run single-step advance spawned another copy of the same task every
+ * cron tick until the backlog drained, duplicating it in /list + /admin/tasks.
  */
-export function decideDue(s: SeriesSchedule, dueAt: Date): DueDecision {
+export function decideDue(s: SeriesSchedule, dueAt: Date, now: Date = dueAt): DueDecision {
   if (s.paused) return { action: "skip" };
   if (reachedEndCount(s.count, s.endCount) || pastUntil(dueAt, s.until)) {
     return { action: "finished" };
   }
-  let next = nextFire(s, dueAt);
+  let next = nextFireAfter(s, dueAt, now);
   if (next) {
     const countAfter = s.count + 1;
     if (reachedEndCount(countAfter, s.endCount) || pastUntil(next, s.until)) {
