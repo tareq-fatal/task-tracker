@@ -19,7 +19,7 @@ APP_DIR="${APP_DIR:-/home/marisight/apps/task-tracker}"            # cloned repo
 COMPOSE_DIR="${COMPOSE_DIR:-/home/marisight/marisight/infra/prod}"  # holds the compose file
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"             # or docker-compose.task-tracker.yml
 SERVICE="task-tracker"
-REPO_URL="${REPO_URL:-https://github.com/<your-org>/task-tracker.git}" # CONFIRM
+REPO_URL="${REPO_URL:-https://github.com/tareq-fatal/task-tracker.git}"
 BRANCH="${BRANCH:-main}"
 
 SEED=0
@@ -28,14 +28,21 @@ SEED=0
 log() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 
 # --- 1. Sync the source ------------------------------------------------------
-if [ ! -d "$APP_DIR/.git" ]; then
-  log "Cloning repo into $APP_DIR"
-  git clone "$REPO_URL" "$APP_DIR"
+# SKIP_GIT=1: der Aufrufer hat den Quellcode bereits nach $APP_DIR gelegt
+# (GitHub-Actions-Weg: git archive | tar über den restricted Deploy-Key —
+# das Repo auf dem VPS ist KEIN git-Clone und braucht keine GitHub-Creds).
+if [ "${SKIP_GIT:-0}" != "1" ]; then
+  if [ ! -d "$APP_DIR/.git" ]; then
+    log "Cloning repo into $APP_DIR"
+    git clone "$REPO_URL" "$APP_DIR"
+  fi
+  log "Updating source ($BRANCH)"
+  git -C "$APP_DIR" fetch --all --prune
+  git -C "$APP_DIR" checkout "$BRANCH"
+  git -C "$APP_DIR" pull --ff-only
+else
+  log "SKIP_GIT=1 — Quellcode wurde vom Aufrufer bereitgestellt"
 fi
-log "Updating source ($BRANCH)"
-git -C "$APP_DIR" fetch --all --prune
-git -C "$APP_DIR" checkout "$BRANCH"
-git -C "$APP_DIR" pull --ff-only
 
 # --- 2. Pre-deploy safety net: DB dump + rollback image tag -------------------
 # Same net as the deploy.yml workflow step — kept here too so MANUAL deploys
