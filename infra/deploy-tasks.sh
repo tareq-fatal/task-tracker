@@ -37,7 +37,28 @@ git -C "$APP_DIR" fetch --all --prune
 git -C "$APP_DIR" checkout "$BRANCH"
 git -C "$APP_DIR" pull --ff-only
 
-# --- 2. Build the image ------------------------------------------------------
+# --- 2. Pre-deploy safety net: DB dump + rollback image tag -------------------
+# Same net as the deploy.yml workflow step — kept here too so MANUAL deploys
+# get it as well. Skip with SKIP_BACKUP=1 (e.g. when rolling back).
+if [ "${SKIP_BACKUP:-0}" != "1" ]; then
+  STAMP="$(date -u +%Y%m%d-%H%M%S)"
+  BACKUP_DIR="${BACKUP_DIR:-/home/marisight/backups/task-tracker/pre-deploy}"
+  log "Pre-deploy DB dump -> $BACKUP_DIR/$STAMP.sql.gz"
+  mkdir -p "$BACKUP_DIR"
+  PGC="$(docker ps --format '{{.Names}}' | grep -i -m1 postgres)" \
+    || { echo "no running postgres container found — aborting before deploy" >&2; exit 1; }
+  docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" --format=plain --no-owner --no-privileges tasktracker' \
+    | gzip -9 > "$BACKUP_DIR/$STAMP.sql.gz"
+  [ -s "$BACKUP_DIR/$STAMP.sql.gz" ] || { echo "pre-deploy dump is empty — aborting" >&2; exit 1; }
+  ls -1t "$BACKUP_DIR"/*.sql.gz 2>/dev/null | tail -n +8 | xargs -r rm --
+  if docker image inspect task-tracker:latest >/dev/null 2>&1; then
+    log "Tagging rollback image task-tracker:rollback-$STAMP"
+    docker tag task-tracker:latest "task-tracker:rollback-$STAMP"
+    docker tag task-tracker:latest task-tracker:rollback
+  fi
+fi
+
+# --- 3. Build the image ------------------------------------------------------
 log "Building task-tracker:latest"
 docker build -t task-tracker:latest "$APP_DIR"
 
