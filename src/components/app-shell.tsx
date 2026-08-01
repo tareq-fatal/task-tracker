@@ -317,7 +317,7 @@ export function AppShell({
         {/* Top header */}
         <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className="flex h-14 items-center gap-2 px-4">
-            <Link href="/" className="flex min-w-0 items-center gap-2 md:hidden">
+            <Link href="/" className="flex shrink-0 items-center gap-2 md:hidden">
               {/* Kunden-Report 2026-08, Bug 5: the tenant logo only lived in
                   the md:flex sidebar — phones showed the generic mark. Mirror
                   the sidebar's ternary here, capped so the section chip and
