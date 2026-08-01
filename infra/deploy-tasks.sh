@@ -52,8 +52,10 @@ if [ "${SKIP_BACKUP:-0}" != "1" ]; then
   BACKUP_DIR="${BACKUP_DIR:-/home/marisight/backups/task-tracker/pre-deploy}"
   log "Pre-deploy DB dump -> $BACKUP_DIR/$STAMP.sql.gz"
   mkdir -p "$BACKUP_DIR"
-  PGC="$(docker ps --format '{{.Names}}' | grep -i -m1 postgres)" \
-    || { echo "no running postgres container found — aborting before deploy" >&2; exit 1; }
+  # Container per IMAGE erkennen — die Namen hier heissen marisight-db(-test),
+  # "postgres" steht nur im Image. PG_CONTAINER uebersteuert die Erkennung.
+  PGC="${PG_CONTAINER:-$(docker ps --format '{{.Names}}\t{{.Image}}' | awk -F'\t' 'tolower($2) ~ /postgres/ && $1 !~ /test/ {print $1; exit}')}"
+  [ -n "$PGC" ] || { echo "no running postgres container found — aborting before deploy" >&2; exit 1; }
   docker exec "$PGC" sh -c 'pg_dump -U "${POSTGRES_USER:-postgres}" --format=plain --no-owner --no-privileges tasktracker' \
     | gzip -9 > "$BACKUP_DIR/$STAMP.sql.gz"
   [ -s "$BACKUP_DIR/$STAMP.sql.gz" ] || { echo "pre-deploy dump is empty — aborting" >&2; exit 1; }
