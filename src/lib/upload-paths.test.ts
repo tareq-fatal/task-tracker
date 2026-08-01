@@ -18,7 +18,11 @@ describe("resolveUploadPath (K-6)", () => {
   it("rejects traversal and absolute-path escapes", () => {
     expect(resolveUploadPath("/uploads/../../etc/passwd")).toBeNull();
     expect(resolveUploadPath("../secrets.env")).toBeNull();
-    expect(resolveUploadPath("/uploads/..%2F..")).not.toContain("..%2F"); // literal name stays inside root
+    // URL-encoded dots are a LITERAL file name, not a traversal — must stay
+    // inside the root (and will simply 404 on readFile).
+    const encoded = resolveUploadPath("/uploads/..%2F..");
+    expect(encoded).not.toBeNull();
+    expect(encoded!.startsWith(path.resolve(UPLOAD_ROOT))).toBe(true);
   });
 
   it("UPLOAD_ROOT is outside public/", () => {
