@@ -317,9 +317,20 @@ export function AppShell({
         {/* Top header */}
         <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className="flex h-14 items-center gap-2 px-4">
-            <Link href="/" className="flex items-center gap-2 md:hidden">
-              <Logo size={24} />
-              <span className="font-semibold">{t("app.name")}</span>
+            <Link href="/" className="flex min-w-0 items-center gap-2 md:hidden">
+              {/* Kunden-Report 2026-08, Bug 5: the tenant logo only lived in
+                  the md:flex sidebar — phones showed the generic mark. Mirror
+                  the sidebar's ternary here, capped so the section chip and
+                  the action cluster keep their room. */}
+              {tenant.logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tenant.logo} alt={tenant.name} className="h-6 max-w-[110px] object-contain" />
+              ) : (
+                <>
+                  <Logo size={24} />
+                  <span className="font-semibold">{t("app.name")}</span>
+                </>
+              )}
             </Link>
 
             {/* Desktop page-context title (not a heading — avoids duplicate H1) */}
