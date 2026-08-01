@@ -10,7 +10,14 @@ import { isAdminRole } from "@/lib/enums";
 // Supports single-range requests — browsers need 206 responses to seek.
 // Access-checked like attachments: same tenant + can view the task.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const { user, tenant } = await requireTenant();
+  let auth;
+  try {
+    auth = await requireTenant();
+  } catch {
+    // No session → clean 401 instead of an unhandled-throw 500.
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+  const { user, tenant } = auth;
   const note = await prisma.voiceNote.findUnique({
     where: { id: params.id },
     include: { task: { select: { tenantId: true, createdByUserId: true, assignedToUserId: true } } },
