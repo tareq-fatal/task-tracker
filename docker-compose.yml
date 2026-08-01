@@ -70,7 +70,8 @@ services:
       - "3000:3000"
     volumes:
       # Persist uploaded attachments across redeploys.
-      - uploads:/app/public/uploads
+      # K-6: uploads OUTSIDE public/ — served only via auth-checked routes
+      - uploads:/app/var/uploads
     healthcheck:
       test:
         [

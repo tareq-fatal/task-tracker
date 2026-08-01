@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, basicEmailTemplate, emailEnabled } from "@/lib/email";
 import { isLocale, type Locale } from "@/lib/enums";
@@ -9,7 +10,7 @@ import { generateExport, type ExportTenantCtx } from "@/lib/export/generate";
 import { makeExportT } from "@/lib/export/i18n-export";
 import { EXPORT_FORMAT, type ExportParams, type ExportKind } from "@/lib/export/types";
 
-const EXPORT_DIR = path.join(process.cwd(), "public", "uploads", "exports");
+const EXPORT_DIR = path.join(UPLOAD_ROOT, "exports");
 const PUBLIC_PREFIX = "/uploads/exports";
 const MAX_ATTEMPTS = 3;
 

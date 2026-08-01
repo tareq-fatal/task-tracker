@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { resolveUploadPath } from "@/lib/upload-paths";
 import { prisma } from "@/lib/prisma";
 import { getActiveTenant } from "@/lib/tenant";
 import { CONTENT_TYPE } from "@/lib/export/types";
@@ -37,7 +38,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   let data: Buffer;
   try {
-    const abs = path.join(process.cwd(), "public", job.filePath.replace(/^\/+/, ""));
+    const abs = resolveUploadPath(job.filePath);
+    if (!abs) return new NextResponse("Not found", { status: 404 });
     data = await readFile(abs);
   } catch {
     return new NextResponse("File missing", { status: 410 });

@@ -2,6 +2,7 @@
 
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
+import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -67,7 +68,7 @@ export async function uploadLogoAction(_prev: BrandingState, formData: FormData)
   const ext = LOGO_TYPES[file.type];
   if (!ext) return { error: "BAD_TYPE" };
 
-  const dir = path.join(process.cwd(), "public", "uploads", "tenants", tenant.slug);
+  const dir = path.join(UPLOAD_ROOT, "tenants", tenant.slug);
   await mkdir(dir, { recursive: true });
   const bytes = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, `logo.${ext}`), bytes);

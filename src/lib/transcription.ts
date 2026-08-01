@@ -1,5 +1,6 @@
 import { readFile } from "fs/promises";
 import path from "path";
+import { resolveUploadPath } from "@/lib/upload-paths";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -26,7 +27,8 @@ export async function transcribeVoiceNote(voiceNoteId: string): Promise<void> {
   const note = await prisma.voiceNote.findUnique({ where: { id: voiceNoteId } });
   if (!note || note.transcript) return;
 
-  const abs = path.join(process.cwd(), "public", note.filePath.replace(/^\/+/, ""));
+  const abs = resolveUploadPath(note.filePath);
+  if (!abs) return;
   const bytes = await readFile(abs);
 
   const form = new FormData();

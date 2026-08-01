@@ -29,6 +29,7 @@ import { transcribeVoiceNote } from "@/lib/transcription";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { detectCommentLanguage } from "@/lib/lang-detect";
+import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { applyAutomations } from "@/lib/automation-run";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
@@ -941,7 +942,7 @@ export async function uploadAttachmentAction(
     return { error: "BAD_TYPE" };
   }
   const safeName = `${randomBytes(12).toString("hex")}${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  const uploadDir = UPLOAD_ROOT;
   try {
     await mkdir(uploadDir, { recursive: true });
     await writeFile(path.join(uploadDir, safeName), bytes);
@@ -997,7 +998,7 @@ async function saveVoiceUpload(formData: FormData): Promise<
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const safeName = `${randomBytes(12).toString("hex")}${audioExtension(mimeType)}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  const uploadDir = UPLOAD_ROOT;
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, safeName), bytes);
 

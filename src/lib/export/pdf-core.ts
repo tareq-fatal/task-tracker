@@ -1,6 +1,7 @@
 import "server-only";
 import { readFile } from "fs/promises";
 import path from "path";
+import { resolveUploadPath } from "@/lib/upload-paths";
 import { jsPDF } from "jspdf";
 import type { Locale } from "@/lib/enums";
 import { shapeForLocale } from "./arabic";
@@ -485,7 +486,8 @@ export async function loadLogo(logoPublicPath: string | null | undefined): Promi
     ext === "png" ? "PNG" : ext === "jpg" || ext === "jpeg" ? "JPEG" : null;
   if (!format) return null; // svg/webp unsupported by jsPDF addImage
   try {
-    const abs = path.join(process.cwd(), "public", clean);
+    const abs = resolveUploadPath(clean);
+    if (!abs) return null;
     const bytes = await readFile(abs);
     const dataUrl = `data:image/${format === "PNG" ? "png" : "jpeg"};base64,${bytes.toString("base64")}`;
     const { w, h } = imageSize(bytes, format);
