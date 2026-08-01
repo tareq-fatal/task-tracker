@@ -15,11 +15,33 @@ import {
 } from "@/lib/infographics";
 import { ReportsDashboard } from "@/components/reports-dashboard";
 import { ExportDialog } from "@/components/export-dialog";
+import { ReportsTabs } from "@/components/reports-tabs";
+import { InsightsSection } from "./insights-section";
 
-export default async function ReportsPage() {
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
   const { user, tenant } = await requireTenant();
   if (!isAdminRole(user.role)) redirect("/");
   const t = getDictionary(getActiveLocale());
+
+  const tabLabels = {
+    reports: t["reports.tabReports"],
+    insights: t["reports.tabInsights"],
+  };
+
+  // Kunden-Report 2026-08, Bug 3: "Berichte" + "Einblicke" are ONE nav entry
+  // now; ?tab=insights renders the former /reports/insights page here.
+  if (searchParams.tab === "insights") {
+    return (
+      <div className="container py-6">
+        <ReportsTabs active="insights" labels={tabLabels} />
+        <InsightsSection tenantId={tenant.id} />
+      </div>
+    );
+  }
 
   const [rows, users, projects, sprints] = await Promise.all([
     prisma.task.findMany({
@@ -95,6 +117,7 @@ export default async function ReportsPage() {
 
   return (
     <ReportsDashboard
+      tabs={<ReportsTabs active="reports" labels={tabLabels} />}
       actions={
         <ExportDialog
           hasLogo={Boolean(tenant.logo)}

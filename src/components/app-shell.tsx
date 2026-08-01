@@ -28,7 +28,6 @@ import {
   Table2,
   Palette,
   Plug,
-  Sparkles,
   Activity,
   Repeat,
   Clock,
@@ -96,8 +95,9 @@ const ADMIN: NavItem[] = [
   { href: "/admin/notifications", label: "nav.adminNotifications", icon: BellRing },
   { href: "/admin/telegram", label: "nav.telegramAdmin", icon: Send },
   { href: "/sprints", label: "nav.sprints", icon: Rocket, tip: "tooltip.sprints" },
-  { href: "/reports", label: "nav.reports", icon: BarChart3, tip: "tooltip.reports" },
-  { href: "/reports/insights", label: "nav.insights", icon: Sparkles },
+  // Kunden-Report 2026-08, Bug 3: "Berichte" + "Einblicke" merged into ONE
+  // entry — /reports carries tabs now; /reports/insights redirects there.
+  { href: "/reports", label: "nav.reports", icon: BarChart3, tip: "tooltip.reports", match: ["/reports/insights"] },
   { href: "/reports/time", label: "nav.timeReports", icon: Timer },
   { href: "/admin/custom-fields", label: "nav.customFields", icon: Tags },
   { href: "/admin/automation", label: "nav.automation", icon: Zap },
@@ -247,7 +247,7 @@ export function AppShell({
             <NavLink
               key={item.href}
               item={item}
-              active={isActive(pathname, item.href)}
+              active={isActive(pathname, item.href, item.match)}
             />
           ))}
 
@@ -257,7 +257,7 @@ export function AppShell({
                 🛠️ {t("nav.backendSection")}
               </p>
               {SUPER.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+                <NavLink key={item.href} item={item} active={isActive(pathname, item.href, item.match)} />
               ))}
             </>
           )}
@@ -268,7 +268,7 @@ export function AppShell({
                 {t("nav.adminSection")}
               </p>
               {ADMIN.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+                <NavLink key={item.href} item={item} active={isActive(pathname, item.href, item.match)} />
               ))}
             </>
           )}
@@ -279,7 +279,7 @@ export function AppShell({
                 {t("nav.adminSection")}
               </p>
               {subAdminNav.map((item) => (
-                <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} />
+                <NavLink key={item.href} item={item} active={isActive(pathname, item.href, item.match)} />
               ))}
             </>
           )}

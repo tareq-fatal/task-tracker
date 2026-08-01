@@ -46,14 +46,17 @@ export function ReportsDashboard({
   data,
   labels: L,
   actions,
+  tabs,
 }: {
   data: Data;
   labels: Labels;
   actions?: React.ReactNode;
+  tabs?: React.ReactNode;
 }) {
   const k = data.kpis;
   return (
     <div className="container py-6">
+      {tabs}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{L.title}</h1>
         <div className="flex gap-2">
