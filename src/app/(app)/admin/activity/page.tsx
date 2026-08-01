@@ -6,6 +6,7 @@ import { isAdminRole } from "@/lib/enums";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { AdminActivityFeed } from "@/components/admin-activity-feed";
+import { RetentionPurgeButtons } from "@/components/retention-purge-buttons";
 
 // #33 — tenant-wide activity feed for admins: every change users make to tasks.
 export default async function AdminActivityPage() {
@@ -36,9 +37,12 @@ export default async function AdminActivityPage() {
   return (
     <div className="container max-w-2xl py-6">
       <h1 className="text-2xl font-bold">{t["adminActivity.title"]}</h1>
-      <p className="mb-6 mt-1 text-sm text-muted-foreground">
+      <p className="mb-4 mt-1 text-sm text-muted-foreground">
         {t["adminActivity.subtitle"]}
       </p>
+      <div className="mb-6">
+        <RetentionPurgeButtons kind="activity" days={tenant.notificationRetentionDays} />
+      </div>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t["activity.empty"]}</p>
       ) : (

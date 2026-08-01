@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession, verifyPassword } from "@/lib/auth";
 import { setLocaleCookie } from "@/lib/locale";
-import { isLocale } from "@/lib/enums";
+import { setTenantCookie } from "@/lib/tenant";
+import { isLocale, isSuperAdmin } from "@/lib/enums";
 import { loginSchema } from "@/lib/validation";
 import { safeReturnUrl } from "@/lib/return-url";
 
@@ -38,6 +39,16 @@ export async function loginAction(
 
   await createSession(user.id);
   if (isLocale(user.locale)) setLocaleCookie(user.locale);
+  // Remember the tenant on this device so the login page can show its logo
+  // next time (Bug 5). NOT for SuperAdmins — for them the cookie is the
+  // tenant-switcher selection and must survive re-logins.
+  if (!isSuperAdmin(user.role)) {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { slug: true },
+    });
+    if (tenant) setTenantCookie(tenant.slug);
+  }
   // Deep-link flow (Telegram/push): land on the notified task, not "/".
   redirect(safeReturnUrl(formData.get("returnUrl") as string | null));
 }

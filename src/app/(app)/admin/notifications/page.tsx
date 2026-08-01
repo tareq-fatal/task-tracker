@@ -10,6 +10,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { NOTIFICATION_EVENTS } from "@/lib/notifications-core";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Button } from "@/components/ui/button";
+import { RetentionPurgeButtons } from "@/components/retention-purge-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,10 @@ export default async function AdminNotificationsPage({
         {t["adminNotif.title"]}
       </h1>
       <p className="mb-4 mt-1 text-sm text-muted-foreground">{t["adminNotif.subtitle"]}</p>
+
+      <div className="mb-4">
+        <RetentionPurgeButtons kind="notifications" days={tenant.notificationRetentionDays} />
+      </div>
 
       <form className="mb-4 flex flex-wrap items-end gap-2">
         <select name="user" defaultValue={filterUser ?? ""} className="h-9 rounded-md border border-input bg-background px-2 text-sm">

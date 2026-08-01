@@ -45,6 +45,8 @@
     --brand-from: 243 75% 59%; /* indigo */
     --brand-via: 292 84% 61%; /* fuchsia */
     --brand-to: 330 81% 60%; /* pink */
+    /* text on top of the brand gradient (tenant themes may pick light brands) */
+    --brand-foreground: 0 0% 100%;
   }
 
   /* Dark theme — real tokens (not just an inverse). Applied via .dark on <html>. */
@@ -72,6 +74,7 @@
     --brand-from: 243 80% 66%;
     --brand-via: 292 80% 64%;
     --brand-to: 330 78% 62%;
+    --brand-foreground: 0 0% 100%;
   }
 }
 

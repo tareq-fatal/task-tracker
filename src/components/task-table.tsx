@@ -180,7 +180,7 @@ export function TaskTable({
             {sorted.map((r) => {
               const bucket = r.status === "Done" || r.status === "Archived" ? null : dueBucket(r.dueDate, new Date());
               return (
-                <tr key={r.id} className={cn("border-t hover:bg-muted/30", sel.has(r.id) && "bg-indigo-50/50")} data-testid="list-row">
+                <tr key={r.id} className={cn("border-t hover:bg-muted/30", sel.has(r.id) && "bg-indigo-50/50")} data-testid="list-row" data-task-id={r.id}>
                   <td className={cn("px-3", pad)}>
                     <input type="checkbox" aria-label={`select ${r.title}`} checked={sel.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-indigo-600" />
                   </td>

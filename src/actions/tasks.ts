@@ -506,6 +506,8 @@ export async function createTaskAction(
 
   revalidatePath("/");
   revalidatePath("/board");
+  revalidatePath("/list");
+  revalidatePath("/admin/tasks");
   redirect(`/tasks/${task.id}`);
 }
 

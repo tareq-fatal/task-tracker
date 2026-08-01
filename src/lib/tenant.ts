@@ -10,12 +10,18 @@ export type ActiveTenant = {
   id: string;
   slug: string;
   name: string;
+  // Branding: resolveBranding() needs ALL FOUR of these — keep them in the
+  // type so a future `select` on getActiveTenant can't silently drop them.
+  themeName: string;
   primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
   logo: string | null;
   billingEnabled: boolean;
   parentTasksEnabled: boolean;
   storyPointsEnabled: boolean;
   translationEnabled: boolean;
+  notificationRetentionDays: number;
 };
 
 export function setTenantCookie(slug: string): void {

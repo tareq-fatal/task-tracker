@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { TENANT_COOKIE } from "@/lib/tenant";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale } from "@/lib/enums";
@@ -67,6 +70,19 @@ export default async function LoginPage({
   const user = await getCurrentUser();
   if (user) redirect(safeReturnUrl(searchParams?.returnUrl));
 
+  // Kunden-Report 2026-08, Bug 5: show the tenant's logo on the login screen.
+  // Pre-session there is no user, so the tenant comes from the tt_tenant
+  // cookie (set on login / via /t/<slug> deep-links); single-tenant installs
+  // fall back to their only tenant.
+  const brandSlug = cookies().get(TENANT_COOKIE)?.value;
+  let brandTenant = brandSlug
+    ? await prisma.tenant.findUnique({ where: { slug: brandSlug }, select: { name: true, logo: true } })
+    : null;
+  if (!brandTenant?.logo) {
+    const tenants = await prisma.tenant.findMany({ select: { name: true, logo: true }, take: 2 });
+    if (tenants.length === 1 && tenants[0].logo) brandTenant = tenants[0];
+  }
+
   const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
   const t = getDictionary(locale);
   const copy = SEO_COPY[locale];
@@ -103,13 +119,20 @@ export default async function LoginPage({
         <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10">
           <div className="h-1.5 w-full brand-gradient" />
           <CardHeader className="items-center pt-8 text-center">
-            <div className="relative mb-3 grid h-20 w-20 place-items-center">
-              <span className="brand-gradient absolute inset-0 rounded-3xl opacity-25 blur-xl" />
-              <span className="tt-pulse-ring absolute inset-1 rounded-3xl border-2 border-indigo-400/40" />
-              <Logo size={64} animated />
-            </div>
+            {brandTenant?.logo ? (
+              <div className="mb-3 flex h-20 items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={brandTenant.logo} alt={brandTenant.name} className="max-h-16 max-w-[220px] object-contain" />
+              </div>
+            ) : (
+              <div className="relative mb-3 grid h-20 w-20 place-items-center">
+                <span className="brand-gradient absolute inset-0 rounded-3xl opacity-25 blur-xl" />
+                <span className="tt-pulse-ring absolute inset-1 rounded-3xl border-2 border-indigo-400/40" />
+                <Logo size={64} animated />
+              </div>
+            )}
             <CardTitle className="text-2xl">
-              <span className="brand-text">{t["app.name"]}</span>
+              <span className="brand-text">{brandTenant?.logo ? brandTenant.name : t["app.name"]}</span>
             </CardTitle>
             <CardDescription>{t["login.subtitle"]}</CardDescription>
           </CardHeader>

@@ -42,6 +42,17 @@ SYNC_SECRET=...
 ```
 Deduped to once per ~20h per task/type. Returns `{ ok, dueSoon, overdue }`.
 
+## Retention cron (auto-delete old notifications)
+
+```cron
+15 3 * * *  curl -H "x-sync-secret: $SYNC_SECRET" https://tasks.coastshield.net/api/cron/notification-retention
+```
+Deletes notifications and activity-log entries older than each tenant's
+`notificationRetentionDays` (default 30, configurable by tenant admins under
+Settings → notification retention). Admins can also purge manually on
+`/admin/notifications` and `/admin/activity` ("delete old" / "delete all").
+Returns `{ ok, tenants, notifications, activities }`.
+
 ## Testing status
 
 - ✅ Unit: routing/quiet-hours/mentions (`notifications-core.test.ts`, 12 tests).

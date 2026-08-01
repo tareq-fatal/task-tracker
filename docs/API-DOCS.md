@@ -54,6 +54,7 @@ a convention, not an enforced contract — check the action's return type).
 | `/api/sync/planner` | `GET`, `POST` | Runs MS Planner pull/push/two-way sync for every enabled `PlannerSync` (see [PLANNER-SYNC.md](PLANNER-SYNC.md)) |
 | `/api/cron/notifications` | `GET`, `POST` | Sends due-soon/overdue reminders, deduped ~20h per task/type (see [NOTIFICATIONS.md](NOTIFICATIONS.md)) |
 | `/api/cron/recurring` | `GET`, `POST` | Expands tasks with a `recurringRule` into their next occurrence |
+| `/api/cron/notification-retention` | `GET`, `POST` | Deletes notifications + activity-log entries older than each tenant's `notificationRetentionDays` (default 30) |
 
 These are meant to be invoked by an external scheduler (cron, GitHub Actions,
 a systemd timer on the VPS) — the app itself does not run a background job

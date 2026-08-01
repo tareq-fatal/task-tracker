@@ -79,7 +79,7 @@ export default async function AdminTasksPage({
           </thead>
           <tbody className="divide-y">
             {tasks.map((task) => (
-              <tr key={task.id} className="hover:bg-secondary/30">
+              <tr key={task.id} className="hover:bg-secondary/30" data-testid="admin-task-row" data-task-id={task.id}>
                 <td className="p-3">
                   <Link
                     href={`/tasks/${task.id}`}

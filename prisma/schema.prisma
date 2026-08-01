@@ -40,6 +40,9 @@ model Tenant {
   // Comment auto-translation (X/FB style). Tenant switch — the feature is
   // additionally gated server-wide by DEEPL_API_KEY being configured.
   translationEnabled Boolean @default(true)
+  // Notifications + activity-log entries older than this many days are removed
+  // by the daily retention sweep (/api/cron/notification-retention).
+  notificationRetentionDays Int @default(30)
   createdAt    DateTime @default(now())
 
   users         User[]
@@ -195,6 +198,7 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+  @@index([tenantId, createdAt])
 }
 
 model NotificationPreference {
