@@ -16,6 +16,7 @@ export type ActiveTenant = {
   parentTasksEnabled: boolean;
   storyPointsEnabled: boolean;
   translationEnabled: boolean;
+  notificationRetentionDays: number;
 };
 
 export function setTenantCookie(slug: string): void {

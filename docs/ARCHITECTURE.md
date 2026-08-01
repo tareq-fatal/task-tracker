@@ -170,6 +170,7 @@ cron calls to dedicated routes, each guarded by a `SYNC_SECRET` header:
 - `/api/sync/planner` — runs the MS Graph Planner pull/push/two-way sync
 - `/api/cron/notifications` — sends due-soon/overdue reminders (deduped ~20h per task/type)
 - `/api/cron/recurring` — expands recurring tasks (`recurringRule`) into their next instance
+- `/api/cron/notification-retention` — daily sweep deleting notifications/activity older than each tenant's configured retention
 
 See [PLANNER-SYNC.md](PLANNER-SYNC.md) and [NOTIFICATIONS.md](NOTIFICATIONS.md).
 

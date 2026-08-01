@@ -31,7 +31,7 @@ Copy `.env.example` to `.env` (or set these directly in your host's env panel):
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | optional | Enables Web Push — see [NOTIFICATIONS.md](NOTIFICATIONS.md) |
 | `RESEND_API_KEY` | optional | Enables email notifications — see [NOTIFICATIONS.md](NOTIFICATIONS.md) |
 | `FCM_SERVER_KEY` | optional | Enables native push to the Android app — see [NOTIFICATIONS.md](NOTIFICATIONS.md) |
-| `SYNC_SECRET` | optional | Required if you call `/api/sync/planner`, `/api/cron/notifications` or `/api/cron/recurring` from an external scheduler |
+| `SYNC_SECRET` | optional | Required if you call `/api/sync/planner`, `/api/cron/notifications`, `/api/cron/recurring` or `/api/cron/notification-retention` from an external scheduler |
 | `AZURE_AD_CLIENT_ID` / `AZURE_AD_CLIENT_SECRET` / `AZURE_AD_TENANT_ID` | optional | MS Planner sync + Azure AD SSO — see [PLANNER-SYNC.md](PLANNER-SYNC.md) / [SSO-SETUP.md](SSO-SETUP.md) |
 | Provider-specific SSO vars (Google/GitHub/Apple client id/secret) | optional | See [SSO-SETUP.md](SSO-SETUP.md) |
 

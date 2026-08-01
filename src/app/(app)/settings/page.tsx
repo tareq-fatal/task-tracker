@@ -1,4 +1,6 @@
 import { requireUser } from "@/lib/auth";
+import { getActiveTenant } from "@/lib/tenant";
+import { RetentionSetting } from "@/components/retention-setting";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { isAdminRole } from "@/lib/enums";
@@ -30,6 +32,7 @@ export default async function SettingsPage() {
   const notifyPrefs = await getNotificationPrefs();
   const telegramStatus = await getTelegramStatus();
   const notifyAll = isAdminRole(user.role) ? await getNotifyAllEvents() : false;
+  const tenantCtx = isAdmin ? await getActiveTenant() : null;
 
   return (
     <div className="container max-w-xl py-6">
@@ -100,6 +103,17 @@ export default async function SettingsPage() {
           </CardHeader>
           <CardContent>
             <NotificationSettings view={notifyPrefs} />
+          </CardContent>
+        </Card>
+      )}
+
+      {tenantCtx && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{t["retention.settingTitle"]}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RetentionSetting initialDays={tenantCtx.tenant.notificationRetentionDays} />
           </CardContent>
         </Card>
       )}
