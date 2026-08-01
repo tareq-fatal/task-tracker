@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { resolveUploadPath } from "@/lib/upload-paths";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
@@ -31,7 +32,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!canView) return new NextResponse("Forbidden", { status: 403 });
 
   // filePath is "/uploads/<hash>.<ext>" → public/uploads/<hash>.<ext>
-  const abs = path.join(process.cwd(), "public", note.filePath.replace(/^\/+/, ""));
+  const abs = resolveUploadPath(note.filePath);
+  if (!abs) return new NextResponse("Not found", { status: 404 });
   const data = await readFile(abs).catch(() => null);
   if (!data) return new NextResponse("Not found", { status: 404 });
 

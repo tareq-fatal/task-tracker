@@ -39,7 +39,8 @@ services:
     #   - tt_database_url
     volumes:
       # Persist uploaded attachments across redeploys.
-      - task_tracker_uploads:/app/public/uploads
+      # K-6: uploads OUTSIDE public/ — served only via auth-checked routes
+      - task_tracker_uploads:/app/var/uploads
     networks:
       - proxy # CONFIRM: the network Caddy uses to reach upstreams
       - data # CONFIRM: the network the existing Postgres is on

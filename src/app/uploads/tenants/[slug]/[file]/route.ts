@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { UPLOAD_ROOT } from "@/lib/upload-paths";
 
 // Tenant logos are uploaded at RUNTIME into the uploads volume. Next.js only
 // serves public/ files it saw when it scanned the directory (once, lazily, at
@@ -23,14 +24,7 @@ export async function GET(
   if (!m || !/^[a-z0-9-]{1,60}$/i.test(params.slug)) {
     return new NextResponse("Not found", { status: 404 });
   }
-  const abs = path.join(
-    process.cwd(),
-    "public",
-    "uploads",
-    "tenants",
-    params.slug,
-    params.file
-  );
+  const abs = path.join(UPLOAD_ROOT, "tenants", params.slug, params.file);
   const data = await readFile(abs).catch(() => null);
   if (!data) return new NextResponse("Not found", { status: 404 });
 
