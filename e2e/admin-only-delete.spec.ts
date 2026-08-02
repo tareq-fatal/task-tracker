@@ -33,6 +33,16 @@ test("non-admin sees NO delete controls anywhere", async ({ page }) => {
   await expect(page.locator('button[aria-label="Löschen"]')).toHaveCount(0); // time entries
 });
 
+// Kunden-Klarstellung 2026-08-02: Draft-Verwerfen ist KEIN Content-Löschen.
+// Non-Admins müssen weiterhin Voice-Notes aufnehmen (und im Preview verwerfen)
+// sowie Anhänge hochladen können — nur PERSISTIERTER Content ist admin-only.
+test("non-admin still sees the draft/create paths (voice record + upload)", async ({ page }) => {
+  await login(page, "alice", "Demo-2026!", "de");
+  await openFirstListTask(page);
+  await expect(page.getByRole("button", { name: "Sprachnotiz aufnehmen" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Datei hochladen" }).first()).toBeVisible();
+});
+
 test("admin sees and keeps all delete controls", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");
 
