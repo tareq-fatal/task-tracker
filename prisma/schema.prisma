@@ -135,6 +135,9 @@ model User {
   locale       String   @default("ar") // "ar" | "en" | "de"
   hasSeenTour  Boolean  @default(false)
   onboardedAt  DateTime? // first-time onboarding done/skipped (welcome modal + optional sample project). null = not yet onboarded
+  // Auto-translation of TR↔x content on display (Kundenwunsch 2026-08-02).
+  // false = "immer Original anzeigen" (profile setting).
+  autoTranslate Boolean @default(true)
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
@@ -199,6 +202,23 @@ model Notification {
   @@index([userId, read])
   @@index([userId, createdAt])
   @@index([tenantId, createdAt])
+}
+
+// Hash-keyed translation cache for EDITABLE content (task titles/descriptions,
+// notification bodies). Unlike CommentTranslation (FK'd to immutable comments)
+// the key is a sha256 of the source text — an edit changes the hash, so stale
+// translations are never served; superseded rows just become unreachable.
+// Only TR↔x pairs are ever written (see lib/translation-policy.ts).
+model ContentTranslation {
+  id             String   @id @default(cuid())
+  contentHash    String
+  sourceLang     String
+  targetLang     String
+  translatedText String
+  createdAt      DateTime @default(now())
+
+  @@unique([contentHash, targetLang])
+  @@index([contentHash])
 }
 
 model NotificationPreference {
@@ -413,6 +433,9 @@ model Task {
   id          String    @id @default(cuid())
   title       String
   description String?
+  // Heuristic content language of title+description, set on create/update
+  // (lang-detect.ts; null = unsure). Drives TR↔x auto-translation on render.
+  detectedLanguage String?
   status      String    @default("Todo") // Todo | InProgress | Done | Archived
   priority    String    @default("Medium") // Low | Medium | High | Critical
   position    Int       @default(0) // ordering within a status column

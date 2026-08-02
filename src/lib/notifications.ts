@@ -4,7 +4,8 @@ import { notifyUser as webPush } from "./push";
 import { notifyUserTelegram, broadcastToTelegramGroup } from "./telegram";
 import { sendEmail, basicEmailTemplate } from "./email";
 import { translate, type TKey } from "./i18n";
-import { DEFAULT_LOCALE, type Locale } from "./enums";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "./enums";
+import { getAutoTranslation } from "./content-translation";
 import {
   defaultPrefs,
   resolveChannels,
@@ -36,12 +37,12 @@ export type NotifyInput = {
 export async function notify(input: NotifyInput): Promise<void> {
   if (input.actorUserId && input.actorUserId === input.recipientUserId) return;
 
-  let user: { email: string | null; locale: string; quietHoursStart: number | null; quietHoursEnd: number | null } | null;
+  let user: { email: string | null; locale: string; quietHoursStart: number | null; quietHoursEnd: number | null; autoTranslate: boolean } | null;
   let prefRow: ChannelPrefs | null = null;
   try {
     user = await prisma.user.findUnique({
       where: { id: input.recipientUserId },
-      select: { email: true, locale: true, quietHoursStart: true, quietHoursEnd: true },
+      select: { email: true, locale: true, quietHoursStart: true, quietHoursEnd: true, autoTranslate: true },
     });
     if (!user) return;
     const row = await prisma.notificationPreference.findUnique({
@@ -71,6 +72,20 @@ export async function notify(input: NotifyInput): Promise<void> {
     ? translate((user.locale as Locale) || DEFAULT_LOCALE, input.titleKey)
     : input.title ?? "";
 
+  // TR↔x auto-translation of the body into the RECIPIENT's locale, at create
+  // time (the only moment we know the recipient). Bodies carry user content
+  // (task titles, comment excerpts); the original stays in the source object.
+  // Best-effort: any failure keeps the untranslated body.
+  let finalBody = input.body ?? null;
+  if (finalBody && user.autoTranslate && isLocale(user.locale)) {
+    try {
+      const tr = await getAutoTranslation(finalBody, null, user.locale);
+      if (tr) finalBody = tr.text;
+    } catch {
+      /* keep original */
+    }
+  }
+
   if (ch.inApp) {
     await prisma.notification
       .create({
@@ -79,7 +94,7 @@ export async function notify(input: NotifyInput): Promise<void> {
           tenantId: input.tenantId,
           type: input.type,
           title: finalTitle,
-          body: input.body ?? null,
+          body: finalBody,
           url: input.url ?? null,
           taskId: input.taskId ?? null,
         },
@@ -87,13 +102,13 @@ export async function notify(input: NotifyInput): Promise<void> {
       .catch(() => {});
   }
   if (ch.webPush) {
-    await webPush(input.recipientUserId, { title: finalTitle, body: input.body ?? "", url: input.url });
+    await webPush(input.recipientUserId, { title: finalTitle, body: finalBody ?? "", url: input.url });
     // Telegram rides the webPush preference: same triggers, same masks
     // (assigned/comment/mention, status only High+Critical, due_soon).
     // No-op when the user hasn't linked a chat.
     await notifyUserTelegram(input.recipientUserId, {
       title: finalTitle,
-      body: input.body ?? "",
+      body: finalBody ?? "",
       url: input.url,
     }).catch(() => {});
   }
@@ -101,11 +116,11 @@ export async function notify(input: NotifyInput): Promise<void> {
     await sendEmail({
       to: user.email,
       subject: finalTitle,
-      html: basicEmailTemplate(finalTitle, input.body ?? "", input.url),
+      html: basicEmailTemplate(finalTitle, finalBody ?? "", input.url),
     }).catch(() => false);
   }
   if (ch.native) {
-    await sendNative(input.recipientUserId, { ...input, title: finalTitle }).catch(() => {});
+    await sendNative(input.recipientUserId, { ...input, title: finalTitle, body: finalBody ?? undefined }).catch(() => {});
   }
 }
 

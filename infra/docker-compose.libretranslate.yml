@@ -1,0 +1,31 @@
+# LibreTranslate für die TR↔x-Auto-Übersetzung (Kundenwunsch 2026-08-02).
+#
+# BEWUSST ein separates Overlay statt Teil von docker-compose.task-tracker.yml:
+# auf dem VPS läuft evtl. bereits ein manuell gestarteter libretranslate-
+# Container (Erstinstallation Juli 2026) — dieses File nur anwenden, wenn
+# `docker ps` KEINEN solchen Container zeigt:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.libretranslate.yml up -d libretranslate
+#
+# Danach in .env.task-tracker setzen (und task-tracker neu starten):
+#   LIBRETRANSLATE_URL=http://libretranslate:5000
+#
+# Verifikation (MUSS "tr" enthalten — Kundenanforderung Türkisch):
+#   docker exec libretranslate curl -s http://localhost:5000/languages
+services:
+  libretranslate:
+    image: libretranslate/libretranslate
+    container_name: libretranslate
+    restart: unless-stopped
+    environment:
+      # Nur die vier App-Sprachen laden — hält Image-Start + RAM klein.
+      # TR-Paare (tr↔ar usw.) pivotieren automatisch über Englisch.
+      LT_LOAD_ONLY: "ar,de,en,tr"
+    networks:
+      - data
+    # Kein Port-Mapping nach außen: nur der task-tracker-Container spricht
+    # mit dem Dienst (internes data-Netz).
+
+networks:
+  data:
+    external: true

@@ -1,6 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { getActiveTenant } from "@/lib/tenant";
 import { RetentionSetting } from "@/components/retention-setting";
+import { AutoTranslateToggle } from "@/components/auto-translate-toggle";
+import { translationConfigured } from "@/lib/translate";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { isAdminRole } from "@/lib/enums";
@@ -47,6 +49,18 @@ export default async function SettingsPage() {
           <ThemeToggle />
         </CardContent>
       </Card>
+
+      {/* TR↔x auto-translation — everyone (esp. Turkish speakers) */}
+      {translationConfigured() && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{t["autoTrans.title"]}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AutoTranslateToggle initial={user.autoTranslate} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Help tooltips — everyone gets this too */}
       <Card className="mb-6">
