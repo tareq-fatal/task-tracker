@@ -208,6 +208,9 @@ export function KeyboardShortcuts({ isAdmin }: { isAdmin: boolean }) {
           return;
         }
         case "d": {
+          // Deletion is admin-only (2026-08-02) — the shortcut must not offer
+          // non-admins a delete path the UI hides everywhere else.
+          if (!isAdmin) return;
           const id = currentTaskId(pathname);
           if (!id) return;
           e.preventDefault();
@@ -299,7 +302,7 @@ export function KeyboardShortcuts({ isAdmin }: { isAdmin: boolean }) {
       section: t("shortcuts.selectedTask"),
       items: [
         { keys: <Kbd>E</Kbd>, label: t("shortcuts.edit") },
-        { keys: <Kbd>D</Kbd>, label: t("shortcuts.delete") },
+        ...(isAdmin ? [{ keys: <Kbd>D</Kbd>, label: t("shortcuts.delete") }] : []),
       ],
     },
   ];

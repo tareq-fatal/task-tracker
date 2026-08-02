@@ -27,6 +27,7 @@ import {
 } from "@/lib/voice";
 import { transcribeVoiceNote } from "@/lib/transcription";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
+import { can } from "@/lib/roles";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { detectCommentLanguage } from "@/lib/lang-detect";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
@@ -784,11 +785,11 @@ export async function changeCreatorAction(taskId: string, newCreatorId: string):
 
 export async function deleteTaskAction(taskId: string): Promise<void> {
   const { user, tenant } = await requireTenant();
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true, createdByUserId: true } });
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { tenantId: true } });
   if (!task || task.tenantId !== tenant.id) throw new Error("NOT_FOUND");
-  // Admins may delete any task; regular users only tasks THEY created (not ones
-  // an admin assigned to them). Hard-fail otherwise.
-  if (!isAdminRole(user.role) && task.createdByUserId !== user.id) throw new Error("FORBIDDEN");
+  // Kundenwunsch 2026-08-02: deletion is ADMIN-ONLY — the former "creator may
+  // delete their own task" exception is gone. Hard-fail otherwise.
+  if (!can(user.role, "deleteContent")) throw new Error("FORBIDDEN");
   // SOFT delete: the row (with comments, attachments, subtasks, assignees)
   // stays intact — old links render a friendly "deleted" page and an admin
   // can restore. Child tasks keep their parentId; their breadcrumb link now
@@ -1047,6 +1048,24 @@ export async function addVoiceNoteAction(
   return {};
 }
 
+/** Delete a task-level voice note — ADMIN-ONLY (Kundenwunsch 2026-08-02).
+ *  Comment-attached voice notes go through deleteCommentAction instead (the
+ *  parent comment is soft-deleted and takes the audio with it). The audio
+ *  file stays on disk, same policy as soft-deleted attachments. */
+export async function deleteVoiceNoteAction(voiceNoteId: string): Promise<{ ok: boolean }> {
+  const { user, tenant } = await requireTenant();
+  if (!can(user.role, "deleteContent")) throw new Error("FORBIDDEN");
+  const note = await prisma.voiceNote.findUnique({
+    where: { id: voiceNoteId },
+    include: { task: { select: { id: true, tenantId: true } } },
+  });
+  if (!note || note.task.tenantId !== tenant.id) return { ok: false };
+  await prisma.voiceNote.delete({ where: { id: voiceNoteId } });
+  await logActivity(note.task.id, user.id, "voice_deleted", formatSeconds(note.durationSec));
+  revalidatePath(`/tasks/${note.task.id}`);
+  return { ok: true };
+}
+
 /** Voice note recorded as a comment — an empty comment row carries the audio. */
 export async function addVoiceCommentAction(
   taskId: string,
@@ -1182,7 +1201,9 @@ export async function deleteSubtaskAction(
   const { user, tenant } = await requireTenant();
   const sub = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!sub) return { ok: false };
-  await assertCanEdit(sub.taskId, user, tenant.id); // every collaborator
+  await assertCanEdit(sub.taskId, user, tenant.id); // tenant scoping
+  // deletion itself is admin-only (Kundenwunsch 2026-08-02)
+  if (!can(user.role, "deleteContent")) throw new Error("FORBIDDEN");
 
   await prisma.subtask.delete({ where: { id: subtaskId } });
   await logActivity(sub.taskId, user.id, "subtask_deleted", sub.title);
@@ -1304,9 +1325,10 @@ export async function removeTaskLinkAction(
   linkId: string
 ): Promise<{ ok: boolean }> {
   const { user, tenant } = await requireTenant();
-  const link = await prisma.taskLink.findUnique({ where: { id: linkId }, include: { task: { select: { tenantId: true, createdByUserId: true } } } });
+  const link = await prisma.taskLink.findUnique({ where: { id: linkId }, include: { task: { select: { tenantId: true } } } });
   if (!link || link.task.tenantId !== tenant.id) return { ok: false };
-  if (!isAdminRole(user.role) && link.task.createdByUserId !== user.id) return { ok: false };
+  // admin-only (Kundenwunsch 2026-08-02) — creator exception removed
+  if (!can(user.role, "deleteContent")) return { ok: false };
   await prisma.taskLink.delete({ where: { id: linkId } });
   revalidateTaskViews(link.taskId);
   revalidatePath(`/tasks/${link.linkedTaskId}`);

@@ -96,7 +96,7 @@ export async function toggleReactionAction(
 /** Soft-delete a comment: author or admin (SubAdmin explicitly NOT). */
 export async function deleteCommentAction(commentId: string): Promise<{ ok: boolean }> {
   const { user, comment } = await assertCommentAccess(commentId);
-  if (!canDeleteContent(user.role, comment.userId === user.id)) throw new Error("FORBIDDEN");
+  if (!canDeleteContent(user.role)) throw new Error("FORBIDDEN");
   await prisma.taskComment.update({
     where: { id: commentId },
     data: { deletedAt: new Date(), deletedBy: user.id },
@@ -135,7 +135,7 @@ export async function deleteAttachmentAction(attachmentId: string): Promise<{ ok
     include: { task: { select: { id: true, tenantId: true } } },
   });
   if (!att || att.task.tenantId !== tenant.id) throw new Error("NOT_FOUND");
-  if (!canDeleteContent(user.role, att.uploadedBy === user.id)) throw new Error("FORBIDDEN");
+  if (!canDeleteContent(user.role)) throw new Error("FORBIDDEN");
   await prisma.taskAttachment.update({
     where: { id: attachmentId },
     data: { deletedAt: new Date(), deletedBy: user.id },

@@ -24,6 +24,15 @@ describe("can — capability matrix", () => {
   it("unknown role has nothing", () => {
     expect(can("Nonsense", "manageUsers")).toBe(false);
   });
+
+  // Kundenwunsch 2026-08-02: ALL content deletion is admin-only.
+  it("deleteContent belongs to Admin + BackendAdmin only", () => {
+    expect(can("BackendAdmin", "deleteContent")).toBe(true);
+    expect(can("SuperAdmin", "deleteContent")).toBe(true); // legacy value
+    expect(can("Admin", "deleteContent")).toBe(true);
+    expect(can("SubAdmin", "deleteContent")).toBe(false);
+    expect(can("User", "deleteContent")).toBe(false);
+  });
 });
 
 describe("roleLabelKey", () => {

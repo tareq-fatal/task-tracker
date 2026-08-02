@@ -49,15 +49,16 @@ describe("comment reactions", () => {
   });
 });
 
-describe("comment/attachment delete permission", () => {
-  it("admins may delete anyone's content; owners their own", () => {
-    expect(canDeleteContent("Admin", false)).toBe(true);
-    expect(canDeleteContent("BackendAdmin", false)).toBe(true);
-    expect(canDeleteContent("User", true)).toBe(true);
+describe("content delete permission (admin-only since 2026-08-02)", () => {
+  it("admins may delete any content in their tenant", () => {
+    expect(canDeleteContent("Admin")).toBe(true);
+    expect(canDeleteContent("BackendAdmin")).toBe(true);
+    expect(canDeleteContent("SuperAdmin")).toBe(true); // legacy value
   });
 
-  it("operators and sub-admins may NOT delete foreign content", () => {
-    expect(canDeleteContent("User", false)).toBe(false);
-    expect(canDeleteContent("SubAdmin", false)).toBe(false);
+  it("everyone else may not — including owners of the content", () => {
+    expect(canDeleteContent("User")).toBe(false);
+    expect(canDeleteContent("SubAdmin")).toBe(false);
+    expect(canDeleteContent("Nonsense")).toBe(false);
   });
 });

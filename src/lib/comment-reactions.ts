@@ -1,4 +1,5 @@
 import { isAdminRole } from "./enums";
+import { can } from "./roles";
 
 /** Reaction palette — order = picker order. Customer-final 2026-07-28:
  *  👍 👁 ☑️ 🌷 🫡 😶 — explicitly WITHOUT ❤️ (military context). */
@@ -44,11 +45,13 @@ export function aggregateReactions(rows: ReactionRow[], meId: string): ReactionC
   return out;
 }
 
-/** May this actor delete a comment/attachment? Admins: any in their tenant;
- *  everyone else: only their own. SubAdmin is deliberately NOT included —
- *  user management only, no content moderation. */
-export function canDeleteContent(actorRole: string, isOwn: boolean): boolean {
-  return isOwn || isAdminRole(actorRole);
+/** May this actor delete content (comments, attachments, …)? Customer
+ *  decision 2026-08-02 ("nur admin alles löschen"): Admin + BackendAdmin
+ *  only — the former "own content" exception is gone, and SubAdmin stays
+ *  excluded (user management only, no content moderation). Single source of
+ *  truth is the `deleteContent` capability in roles.ts. */
+export function canDeleteContent(actorRole: string): boolean {
+  return can(actorRole, "deleteContent");
 }
 
 /** Who may REACT on comments. Customer decision 2026-07-28 ("Nein nur admin

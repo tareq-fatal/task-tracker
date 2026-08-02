@@ -30,11 +30,14 @@ export function TaskLinks({
   links,
   incoming,
   candidates,
+  canRemove = false,
 }: {
   taskId: string;
   links: LinkRow[];
   incoming: IncomingRow[];
   candidates: { id: string; title: string }[];
+  /** Removing links is admin-only (2026-08-02) — non-admins never see the X. */
+  canRemove?: boolean;
 }) {
   const { t } = useT();
   const { toast } = useToast();
@@ -92,15 +95,17 @@ export function TaskLinks({
               {l.linkedTask.title}
             </Link>
             <StatusBadge status={l.linkedTask.status} />
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => remove(l.id)}
-              className="text-muted-foreground hover:text-destructive"
-              aria-label="remove"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {canRemove && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => remove(l.id)}
+                className="text-muted-foreground hover:text-destructive"
+                aria-label="remove"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ))}
 

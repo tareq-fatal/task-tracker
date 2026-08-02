@@ -26,11 +26,13 @@ type Row = {
 const DUE_COLOR = { overdue: "text-rose-600", today: "text-orange-600", week: "text-sky-600", far: "text-muted-foreground" };
 
 export function TaskTable({
-  rows, customFields = [], userNames = {},
+  rows, customFields = [], userNames = {}, canDelete = false,
 }: {
   rows: Row[];
   customFields?: CustomCol[];
   userNames?: Record<string, string>;
+  /** Bulk delete is admin-only (2026-08-02) — non-admins never see the button. */
+  canDelete?: boolean;
 }) {
   const { t, locale } = useT();
   const router = useRouter();
@@ -214,10 +216,12 @@ export function TaskTable({
             <option value="">{t("list.setStatus")}…</option>
             {TASK_STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s}` as never)}</option>)}
           </select>
-          <Button size="sm" variant="destructive" disabled={pending}
-            onClick={() => { if (confirm(t("list.deleteConfirm", { n: sel.size }))) run(() => bulkDeleteAction([...sel])); }}>
-            <Trash2 className="me-1 h-4 w-4" /> {t("list.delete")}
-          </Button>
+          {canDelete && (
+            <Button size="sm" variant="destructive" disabled={pending}
+              onClick={() => { if (confirm(t("list.deleteConfirm", { n: sel.size }))) run(() => bulkDeleteAction([...sel])); }}>
+              <Trash2 className="me-1 h-4 w-4" /> {t("list.delete")}
+            </Button>
+          )}
           <button aria-label="clear selection" onClick={() => setSel(new Set())} className="rounded-full p-1 hover:bg-muted"><X className="h-4 w-4" /></button>
         </div>
       )}
