@@ -100,6 +100,33 @@ describe("libreTranslate + dispatcher", () => {
     await translateText("x", "de");
     expect(fetchMock.mock.calls[0][0]).toBe("https://api-free.deepl.com/v2/translate");
   });
+
+  // Qualitäts-Auftrag 2026-08-02: DeepL-Quota (456) darf die Übersetzung nicht
+  // mehr komplett lahmlegen — LibreTranslate springt in der auto-Kette ein.
+  it("auto: DeepL quota/upstream failure falls back to LibreTranslate", async () => {
+    process.env.DEEPL_API_KEY = "k:fx";
+    process.env.LIBRETRANSLATE_URL = "http://lt:5000";
+    fetchMock
+      .mockResolvedValueOnce(new Response("", { status: 456 })) // DeepL quota drained
+      .mockResolvedValueOnce(new Response(JSON.stringify({ translatedText: "fallback" }), { status: 200 }));
+    const r = await translateText("x", "tr");
+    expect(r.text).toBe("fallback");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api-free.deepl.com/v2/translate");
+    expect(fetchMock.mock.calls[1][0]).toBe("http://lt:5000/translate");
+  });
+
+  it("pinned engine 'libre' skips DeepL even when a key is set", async () => {
+    process.env.DEEPL_API_KEY = "k:fx";
+    process.env.LIBRETRANSLATE_URL = "http://lt:5000";
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ translatedText: "l" }), { status: 200 }));
+    await translateText("x", "tr", null, "libre");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://lt:5000/translate");
+  });
+
+  it("pinned engine 'deepl' without a key is not_configured (no silent fallback)", async () => {
+    process.env.LIBRETRANSLATE_URL = "http://lt:5000";
+    await expect(translateText("x", "tr", null, "deepl")).rejects.toThrow("not_configured");
+  });
 });
 
 describe("deeplTranslate", () => {

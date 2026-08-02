@@ -249,10 +249,10 @@ export default async function TaskDetailPage({
   // DB-only. user.autoTranslate=false = "immer Original anzeigen".
   const autoTranslateOn = translationOn && user.autoTranslate;
   const titleTranslation = autoTranslateOn
-    ? await getAutoTranslation(task.title, task.detectedLanguage, locale)
+    ? await getAutoTranslation(task.title, task.detectedLanguage, locale, tenant.translationEngine)
     : null;
   const descriptionTranslation = autoTranslateOn && task.description
-    ? await getAutoTranslation(task.description, task.detectedLanguage, locale)
+    ? await getAutoTranslation(task.description, task.detectedLanguage, locale, tenant.translationEngine)
     : null;
   // Prime TR-pair comments that have no cached row yet, and persist the result
   // in CommentTranslation so the existing FB-style UI renders it as `initial`.
@@ -261,7 +261,7 @@ export default async function TaskDetailPage({
     for (const c of task.comments) {
       if (c.voiceNote || !c.content || c.userId === user.id) continue;
       if (c.translations[0] || !shouldTranslate(c.language, locale)) continue;
-      const tr = await getAutoTranslation(c.content, c.language, locale);
+      const tr = await getAutoTranslation(c.content, c.language, locale, tenant.translationEngine);
       if (!tr) continue;
       autoCommentTranslations.set(c.id, { text: tr.text, sourceLanguage: tr.sourceLang });
       await prisma.commentTranslation

@@ -7,6 +7,7 @@ import {
   translateText,
   checkTranslateRateLimit,
   TranslateError,
+  isTranslationEngine,
 } from "@/lib/translate";
 
 // POST /api/comments/[id]/translate  { to: "ar" }
@@ -96,7 +97,8 @@ export async function POST(
     const result = await translateText(
       comment.content,
       target,
-      isLocale(comment.language) ? comment.language : null
+      isLocale(comment.language) ? comment.language : null,
+      isTranslationEngine(tenant.translationEngine) ? tenant.translationEngine : "auto"
     );
     // Concurrent first-translations can race on the unique key — the loser
     // just reuses the winner's row.
