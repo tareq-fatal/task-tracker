@@ -5,6 +5,9 @@ export type KpiItem = {
   label: string;
   value: string | number;
   accent?: "sky" | "teal" | "amber" | "rose";
+  /** Mobile-simplify 2026-08: phones show only 2 KPIs — "mobile" hides the
+   *  card below md, "desktop" shows it ONLY below md. */
+  hide?: "mobile" | "desktop";
 };
 
 const ACCENT: Record<NonNullable<KpiItem["accent"]>, string> = {
@@ -18,7 +21,14 @@ export function KpiCards({ items }: { items: KpiItem[] }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {items.map((it) => (
-        <Card key={it.label} className="p-4">
+        <Card
+          key={it.label}
+          className={cn(
+            "p-4",
+            it.hide === "mobile" && "hidden md:block",
+            it.hide === "desktop" && "md:hidden"
+          )}
+        >
           <div
             className={cn(
               "text-2xl font-bold tabular-nums",

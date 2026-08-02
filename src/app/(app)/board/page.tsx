@@ -8,6 +8,7 @@ import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
 import { loadFilterOptions } from "@/lib/filter-data";
 import { KanbanBoard } from "@/components/kanban-board";
 import { FilterBar } from "@/components/filter-bar";
+import { MobileBoardRedirect } from "@/components/mobile-board-redirect";
 
 export default async function BoardPage({
   searchParams,
@@ -36,6 +37,8 @@ export default async function BoardPage({
 
   return (
     <div className="container py-6">
+      {/* Mobile-simplify 2026-08: Kanban ist Desktop-only — Phones landen in der Liste. */}
+      <MobileBoardRedirect />
       <h1 className="mb-4 text-2xl font-bold">{t["board.title"]}</h1>
 
       <FilterBar
