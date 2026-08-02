@@ -1,12 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
-import {
-  translateText,
-  translationConfigured,
-  TranslateError,
-  isTranslationEngine,
-  type TranslationEngine,
-} from "./translate";
+import { translateText, translationConfigured, TranslateError } from "./translate";
 
 import { detectCommentLanguage } from "./lang-detect";
 import { shouldTranslate, contentHash, asLocale } from "./translation-policy";
@@ -55,8 +49,7 @@ export function detectContentLanguage(text: string): Locale | null {
 export async function getAutoTranslation(
   text: string | null | undefined,
   sourceLang: string | null | undefined,
-  targetLang: Locale,
-  engine: string = "auto"
+  targetLang: Locale
 ): Promise<AutoTranslation | null> {
   const trimmed = text?.trim();
   if (!trimmed) return null;
@@ -71,9 +64,8 @@ export async function getAutoTranslation(
   if (cached) return { text: cached.translatedText, sourceLang: source };
 
   if (!upstreamBudgetOk()) return null;
-  const eng: TranslationEngine = isTranslationEngine(engine) ? engine : "auto";
   try {
-    const res = await translateText(trimmed, targetLang, source, eng);
+    const res = await translateText(trimmed, targetLang, source);
     await prisma.contentTranslation
       .create({
         data: {

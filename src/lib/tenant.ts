@@ -21,7 +21,6 @@ export type ActiveTenant = {
   parentTasksEnabled: boolean;
   storyPointsEnabled: boolean;
   translationEnabled: boolean;
-  translationEngine: string;
   notificationRetentionDays: number;
 };
 
