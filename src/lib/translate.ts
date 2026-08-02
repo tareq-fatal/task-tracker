@@ -15,14 +15,48 @@ export function translationConfigured(): boolean {
   return Boolean(process.env.DEEPL_API_KEY || process.env.LIBRETRANSLATE_URL);
 }
 
-/** Provider dispatcher — the API route calls this, not a specific client. */
+/** Per-tenant engine choice (Tenant.translationEngine, 2026-08-02):
+ *  "auto" = DeepL first with LibreTranslate fallback; or pin one provider. */
+export type TranslationEngine = "auto" | "deepl" | "libre";
+
+export function isTranslationEngine(v: string): v is TranslationEngine {
+  return v === "auto" || v === "deepl" || v === "libre";
+}
+
+/**
+ * Provider dispatcher — every caller goes through here, never a specific
+ * client. With engine "auto" (default) DeepL is preferred and LibreTranslate
+ * acts as FALLBACK when DeepL fails (free-tier quota exhausted → 456, or any
+ * upstream error) — previously a drained DeepL quota killed translation
+ * entirely even though the self-hosted LibreTranslate was sitting idle.
+ */
 export async function translateText(
   text: string,
   target: Locale,
-  source?: Locale | null
+  source?: Locale | null,
+  engine: TranslationEngine = "auto"
 ): Promise<{ text: string; detectedSource: string }> {
-  if (process.env.DEEPL_API_KEY) return deeplTranslate(text, target, source);
-  if (process.env.LIBRETRANSLATE_URL) return libreTranslate(text, target, source);
+  const hasDeepl = Boolean(process.env.DEEPL_API_KEY);
+  const hasLibre = Boolean(process.env.LIBRETRANSLATE_URL);
+
+  if (engine === "deepl") {
+    if (!hasDeepl) throw new TranslateError("not_configured");
+    return deeplTranslate(text, target, source);
+  }
+  if (engine === "libre") {
+    if (!hasLibre) throw new TranslateError("not_configured");
+    return libreTranslate(text, target, source);
+  }
+  // auto: DeepL → LibreTranslate fallback
+  if (hasDeepl) {
+    try {
+      return await deeplTranslate(text, target, source);
+    } catch (e) {
+      if (!(e instanceof TranslateError) || !hasLibre) throw e;
+      return libreTranslate(text, target, source);
+    }
+  }
+  if (hasLibre) return libreTranslate(text, target, source);
   throw new TranslateError("not_configured");
 }
 

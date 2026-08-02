@@ -40,6 +40,9 @@ model Tenant {
   // Comment auto-translation (X/FB style). Tenant switch — the feature is
   // additionally gated server-wide by DEEPL_API_KEY being configured.
   translationEnabled Boolean @default(true)
+  // Which provider translates for this tenant: "auto" (DeepL first, Libre
+  // fallback) | "deepl" | "libre". Admin-visible under /settings.
+  translationEngine String @default("auto")
   // Notifications + activity-log entries older than this many days are removed
   // by the daily retention sweep (/api/cron/notification-retention).
   notificationRetentionDays Int @default(30)
