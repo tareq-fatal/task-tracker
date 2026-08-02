@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "./prisma";
 import { translateText, translationConfigured, TranslateError } from "./translate";
+
 import { detectCommentLanguage } from "./lang-detect";
 import { shouldTranslate, contentHash, asLocale } from "./translation-policy";
 import type { Locale } from "./enums";
@@ -77,8 +78,11 @@ export async function getAutoTranslation(
       .catch(() => {}); // unique-key race with a parallel render — theirs won
     return { text: res.text, sourceLang: source };
   } catch (e) {
-    if (!(e instanceof TranslateError)) throw e;
-    console.warn(`[auto-translate] upstream ${e.reason} (${source}→${targetLang}) — serving original`);
+    // NEVER let a translation failure break the page — timeouts arrive as
+    // DOMException (AbortSignal), network errors as TypeError, provider
+    // errors as TranslateError. All of them mean: serve the original.
+    const reason = e instanceof TranslateError ? e.reason : e instanceof Error ? e.name : "unknown";
+    console.warn(`[auto-translate] upstream ${reason} (${source}→${targetLang}) — serving original`);
     return null;
   }
 }

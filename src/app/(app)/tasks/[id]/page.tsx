@@ -17,6 +17,7 @@ import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
+import { formatDateTime, formatRelative } from "@/lib/format";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
@@ -230,6 +231,18 @@ export default async function TaskDetailPage({
       </div>
     );
   }
+
+  // Uploader names for the attachment meta line ("wer · wann") — uploadedBy
+  // is a bare id column (no relation); one batched lookup covers all cards.
+  // Rows before 2026-07-28 have uploadedBy null → the line shows only the date.
+  const uploaderIds = [...new Set(task.attachments.map((a) => a.uploadedBy).filter((x): x is string => Boolean(x)))];
+  const uploaderById = new Map(
+    uploaderIds.length
+      ? (
+          await prisma.user.findMany({ where: { id: { in: uploaderIds } }, select: { id: true, name: true } })
+        ).map((u) => [u.id, u.name] as const)
+      : []
+  );
 
   // 🌐 TR↔x auto-translation (Kundenwunsch 2026-08-02): server-side, hash-
   // cached in ContentTranslation — after the first view everything below is
@@ -826,9 +839,28 @@ export default async function TaskDetailPage({
                   ) : (
                     <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
                   )}
-                  <span className="flex-1 truncate">{a.fileName}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatBytes(a.sizeBytes)}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate">{a.fileName}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatBytes(a.sizeBytes)}
+                      </span>
+                    </span>
+                    {/* Kundenwunsch 2026-08-02: wer hat wann hochgeladen */}
+                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      {a.uploadedBy && uploaderById.has(a.uploadedBy) && (
+                        <>
+                          <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-secondary text-[9px] font-medium">
+                            {initials(uploaderById.get(a.uploadedBy)!)}
+                          </span>
+                          <span className="truncate">{uploaderById.get(a.uploadedBy)}</span>
+                          <span>·</span>
+                        </>
+                      )}
+                      <span title={formatDateTime(a.uploadedAt, locale)}>
+                        {formatRelative(a.uploadedAt, locale)}
+                      </span>
+                    </span>
                   </span>
                 </a>
                 {canDeleteContent(user.role) && (
