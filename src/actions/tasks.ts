@@ -457,6 +457,8 @@ export async function createTaskAction(
     data: {
       title: d.title,
       description: d.description || null,
+      // Detection at SAVE time, not render time (auto-translate TR↔x).
+      detectedLanguage: detectCommentLanguage(`${d.title}\n${d.description ?? ""}`),
       status: d.status,
       priority: d.priority,
       type: hier.type,
@@ -558,6 +560,7 @@ export async function updateTaskAction(
     data: {
       title: d.title,
       description: d.description || null,
+      detectedLanguage: detectCommentLanguage(`${d.title}\n${d.description ?? ""}`),
       status: d.status,
       priority: d.priority,
       type: hier.type,

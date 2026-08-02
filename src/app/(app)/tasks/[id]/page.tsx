@@ -40,6 +40,9 @@ import { isImageMime, isInlineViewable } from "@/lib/attachment-view";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { VoiceNotePlayer } from "@/components/voice-note-player";
 import { VoiceNoteDeleteButton } from "@/components/voice-note-delete-button";
+import { AutoTranslatedText } from "@/components/auto-translated-text";
+import { getAutoTranslation } from "@/lib/content-translation";
+import { shouldTranslate } from "@/lib/translation-policy";
 import { addVoiceNoteAction, addVoiceCommentAction } from "@/actions/tasks";
 import { parseWaveform } from "@/lib/voice";
 import { DeleteTaskButton } from "@/components/delete-task-button";
@@ -228,6 +231,34 @@ export default async function TaskDetailPage({
     );
   }
 
+  // 🌐 TR↔x auto-translation (Kundenwunsch 2026-08-02): server-side, hash-
+  // cached in ContentTranslation — after the first view everything below is
+  // DB-only. user.autoTranslate=false = "immer Original anzeigen".
+  const autoTranslateOn = translationOn && user.autoTranslate;
+  const titleTranslation = autoTranslateOn
+    ? await getAutoTranslation(task.title, task.detectedLanguage, locale)
+    : null;
+  const descriptionTranslation = autoTranslateOn && task.description
+    ? await getAutoTranslation(task.description, task.detectedLanguage, locale)
+    : null;
+  // Prime TR-pair comments that have no cached row yet, and persist the result
+  // in CommentTranslation so the existing FB-style UI renders it as `initial`.
+  const autoCommentTranslations = new Map<string, { text: string; sourceLanguage: string }>();
+  if (autoTranslateOn) {
+    for (const c of task.comments) {
+      if (c.voiceNote || !c.content || c.userId === user.id) continue;
+      if (c.translations[0] || !shouldTranslate(c.language, locale)) continue;
+      const tr = await getAutoTranslation(c.content, c.language, locale);
+      if (!tr) continue;
+      autoCommentTranslations.set(c.id, { text: tr.text, sourceLanguage: tr.sourceLang });
+      await prisma.commentTranslation
+        .create({
+          data: { commentId: c.id, targetLang: locale, sourceLang: tr.sourceLang, text: tr.text },
+        })
+        .catch(() => {}); // parallel render won the unique race — fine
+    }
+  }
+
   // 👁 Read receipt (WhatsApp-style): first open by a non-creator writes ONE
   // row and notifies the creator (push + Telegram). Reloads are a no-op via
   // the unique(taskId,userId) constraint. Telegram deep links carry ?src=tg.
@@ -385,7 +416,17 @@ export default async function TaskDetailPage({
       )}
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold">{task.title}</h1>
+        {titleTranslation ? (
+          <h1 className="min-w-0 text-2xl font-bold">
+            <AutoTranslatedText
+              original={task.title}
+              translated={titleTranslation.text}
+              sourceLang={titleTranslation.sourceLang}
+            />
+          </h1>
+        ) : (
+          <h1 className="text-2xl font-bold">{task.title}</h1>
+        )}
         <div className="flex flex-wrap gap-2">
           <CopyLinkButton />
           {canEditContent && (
@@ -493,7 +534,16 @@ export default async function TaskDetailPage({
       <Card className="mb-6">
         <CardContent className="space-y-4 p-5">
           {task.description ? (
-            <p className="whitespace-pre-wrap text-sm">{task.description}</p>
+            descriptionTranslation ? (
+              <AutoTranslatedText
+                original={task.description}
+                translated={descriptionTranslation.text}
+                sourceLang={descriptionTranslation.sourceLang}
+                textClassName="text-sm"
+              />
+            ) : (
+              <p className="whitespace-pre-wrap text-sm">{task.description}</p>
+            )
           ) : (
             <p className="text-sm text-muted-foreground">{t["common.none"]}</p>
           )}
@@ -903,7 +953,7 @@ export default async function TaskDetailPage({
                       initial={
                         c.translations[0]
                           ? { text: c.translations[0].text, sourceLanguage: c.translations[0].sourceLang }
-                          : null
+                          : autoCommentTranslations.get(c.id) ?? null
                       }
                     />
                   ) : (
