@@ -666,7 +666,9 @@ export const dictionaries = {
     "voice.deleteConfirm": "هل تريد حذف هذه الملاحظة الصوتية نهائيًا؟",
     "voice.record": "تسجيل ملاحظة صوتية",
     "voice.stop": "إيقاف",
-    "voice.discard": "تجاهل",
+    // Kundenfeedback 2026-08-02: "تجاهل" (Ignorieren) war unverständlich —
+    // "إلغاء الإرسال" (Senden abbrechen) sagt klar, was der Button tut.
+    "voice.discard": "إلغاء الإرسال",
     "voice.play": "تشغيل",
     "voice.pause": "إيقاف مؤقت",
     "voice.speed": "سرعة التشغيل",
