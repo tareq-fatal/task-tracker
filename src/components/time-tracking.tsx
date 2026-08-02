@@ -41,6 +41,7 @@ export function TimeTracking({
   totalMinutes,
   runningOnThisTask,
   billingEnabled = true,
+  canDelete = false,
 }: {
   taskId: string;
   entries: TimeEntryView[];
@@ -48,6 +49,8 @@ export function TimeTracking({
   runningOnThisTask: boolean;
   /** Tenant feature flag — false hides every billable element. */
   billingEnabled?: boolean;
+  /** Deletion is admin-only (2026-08-02) — non-admins never see the trash icon. */
+  canDelete?: boolean;
 }) {
   const { t } = useT();
   const router = useRouter();
@@ -118,13 +121,15 @@ export function TimeTracking({
                   <BadgeEuro className="h-4 w-4" />
                 </button>
               )}
-              <button
-                onClick={() => act(() => deleteTimeEntryAction(e.id))}
-                className="text-muted-foreground hover:text-destructive"
-                aria-label={t("time.delete")}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+              {canDelete && (
+                <button
+                  onClick={() => act(() => deleteTimeEntryAction(e.id))}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={t("time.delete")}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
             </li>
           ))}
         </ul>

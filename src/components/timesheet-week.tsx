@@ -244,14 +244,16 @@ export function TimesheetWeek({
                         <BadgeEuro className="h-4 w-4" />
                       </button>
                     )}
-                    <button
-                      onClick={() => act(() => deleteTimeEntryAction(e.id))}
-                      disabled={pending}
-                      className="p-1 text-muted-foreground hover:text-destructive"
-                      aria-label={t("time.delete")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => act(() => deleteTimeEntryAction(e.id))}
+                        disabled={pending}
+                        className="p-1 text-muted-foreground hover:text-destructive"
+                        aria-label={t("time.delete")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

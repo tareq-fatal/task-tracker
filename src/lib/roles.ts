@@ -15,7 +15,13 @@ export type Capability =
   | "manageProjects"
   | "manageWorkflow" // columns, custom fields, automation, templates
   | "viewReports"
-  | "editTenantSettings"; // name/logo/colour of the own tenant
+  | "editTenantSettings" // name/logo/colour of the own tenant
+  // Kundenwunsch 2026-08-02: ALL content deletion (tasks, subtasks, comments,
+  // attachments, voice notes, time entries, task links, bulk delete) is
+  // admin-only — no "own content" exception. Personal-inbox cleanup (own bell
+  // notifications, own saved views, own push subscription) is NOT content
+  // deletion and stays open to every role.
+  | "deleteContent";
 
 const TENANT_ADMIN: Capability[] = [
   "manageUsers",
@@ -25,6 +31,7 @@ const TENANT_ADMIN: Capability[] = [
   "manageWorkflow",
   "viewReports",
   "editTenantSettings",
+  "deleteContent",
 ];
 
 const MATRIX: Record<Role, Capability[]> = {

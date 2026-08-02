@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole, isTaskStatus } from "@/lib/enums";
+import { can } from "@/lib/roles";
 
 export type BulkResult = { ok: boolean; count: number; error?: string };
 
@@ -36,10 +37,17 @@ export async function bulkSetStatusAction(ids: string[], status: string): Promis
 
 export async function bulkDeleteAction(ids: string[]): Promise<BulkResult> {
   const { user, tenant } = await requireTenant();
-  const allowed = await editableIds(ids, user, tenant.id);
-  if (allowed.length === 0) return { ok: false, count: 0, error: "NONE" };
-  // extra tenant guard on the delete itself
-  const res = await prisma.task.deleteMany({ where: { id: { in: allowed }, tenantId: tenant.id } });
+  // Kundenwunsch 2026-08-02: deletion is ADMIN-ONLY. This used to be open to
+  // creators AND assignees — and it hard-deleted. Both fixed here.
+  if (!can(user.role, "deleteContent")) return { ok: false, count: 0, error: "FORBIDDEN" };
+  if (ids.length === 0) return { ok: false, count: 0, error: "NONE" };
+  // SOFT delete — aligned with deleteTaskAction: rows (with comments,
+  // attachments, subtasks) stay intact and an admin can restore each task.
+  const res = await prisma.task.updateMany({
+    where: { id: { in: ids }, tenantId: tenant.id, deletedAt: null },
+    data: { deletedAt: new Date(), deletedBy: user.id },
+  });
+  if (res.count === 0) return { ok: false, count: 0, error: "NONE" };
   revalidatePath("/list");
   revalidatePath("/board");
   return { ok: true, count: res.count };

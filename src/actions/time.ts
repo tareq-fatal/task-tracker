@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
+import { can } from "@/lib/roles";
 import { elapsedMinutes, parseDurationToMinutes } from "@/lib/time-tracking";
 
 async function taskInTenant(taskId: string, tenantId: string) {
@@ -124,7 +125,9 @@ export async function deleteTimeEntryAction(id: string): Promise<{ ok: boolean }
   const { user, tenant } = await requireTenant();
   const entry = await prisma.taskTimeEntry.findFirst({ where: { id, tenantId: tenant.id } });
   if (!entry) return { ok: false };
-  if (entry.userId !== user.id && !isAdminRole(user.role)) return { ok: false };
+  // admin-only (Kundenwunsch 2026-08-02) — owners may no longer delete their
+  // own entries; billable time is content, not personal inbox.
+  if (!can(user.role, "deleteContent")) return { ok: false };
   await prisma.taskTimeEntry.delete({ where: { id } });
   if (entry.endedAt) await bumpSpentHours(entry.taskId, -entry.minutes);
   revalidatePath(`/tasks/${entry.taskId}`);

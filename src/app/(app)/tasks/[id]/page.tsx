@@ -39,6 +39,7 @@ import { AttachmentUpload } from "@/components/attachment-upload";
 import { isImageMime, isInlineViewable } from "@/lib/attachment-view";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { VoiceNotePlayer } from "@/components/voice-note-player";
+import { VoiceNoteDeleteButton } from "@/components/voice-note-delete-button";
 import { addVoiceNoteAction, addVoiceCommentAction } from "@/actions/tasks";
 import { parseWaveform } from "@/lib/voice";
 import { DeleteTaskButton } from "@/components/delete-task-button";
@@ -395,7 +396,8 @@ export default async function TaskDetailPage({
               </Link>
             </Button>
           )}
-          {(isAdminRole(user.role) || task.createdByUserId === user.id) && <DeleteTaskButton taskId={task.id} />}
+          {/* Deletion is admin-only (2026-08-02) — creator exception removed. */}
+          {isAdminRole(user.role) && <DeleteTaskButton taskId={task.id} />}
         </div>
       </div>
 
@@ -674,6 +676,7 @@ export default async function TaskDetailPage({
           <TimeTracking
             taskId={task.id}
             billingEnabled={tenant.billingEnabled}
+            canDelete={isAdminRole(user.role)}
             runningOnThisTask={runningOnThisTask}
             totalMinutes={timeTotal}
             entries={task.timeEntries.map((e) => ({
@@ -705,7 +708,7 @@ export default async function TaskDetailPage({
         </Card>
         <Card>
           <CardContent className="p-5">
-            <SubtaskList taskId={task.id} subtasks={task.subtasks} />
+            <SubtaskList taskId={task.id} subtasks={task.subtasks} canDelete={isAdminRole(user.role)} />
           </CardContent>
         </Card>
       </div>
@@ -717,6 +720,7 @@ export default async function TaskDetailPage({
             <CardContent className="p-5">
               <TaskLinks
                 taskId={task.id}
+                canRemove={isAdminRole(user.role)}
                 links={task.linksFrom.map((l) => ({
                   id: l.id,
                   type: l.type,
@@ -777,7 +781,7 @@ export default async function TaskDetailPage({
                     {formatBytes(a.sizeBytes)}
                   </span>
                 </a>
-                {canDeleteContent(user.role, a.uploadedBy === user.id) && (
+                {canDeleteContent(user.role) && (
                   <AttachmentDeleteButton attachmentId={a.id} />
                 )}
                 </div>
@@ -813,6 +817,7 @@ export default async function TaskDetailPage({
                 <span className="text-xs text-muted-foreground">
                   {format(v.createdAt, "dd.MM.yyyy HH:mm")}
                 </span>
+                {isAdminRole(user.role) && <VoiceNoteDeleteButton voiceNoteId={v.id} />}
               </div>
             ))}
           </div>
@@ -866,7 +871,7 @@ export default async function TaskDetailPage({
                     c.reactions.map((r) => ({ type: r.type, userId: r.userId, userName: r.user.name })),
                     user.id
                   )}
-                  canDelete={canDeleteContent(user.role, mine)}
+                  canDelete={canDeleteContent(user.role)}
                   canReact={canReact(user.role)}
                 >
                 <div className="flex-1 rounded-lg border bg-card p-3">

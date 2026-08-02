@@ -19,7 +19,7 @@ export type SubtaskItem = {
   done: boolean;
 };
 
-function Row({ sub }: { sub: SubtaskItem }) {
+function Row({ sub, canDelete }: { sub: SubtaskItem; canDelete: boolean }) {
   const [pending, startTransition] = useTransition();
 
   return (
@@ -49,19 +49,21 @@ function Row({ sub }: { sub: SubtaskItem }) {
       >
         {sub.title}
       </span>
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() =>
-          startTransition(async () => {
-            await deleteSubtaskAction(sub.id);
-          })
-        }
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-        aria-label="delete"
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
+      {canDelete && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            startTransition(async () => {
+              await deleteSubtaskAction(sub.id);
+            })
+          }
+          className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+          aria-label="delete"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -69,9 +71,12 @@ function Row({ sub }: { sub: SubtaskItem }) {
 export function SubtaskList({
   taskId,
   subtasks,
+  canDelete = false,
 }: {
   taskId: string;
   subtasks: SubtaskItem[];
+  /** Deletion is admin-only (2026-08-02) — non-admins never see the trash icon. */
+  canDelete?: boolean;
 }) {
   const { t } = useT();
   const formRef = useRef<HTMLFormElement>(null);
@@ -101,7 +106,7 @@ export function SubtaskList({
       )}
 
       {subtasks.map((s) => (
-        <Row key={s.id} sub={s} />
+        <Row key={s.id} sub={s} canDelete={canDelete} />
       ))}
 
       <form

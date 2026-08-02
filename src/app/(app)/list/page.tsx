@@ -1,5 +1,6 @@
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { isAdminRole } from "@/lib/enums";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
@@ -49,6 +50,7 @@ export default async function ListPage() {
         }))}
         customFields={customFields}
         userNames={userNames}
+        canDelete={isAdminRole(user.role)}
       />
     </div>
   );
