@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpDown, Rows3, Rows4, Trash2, X } from "lucide-react";
+import { ArrowUpDown, Rows3, Rows4, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { sortTasks, type SortKey, type SortDir } from "@/lib/table-sort";
 import { sortKeyFor, displayValue, type FieldType } from "@/lib/custom-fields";
 import { dueBucket } from "@/lib/due";
@@ -44,6 +44,9 @@ export function TaskTable({
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [filterField, setFilterField] = useState("");
   const [filterValue, setFilterValue] = useState("");
+  // Mobile-simplify 2026-08 (progressive disclosure): phones hide the filter
+  // row until the Filter button is tapped; md+ always shows it.
+  const [showFilters, setShowFilters] = useState(false);
 
   const activeFilter = customFields.find((f) => f.id === filterField);
 
@@ -109,9 +112,21 @@ export function TaskTable({
   return (
     <div className="pb-20">
       <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
-        {/* Filter by a custom field */}
+        {/* Filter by a custom field — collapsed behind a button on phones */}
         {customFields.length > 0 && (
-          <div className="me-auto flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant={showFilters ? "secondary" : "outline"}
+            className="me-auto md:hidden"
+            onClick={() => setShowFilters((s) => !s)}
+            aria-expanded={showFilters}
+          >
+            <SlidersHorizontal className="me-1 h-4 w-4" />
+            {t("list.filters")}
+          </Button>
+        )}
+        {customFields.length > 0 && (
+          <div className={cn("me-auto w-full flex-wrap items-center gap-2 md:flex md:w-auto", showFilters ? "flex" : "hidden")}>
             <select
               aria-label={t("cf.filterBy")} value={filterField}
               onChange={(e) => { setFilterField(e.target.value); setFilterValue(""); }}

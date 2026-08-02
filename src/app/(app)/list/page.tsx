@@ -6,6 +6,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { parseOptions, type FieldType } from "@/lib/custom-fields";
 import { TaskTable, type CustomCol } from "@/components/task-table";
+import { MobileListToggle } from "@/components/mobile-list-toggle";
 
 export default async function ListPage() {
   const { user, tenant } = await requireTenant();
@@ -40,6 +41,7 @@ export default async function ListPage() {
 
   return (
     <div className="container py-6">
+      <MobileListToggle active="list" labels={{ list: t["nav.list"], calendar: t["view.calendar"] }} />
       <h1 className="mb-4 text-2xl font-bold">{t["list.title"]}</h1>
       <TaskTable
         rows={rows.map((r) => ({
