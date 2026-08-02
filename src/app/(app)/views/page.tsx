@@ -7,7 +7,6 @@ import { getDictionary } from "@/lib/i18n";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
 import { CalendarView } from "@/components/calendar-view";
-import { MobileListToggle } from "@/components/mobile-list-toggle";
 import { ScrumBoard, type ScrumTask } from "@/components/scrum-board";
 import { scopedProjectOptions } from "@/lib/filter-data";
 
@@ -71,7 +70,6 @@ export default async function ViewsPage({
 
   return (
     <div className="container py-6">
-      <MobileListToggle active="calendar" labels={{ list: t["nav.list"], calendar: t["view.calendar"] }} />
       <h1 className="mb-4 text-2xl font-bold">{t["views.title"]}</h1>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {tab("scrum", t["view.scrum"])}

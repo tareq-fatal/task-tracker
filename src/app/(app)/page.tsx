@@ -103,19 +103,11 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-8">
-        {/* Mobile-simplify 2026-08: phones show exactly 2 KPIs (offen
-            zugewiesen + überfällig); the full set stays on desktop. */}
         <KpiCards
           items={[
-            {
-              label: t["dashboard.kpi.openAssigned"],
-              value: assigned.filter((x) => x.status !== "Done").length,
-              accent: "sky",
-              hide: "desktop",
-            },
-            { label: t["reports.kpi.total"], value: kpis.total, accent: "sky", hide: "mobile" },
-            { label: t["reports.kpi.doneWeek"], value: kpis.doneThisWeek, accent: "teal", hide: "mobile" },
-            { label: t["reports.kpi.avgDays"], value: kpis.avgCompletionDays ?? "—", hide: "mobile" },
+            { label: t["reports.kpi.total"], value: kpis.total, accent: "sky" },
+            { label: t["reports.kpi.doneWeek"], value: kpis.doneThisWeek, accent: "teal" },
+            { label: t["reports.kpi.avgDays"], value: kpis.avgCompletionDays ?? "—" },
             { label: t["reports.kpi.overdue"], value: kpis.overdue, accent: "rose" },
           ]}
         />

@@ -28,7 +28,6 @@ import {
   Table2,
   Palette,
   Plug,
-  Bell,
   Activity,
   Repeat,
   Clock,
@@ -50,7 +49,6 @@ import { ScrollProgress } from "@/components/scroll-progress";
 import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { GlobalSearch } from "@/components/global-search";
 import { RunningTimer } from "@/components/running-timer";
-import { MobileFab } from "@/components/mobile-fab";
 import { AppEnvironmentBanner } from "@/components/app-environment-banner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -86,10 +84,8 @@ const MAIN: NavItem[] = [
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
 ];
 
-// Mobile-simplify 2026-08: phones get FOUR tabs — Home, Liste (bundles
-// list+calendar via an in-page toggle), Benachrichtigungen, Mehr. Kanban is
-// desktop-only on purpose (board redirects to /list below md).
-const MOBILE_PRIMARY = ["/", "/list"];
+// Mobile bottom nav = the 4 everyday views; everything else lives in "More".
+const MOBILE_PRIMARY = ["/", "/board", "/list", "/views"];
 
 const ADMIN: NavItem[] = [
   { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },
@@ -195,18 +191,9 @@ export function AppShell({
   const allItems = [...mainNav, ...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : []), ...subAdminNav];
   const activeItem = allItems.find((i) => isActive(pathname, i.href, i.match));
 
-  // Bottom nav: Home + Liste (also active on /views) + Benachrichtigungen.
-  // Kanban (/board) is deliberately absent on mobile; /views lives inside the
-  // Liste tab's toggle, so neither goes into the More sheet.
-  const bottomNav: NavItem[] = [
-    ...mainNav
-      .filter((i) => MOBILE_PRIMARY.includes(i.href))
-      .map((i) => (i.href === "/list" ? { ...i, match: [...(i.match ?? []), "/views"] } : i)),
-    { href: "/notifications", label: "nav.alerts", icon: Bell },
-  ];
-  const moreNav = mainNav.filter(
-    (i) => !MOBILE_PRIMARY.includes(i.href) && i.href !== "/board" && i.href !== "/views"
-  );
+  // Bottom nav: the 4 everyday views; the rest goes into the More sheet.
+  const bottomNav = mainNav.filter((i) => MOBILE_PRIMARY.includes(i.href));
+  const moreNav = mainNav.filter((i) => !MOBILE_PRIMARY.includes(i.href));
   const moreActive = moreNav.some((i) => isActive(pathname, i.href, i.match)) ||
     [...(isBackend ? SUPER : []), ...(isAdmin ? ADMIN : [])].some((i) => isActive(pathname, i.href)) ||
     isActive(pathname, "/settings");
@@ -360,26 +347,32 @@ export function AppShell({
               </span>
             )}
 
-            {/* Mobile-simplify 2026-08: below md the header carries ONLY the
-                search (+ running timer as live state). New-Task = FAB, bell =
-                bottom tab, locale + profile = Mehr/Einstellungen. */}
             <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
               <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
               <RunningTimer />
               <TooltipHelp textKey="tooltip.new_task">
-                <Button asChild size="sm" data-tour="new-task" aria-label={t("nav.newTask")} className="hidden md:inline-flex">
+                <Button asChild size="sm" data-tour="new-task" aria-label={t("nav.newTask")}>
                   <Link href="/tasks/new">
                     <Plus className="h-4 w-4 sm:me-1" />
                     <span className="hidden sm:inline">{t("nav.newTask")}</span>
                   </Link>
                 </Button>
               </TooltipHelp>
-              <div className="hidden md:block">
-                <NotificationBell />
-              </div>
-              <div className="hidden md:block">
-                <LocaleSwitcher current={locale} />
-              </div>
+              <NotificationBell />
+              <LocaleSwitcher current={locale} />
+              <TooltipHelp textKey="tooltip.profile">
+                <Link
+                  href="/settings"
+                  aria-label={t("nav.settings")}
+                  className="md:hidden"
+                >
+                  <Avatar className="h-9 w-9 border">
+                    <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--brand-from))] to-[hsl(var(--brand-to))] text-xs text-[hsl(var(--brand-foreground))]">
+                      {initials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              </TooltipHelp>
             </div>
           </div>
 
@@ -427,43 +420,14 @@ export function AppShell({
               </button>
             </div>
             <nav className="flex flex-col gap-1">
-              {/* Mobile-simplify 2026-08: icon grid instead of a long text
-                  list — Einstellungen (= Profil) as tile, Logout red below. */}
-              <div className="mb-2 grid grid-cols-2 gap-2">
-                {moreNav.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(pathname, item.href, item.match);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
-                      className={cn(
-                        "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-colors",
-                        active
-                          ? "border-[hsl(var(--brand-from)/0.5)] bg-[hsl(var(--brand-from)/0.08)] text-[hsl(var(--primary))]"
-                          : "hover:bg-secondary/60"
-                      )}
-                    >
-                      <Icon className="h-6 w-6" />
-                      {t(item.label)}
-                    </Link>
-                  );
-                })}
-                <Link
-                  href="/settings"
+              {moreNav.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isActive(pathname, item.href, item.match)}
                   onClick={() => setMoreOpen(false)}
-                  className={cn(
-                    "flex flex-col items-center gap-2 rounded-xl border p-4 text-sm font-medium transition-colors",
-                    isActive(pathname, "/settings")
-                      ? "border-[hsl(var(--brand-from)/0.5)] bg-[hsl(var(--brand-from)/0.08)] text-[hsl(var(--primary))]"
-                      : "hover:bg-secondary/60"
-                  )}
-                >
-                  <Settings className="h-6 w-6" />
-                  {t("nav.settings")}
-                </Link>
-              </div>
+                />
+              ))}
               {isBackend && (
                 <>
                   <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-indigo-500/80">
@@ -494,12 +458,15 @@ export function AppShell({
                   ))}
                 </>
               )}
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="mx-1 mt-2 w-[calc(100%-0.5rem)] border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-500/40 dark:hover:bg-rose-500/10"
+              <Link
+                href="/settings"
+                onClick={() => setMoreOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground"
               >
+                <Settings className="h-5 w-5" />
+                {t("nav.settings")}
+              </Link>
+              <Button asChild variant="outline" size="sm" className="mx-1 mt-1 w-[calc(100%-0.5rem)]">
                 <a href="/logout">
                   <LogOut className="me-1 h-4 w-4" />
                   {t("nav.logout")}
@@ -510,10 +477,7 @@ export function AppShell({
         </div>
       )}
 
-      {/* Mobile-simplify 2026-08: Material-style FAB replaces the header "+". */}
-      <MobileFab label={t("nav.newTask")} />
-
-      {/* Mobile bottom nav — the ONLY mobile navigation: 3 everyday views plus
+      {/* Mobile bottom nav — the ONLY mobile navigation: 4 everyday views plus
           "More". pb includes the device safe-area so icons aren't hidden behind
           the Android/iOS system bar inside the APK. */}
       <nav
