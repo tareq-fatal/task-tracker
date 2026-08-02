@@ -29,7 +29,6 @@ import { transcribeVoiceNote } from "@/lib/transcription";
 import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enums";
 import { can } from "@/lib/roles";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
-import { decodeUploadFilename } from "@/lib/filename-encoding";
 import { detectCommentLanguage } from "@/lib/lang-detect";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { applyAutomations } from "@/lib/automation-run";
@@ -458,8 +457,6 @@ export async function createTaskAction(
     data: {
       title: d.title,
       description: d.description || null,
-      // Detection at SAVE time, not render time (auto-translate TR↔x).
-      detectedLanguage: detectCommentLanguage(`${d.title}\n${d.description ?? ""}`),
       status: d.status,
       priority: d.priority,
       type: hier.type,
@@ -561,7 +558,6 @@ export async function updateTaskAction(
     data: {
       title: d.title,
       description: d.description || null,
-      detectedLanguage: detectCommentLanguage(`${d.title}\n${d.description ?? ""}`),
       status: d.status,
       priority: d.priority,
       type: hier.type,
@@ -943,10 +939,6 @@ export async function uploadAttachmentAction(
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  // Next's fetch-action multipart parser decodes the filename as Latin-1
-  // (busboy without defParamCharset) — repair before the name escapes
-  // anywhere (DB, activity log, notifications). See lib/filename-encoding.ts.
-  const fileName = decodeUploadFilename(file.name);
   // Extension comes from the validated MIME, NOT from the user's filename.
   const ext = MIME_EXTENSION[file.type];
   if (!ext) {
@@ -966,15 +958,15 @@ export async function uploadAttachmentAction(
   await prisma.taskAttachment.create({
     data: {
       taskId,
-      fileName,
+      fileName: file.name,
       filePath: `/uploads/${safeName}`,
       mimeType: file.type,
       sizeBytes: file.size,
-      uploadedBy: user.id,
+      uploadedBy: user.id, // enables "uploader may delete own attachment"
     },
   });
-  await logActivity(taskId, user.id, "attachment", fileName);
-  await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${fileName}`);
+  await logActivity(taskId, user.id, "attachment", file.name);
+  await notifyAdminsOfChange(user, task, `Anhang hinzugefügt: ${file.name}`);
 
   revalidatePath(`/tasks/${taskId}`);
   return {};

@@ -20,21 +20,6 @@ export function formatDateTime(d: Date | string | number, locale: Locale): strin
   }).format(asDate(d));
 }
 
-/** Relative time, locale-aware ("vor 2 Stunden" / "منذ ساعتين"). Falls back
- *  to the absolute date beyond ~30 days — "vor 8 Monaten" hilft niemandem
- *  bei einem Anhang. Pair with a title-tooltip carrying formatDateTime. */
-export function formatRelative(d: Date | string | number, locale: Locale, now: Date = new Date()): string {
-  const diffMs = asDate(d).getTime() - now.getTime();
-  const abs = Math.abs(diffMs);
-  const MIN = 60_000, HOUR = 3_600_000, DAY = 86_400_000;
-  const rtf = new Intl.RelativeTimeFormat(TAG[locale], { numeric: "auto" });
-  if (abs < MIN) return rtf.format(Math.round(diffMs / 1000), "second");
-  if (abs < HOUR) return rtf.format(Math.round(diffMs / MIN), "minute");
-  if (abs < DAY) return rtf.format(Math.round(diffMs / HOUR), "hour");
-  if (abs < 30 * DAY) return rtf.format(Math.round(diffMs / DAY), "day");
-  return formatDate(d, locale);
-}
-
 /** Thousands-grouped number, locale-aware. DE → "1.234,56". */
 export function formatNumber(n: number, locale: Locale, maximumFractionDigits = 2): string {
   return new Intl.NumberFormat(TAG[locale], { maximumFractionDigits }).format(n);

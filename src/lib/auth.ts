@@ -70,8 +70,6 @@ export type SessionUser = {
   hasSeenTour: boolean;
   onboardedAt: Date | null;
   mustChangePassword: boolean;
-  /** false = "immer Original anzeigen" — disables TR↔x display translation. */
-  autoTranslate: boolean;
   tenantId: string;
   tenantSlug: string;
 };
@@ -113,7 +111,6 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     hasSeenTour: u.hasSeenTour,
     onboardedAt: u.onboardedAt,
     mustChangePassword: u.mustChangePassword,
-    autoTranslate: u.autoTranslate,
     tenantId: u.tenantId,
     tenantSlug: u.tenant.slug,
   };

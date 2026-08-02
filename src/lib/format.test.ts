@@ -1,18 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDate, formatNumber, formatRelative } from "./format";
-
-describe("formatRelative", () => {
-  const now = new Date("2026-08-02T12:00:00Z");
-  it("DE relative hours", () => {
-    expect(formatRelative(new Date("2026-08-02T10:00:00Z"), "de", now)).toBe("vor 2 Stunden");
-  });
-  it("TR relative minutes", () => {
-    expect(formatRelative(new Date("2026-08-02T11:59:00Z"), "tr", now)).toBe("1 dakika önce");
-  });
-  it("falls back to the absolute date beyond ~30 days", () => {
-    expect(formatRelative(new Date("2026-05-01T12:00:00Z"), "de", now)).toBe("01.05.2026");
-  });
-});
+import { formatDate, formatNumber } from "./format";
 
 describe("formatDate", () => {
   const d = new Date("2026-06-28T10:00:00Z");

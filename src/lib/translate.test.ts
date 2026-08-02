@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  deeplTranslate,
   libreTranslate,
   translateText,
   translationConfigured,
@@ -9,22 +10,26 @@ import {
   TranslateError,
 } from "./translate";
 
-describe("translationConfigured — LibreTranslate only (SECURITY)", () => {
+const okResponse = (text: string, detected = "TR") =>
+  new Response(
+    JSON.stringify({ translations: [{ text, detected_source_language: detected }] }),
+    { status: 200 }
+  );
+
+describe("translationConfigured", () => {
   afterEach(() => {
     delete process.env.DEEPL_API_KEY;
     delete process.env.LIBRETRANSLATE_URL;
   });
 
-  it("is off without LibreTranslate", () => {
+  it("is off without any provider (feature fully disabled per the order)", () => {
     expect(translationConfigured()).toBe(false);
   });
 
-  it("a DeepL key alone does NOT enable the feature — external APIs are banned", () => {
+  it("is on with a DeepL key or a LibreTranslate URL", () => {
     process.env.DEEPL_API_KEY = "abc:fx";
-    expect(translationConfigured()).toBe(false);
-  });
-
-  it("is on with a LibreTranslate URL", () => {
+    expect(translationConfigured()).toBe(true);
+    delete process.env.DEEPL_API_KEY;
     process.env.LIBRETRANSLATE_URL = "http://libretranslate:5000";
     expect(translationConfigured()).toBe(true);
   });
@@ -79,8 +84,7 @@ describe("libreTranslate + dispatcher", () => {
     await expect(libreTranslate("x", "de")).rejects.toThrow(TranslateError);
   });
 
-  it("dispatcher NEVER calls an external API — DeepL key present is ignored", async () => {
-    process.env.DEEPL_API_KEY = "k:fx"; // must be dead config
+  it("dispatcher prefers DeepL, falls back to LibreTranslate, else not_configured", async () => {
     await expect(translateText("x", "de")).rejects.toThrow("not_configured");
 
     process.env.LIBRETRANSLATE_URL = "http://lt:5000";
@@ -88,53 +92,84 @@ describe("libreTranslate + dispatcher", () => {
       new Response(JSON.stringify({ translatedText: "y" }), { status: 200 })
     );
     await translateText("x", "de");
-    for (const call of fetchMock.mock.calls) {
-      expect(String(call[0])).toContain("http://lt:5000"); // only the local host
-    }
+    expect(fetchMock.mock.calls[0][0]).toBe("http://lt:5000/translate");
+
+    fetchMock.mockClear();
+    process.env.DEEPL_API_KEY = "k:fx";
+    fetchMock.mockResolvedValue(okResponse("z"));
+    await translateText("x", "de");
+    expect(fetchMock.mock.calls[0][0]).toBe("https://api-free.deepl.com/v2/translate");
+  });
+});
+
+describe("deeplTranslate", () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete process.env.DEEPL_API_KEY;
   });
 
-  it("masks glossary terms with numeric tokens and restores the target term", async () => {
-    process.env.LIBRETRANSLATE_URL = "http://lt:5000";
-    fetchMock.mockImplementation(async (_url, init) => {
-      const q: string = JSON.parse(init.body).q;
-      // echo the masked text back — the numeric token must be inside
-      expect(q).toMatch(/731\d{3}/);
-      expect(q).not.toContain("tugay");
-      return new Response(JSON.stringify({ translatedText: q.replace("komutanı", "Kommandeur der") }), { status: 200 });
-    });
-    const r = await translateText("tugay komutanı", "de", "tr");
-    expect(r.text).toContain("Brigade");
-    expect(r.text).not.toMatch(/731\d{3}/);
+  it("throws not_configured without a key", async () => {
+    await expect(deeplTranslate("hi", "ar")).rejects.toThrow("not_configured");
   });
 
-  it("retries WITHOUT glossary when a token does not survive the model", async () => {
-    process.env.LIBRETRANSLATE_URL = "http://lt:5000";
-    fetchMock
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ translatedText: "Der Kommandeur ist da." }), { status: 200 }) // token swallowed
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ translatedText: "Der Brigadekommandeur ist da." }), { status: 200 })
-      );
-    const r = await translateText("tugay komutanı burada.", "de", "tr");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    // second call carries the ORIGINAL unmasked text
-    expect(JSON.parse(fetchMock.mock.calls[1][1].body).q).toContain("tugay");
-    expect(r.text).toBe("Der Brigadekommandeur ist da.");
+  it("uses the free host for :fx keys and sends form-encoded body", async () => {
+    process.env.DEEPL_API_KEY = "secret:fx";
+    fetchMock.mockResolvedValue(okResponse("أنجزت المهمة"));
+    const r = await deeplTranslate("Görevi tamamladım", "ar", "tr");
+    expect(r).toEqual({ text: "أنجزت المهمة", detectedSource: "tr" });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api-free.deepl.com/v2/translate");
+    expect(init.headers.Authorization).toBe("DeepL-Auth-Key secret:fx");
+    const body = new URLSearchParams(init.body);
+    expect(body.get("target_lang")).toBe("AR");
+    expect(body.get("source_lang")).toBe("TR");
+    expect(body.get("text")).toBe("Görevi tamamladım");
+  });
+
+  it("uses the paid host for normal keys and EN-US as English target", async () => {
+    process.env.DEEPL_API_KEY = "secret";
+    fetchMock.mockResolvedValue(okResponse("Done", "AR"));
+    await deeplTranslate("تم", "en");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://api.deepl.com/v2/translate");
+    const body = new URLSearchParams(init.body);
+    expect(body.get("target_lang")).toBe("EN-US");
+    expect(body.get("source_lang")).toBeNull(); // auto-detect when unsure
+  });
+
+  it("maps 429/456 to rate_limited and 5xx to upstream", async () => {
+    process.env.DEEPL_API_KEY = "k";
+    fetchMock.mockResolvedValue(new Response("", { status: 456 }));
+    await expect(deeplTranslate("x", "de")).rejects.toThrow("rate_limited");
+    fetchMock.mockResolvedValue(new Response("", { status: 500 }));
+    await expect(deeplTranslate("x", "de")).rejects.toThrow("upstream");
+  });
+
+  it("throws upstream on an empty/garbled payload", async () => {
+    process.env.DEEPL_API_KEY = "k";
+    fetchMock.mockResolvedValue(new Response("{}", { status: 200 }));
+    await expect(deeplTranslate("x", "de")).rejects.toThrow(TranslateError);
   });
 });
 
 describe("checkTranslateRateLimit", () => {
   beforeEach(() => _resetTranslateRateLimit());
 
-  it("allows MAX_PER_WINDOW per user and window, isolated per user", () => {
-    const now = 1_000_000;
+  it("allows exactly MAX_PER_WINDOW requests per minute per user", () => {
+    const t0 = 1_000_000;
     for (let i = 0; i < MAX_PER_WINDOW; i++) {
-      expect(checkTranslateRateLimit("u1", now + i)).toBe(true);
+      expect(checkTranslateRateLimit("u1", t0 + i)).toBe(true);
     }
-    expect(checkTranslateRateLimit("u1", now + 50)).toBe(false);
-    expect(checkTranslateRateLimit("u2", now + 50)).toBe(true); // other user unaffected
-    // window slides: a minute later u1 is free again
-    expect(checkTranslateRateLimit("u1", now + 61_000)).toBe(true);
+    expect(checkTranslateRateLimit("u1", t0 + 100)).toBe(false);
+    // a different user is unaffected
+    expect(checkTranslateRateLimit("u2", t0 + 100)).toBe(true);
+    // window slides: after 60s the first slots free up
+    expect(checkTranslateRateLimit("u1", t0 + 61_000)).toBe(true);
   });
 });
