@@ -2,7 +2,6 @@ import { requireUser } from "@/lib/auth";
 import { getActiveTenant } from "@/lib/tenant";
 import { RetentionSetting } from "@/components/retention-setting";
 import { AutoTranslateToggle } from "@/components/auto-translate-toggle";
-import { TranslationEngineSelect } from "@/components/translation-engine-select";
 import { translationConfigured } from "@/lib/translate";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
@@ -133,20 +132,9 @@ export default async function SettingsPage() {
         </Card>
       )}
 
-      {/* Übersetzungs-Engine (Admin) — Kundenfeedback 2026-08-02 zur Qualität */}
-      {tenantCtx && translationConfigured() && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-base">{t["transEngine.title"]}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TranslationEngineSelect
-              initial={tenantCtx.tenant.translationEngine}
-              deeplConfigured={Boolean(process.env.DEEPL_API_KEY)}
-            />
-          </CardContent>
-        </Card>
-      )}
+      {/* SECURITY (Kunden-Entscheidung 2026-08-03): Übersetzung ist On-Premise-
+          only (lokales LibreTranslate) — die Engine-Auswahl (DeepL etc.) wurde
+          entfernt, damit Cloud-Dienste gar nicht erst anwählbar sind. */}
 
       {ssoConfig && (
         <Card className="mb-6">
