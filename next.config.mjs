@@ -21,6 +21,33 @@ const nextConfig = {
   // Behind Caddy (reverse proxy) — trust the X-Forwarded-* headers it sets.
   poweredByHeader: false,
   compress: true,
+  // ── Sicherheits-Header (Härtung 2026-08-03) ──────────────────────────────
+  // Cloudflare setzt bereits HSTS; alles Weitere muss die Anwendung liefern.
+  // Bewusst KEINE CSP hier: die App lädt Karten-/Chart-Assets und nutzt
+  // Inline-Styles aus Tailwind-Runtime; eine CSP will erst gegen die echte
+  // Seite getestet werden, sonst bricht sie den Betrieb (siehe Reports, wo
+  // sie per Hash sauber eingeführt wurde).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
+          },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     // Native (.node) and Prisma packages must not be bundled by webpack.
     serverComponentsExternalPackages: ["@node-rs/argon2", "@prisma/client"],
