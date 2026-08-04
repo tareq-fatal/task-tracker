@@ -16,7 +16,7 @@ export function TenantFeatureToggles({
 }: {
   tenantId: string;
   flags: Record<TenantFeature, boolean>;
-  /** Whether DEEPL_API_KEY is set on the server — without it the translation
+  /** Whether LIBRETRANSLATE_URL is set on the server — without it the translation
    *  toggle is moot, so it shows a hint instead of pretending to work. */
   translationConfigured?: boolean;
 }) {
