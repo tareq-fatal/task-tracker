@@ -30,6 +30,7 @@ import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enu
 import { can } from "@/lib/roles";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { decodeUploadFilename } from "@/lib/filename-encoding";
+import { statusGateFor } from "@/lib/task-workflow-gate";
 import { detectCommentLanguage } from "@/lib/lang-detect";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { applyAutomations } from "@/lib/automation-run";
@@ -434,6 +435,33 @@ function parseForm(formData: FormData) {
   });
 }
 
+/**
+ * Admin-Workflow-Kontrolle (2026-08-04): die drei Steuerfelder aus dem
+ * Formular. NUR Admins dürfen sie setzen — für alle anderen kommt {} zurück,
+ * d.h. beim Update bleiben gespeicherte Werte unangetastet (robuster als
+ * Hidden-Input-Spiegel im Client).
+ */
+function adminControlsFromForm(formData: FormData, isAdmin: boolean) {
+  if (!isAdmin) return {};
+  const raw = String(formData.get("allowedTargetColumn") ?? "");
+  const allowedTargetColumn = raw && isTaskStatus(raw) && raw !== "Archived" ? raw : null;
+  return {
+    allowedTargetColumn,
+    requireAllTodosDone: formData.get("requireAllTodosDone") === "on",
+    requireTimeTracking: formData.get("requireTimeTracking") === "on",
+  };
+}
+
+/** Feature 2: Bulk-Todos aus der Textarea (eine pro Zeile, max 30 × 200). */
+function todosFromForm(formData: FormData): string[] {
+  return String(formData.get("todosBulk") ?? "")
+    .split(/\r?\n/)
+    .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim()) // "1. Erste Sache" → "Erste Sache"
+    .filter(Boolean)
+    .slice(0, 30)
+    .map((s) => s.slice(0, 200));
+}
+
 export async function createTaskAction(
   _prev: TaskFormState,
   formData: FormData
@@ -444,6 +472,8 @@ export async function createTaskAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
   const d = parsed.data;
+  const adminControls = adminControlsFromForm(formData, isAdminRole(user.role));
+  const bulkTodos = isAdminRole(user.role) ? todosFromForm(formData) : [];
   // Non-admins may only create tasks assigned to themselves.
   const assignee = isAdminRole(user.role) ? d.assignedToUserId : user.id;
   // #13 — admins may add co-assignees; the primary above is the Hauptkopf.
@@ -474,8 +504,16 @@ export async function createTaskAction(
       completedAt: d.status === "Done" ? new Date() : null,
       createdByUserId: user.id,
       tenantId: tenant.id,
+      ...adminControls,
     },
   });
+
+  // Feature 2: Admin-Checkliste direkt beim Erstellen (eine Zeile = ein Todo).
+  if (bulkTodos.length > 0) {
+    await prisma.subtask.createMany({
+      data: bulkTodos.map((title, i) => ({ taskId: task.id, title, order: i })),
+    });
+  }
 
   // #13 — record the full assignee set (Hauptkopf + co-assignees).
   await syncAssignees(task.id, [rel.assignedToUserId, ...extraAssignees]);
@@ -536,6 +574,10 @@ export async function updateTaskAction(
   if (becameDone && (await isTaskBlocked(taskId))) {
     return { error: "BLOCKED" };
   }
+  // Admin-Workflow-Kontrolle: gilt auch für Nicht-Admin-ERSTELLER, die den
+  // Status über das volle Edit-Formular ändern.
+  const gate = await statusGateFor(taskId, user.role, existing.status, d.status);
+  if (!gate.ok) return { error: gate.error };
 
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
   // Whoever reaches here (creator or admin) may set the primary + co-assignees (#13).
@@ -572,6 +614,7 @@ export async function updateTaskAction(
       spentHours: d.spentHours,
       ...recur,
       ...(scheduleChanged ? { recurringCount: 0, recurringPaused: false } : {}),
+      ...adminControlsFromForm(formData, isAdminRole(user.role)),
       ...(becameDone ? { completedAt: new Date() } : {}),
       ...(leftDone ? { completedAt: null } : {}),
       // Mark fully complete when manually set to Done (only when no subtasks drive it)
@@ -737,6 +780,9 @@ export async function updateTaskStatusAction(
   if (becameDone && (await isTaskBlocked(taskId))) {
     return { ok: false, error: "BLOCKED" };
   }
+  // Admin-Workflow-Kontrolle (2026-08-04): Ziel-Spalte / Todos / Zeit.
+  const gate = await statusGateFor(taskId, user.role, existing.status, status);
+  if (!gate.ok) return { ok: false, error: gate.error };
 
   const subtaskCount = await prisma.subtask.count({ where: { taskId } });
 
@@ -1191,7 +1237,12 @@ export async function toggleSubtaskAction(
 
   await prisma.subtask.update({
     where: { id: subtaskId },
-    data: { done: !sub.done },
+    data: {
+      done: !sub.done,
+      // Feature 2 (2026-08-04): wer hat wann abgehakt.
+      completedAt: sub.done ? null : new Date(),
+      completedBy: sub.done ? null : user.id,
+    },
   });
 
   await logActivity(sub.taskId, user.id, sub.done ? "subtask_reopened" : "subtask_done", sub.title);

@@ -20,6 +20,7 @@ import { useT } from "@/components/i18n-provider";
 import { useToast } from "@/components/toast";
 import { celebrate } from "@/lib/confetti";
 import { updateTaskStatusAction } from "@/actions/tasks";
+import { statusGateMessageKey } from "@/lib/status-gate-messages";
 import { TaskCard, type TaskCardData } from "@/components/task-card";
 import { FeatureHint } from "@/components/onboarding/feature-hint";
 import type { TKey } from "@/lib/i18n";
@@ -148,7 +149,9 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
     const res = await updateTaskStatusAction(taskId, overId);
     if (!res.ok) {
       setTasks(prev);
-      if (res.error === "BLOCKED") toast(t("task.blocked"), "error");
+      // Workflow-Gates (2026-08-04): jede Ablehnung bekommt einen Grund —
+      // vorher revertete ein unbekannter Fehler stumm.
+      toast(t(statusGateMessageKey(res.error)), "error");
     } else if (overId === "Done") celebrate();
   }
 

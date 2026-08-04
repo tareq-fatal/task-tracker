@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { isScrumColumn, statusForColumn } from "@/lib/scrum";
+import { statusGateFor } from "@/lib/task-workflow-gate";
 
 /** Move a card into a scrum column (drag&drop); keeps `status` coherent. */
 export async function setTaskScrumColumnAction(
@@ -23,6 +24,9 @@ export async function setTaskScrumColumnAction(
   if (!allowed) return { ok: false };
 
   const status = statusForColumn(column);
+  // Admin-Workflow-Kontrolle: Scrum-Spalten mappen auf Status — gleiches Gate.
+  const gate = await statusGateFor(taskId, user.role, task.status, status);
+  if (!gate.ok) return { ok: false };
   const becameDone = status === "Done" && task.status !== "Done";
   const leftDone = status !== "Done" && task.status === "Done";
 

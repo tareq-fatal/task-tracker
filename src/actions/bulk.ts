@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole, isTaskStatus } from "@/lib/enums";
 import { can } from "@/lib/roles";
+import { statusGateFor } from "@/lib/task-workflow-gate";
 
 export type BulkResult = { ok: boolean; count: number; error?: string };
 
@@ -25,14 +26,30 @@ export async function bulkSetStatusAction(ids: string[], status: string): Promis
   const allowed = await editableIds(ids, user, tenant.id);
   if (allowed.length === 0) return { ok: false, count: 0, error: "NONE" };
 
+  // Admin-Workflow-Kontrolle (2026-08-04): jede Aufgabe einzeln durchs Gate —
+  // gesperrte werden übersprungen; sind ALLE gesperrt, meldet die Toolbar den
+  // ersten Grund (der Nutzer sieht sonst eine stille No-Op).
+  const rows = await prisma.task.findMany({
+    where: { id: { in: allowed }, tenantId: tenant.id },
+    select: { id: true, status: true },
+  });
+  const passing: string[] = [];
+  let firstError: string | undefined;
+  for (const r of rows) {
+    const gate = await statusGateFor(r.id, user.role, r.status, status);
+    if (gate.ok) passing.push(r.id);
+    else firstError ??= gate.error;
+  }
+  if (passing.length === 0) return { ok: false, count: 0, error: firstError ?? "NONE" };
+
   const becameDone = status === "Done";
   await prisma.task.updateMany({
-    where: { id: { in: allowed }, tenantId: tenant.id },
+    where: { id: { in: passing }, tenantId: tenant.id },
     data: { status, ...(becameDone ? { completedAt: new Date() } : { completedAt: null }) },
   });
   revalidatePath("/list");
   revalidatePath("/board");
-  return { ok: true, count: allowed.length };
+  return { ok: true, count: passing.length, ...(firstError ? { error: firstError } : {}) };
 }
 
 export async function bulkDeleteAction(ids: string[]): Promise<BulkResult> {
