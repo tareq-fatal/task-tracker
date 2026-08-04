@@ -10,6 +10,7 @@ import { RecurrenceField } from "@/components/recurrence-field";
 import { TASK_STATUSES, TASK_PRIORITIES, TASK_TYPES } from "@/lib/enums";
 import type { TaskFormState } from "@/actions/tasks";
 import type { TKey } from "@/lib/i18n";
+import { statusGateMessageKey } from "@/lib/status-gate-messages";
 
 type Option = { id: string; name: string };
 
@@ -36,6 +37,10 @@ export type TaskDefaults = {
   type?: string; // Epic | Story | Task | Subtask | Bug
   storyPoints?: string;
   parentId?: string | null;
+  // Admin-Workflow-Kontrolle (2026-08-04)
+  allowedTargetColumn?: string | null;
+  requireAllTodosDone?: boolean;
+  requireTimeTracking?: boolean;
 };
 
 type ParentOption = { id: string; title: string };
@@ -64,6 +69,7 @@ export function TaskForm({
   isEdit = false,
   showStoryPoints = true,
   showParent = true,
+  isAdmin = false,
 }: {
   action: (prev: TaskFormState, fd: FormData) => Promise<TaskFormState>;
   users: Option[];
@@ -77,6 +83,9 @@ export function TaskForm({
   /** Tenant feature flags — hidden fields keep their stored values. */
   showStoryPoints?: boolean;
   showParent?: boolean;
+  /** Admin-Workflow-Kontrolle (2026-08-04): zeigt die Steuer-Sektion. Der
+   *  Server ignoriert diese Felder ohnehin für Nicht-Admins. */
+  isAdmin?: boolean;
 }) {
   const { t } = useT();
   const [state, formAction] = useFormState(action, {});
@@ -299,9 +308,69 @@ export function TaskForm({
         )}
       </div>
 
+      {/* Admin-Workflow-Kontrolle (Kundenauftrag 2026-08-04, Features 1-3).
+          Nur Admins sehen die Sektion; der Server ignoriert die Felder für
+          alle anderen ohnehin. */}
+      {isAdmin && (
+        <fieldset className="space-y-3 rounded-xl border p-4">
+          <legend className="px-1 text-sm font-semibold text-muted-foreground">
+            {t("wf.section")}
+          </legend>
+
+          <div className="space-y-2">
+            <Label htmlFor="allowedTargetColumn">{t("wf.targetColumn")}</Label>
+            <select
+              id="allowedTargetColumn"
+              name="allowedTargetColumn"
+              defaultValue={d.allowedTargetColumn ?? (isEdit ? "" : "InProgress")}
+              className={selectClass}
+            >
+              <option value="">{t("wf.targetFree")}</option>
+              <option value="InProgress">{t("status.InProgress")}</option>
+              <option value="Done">{t("status.Done")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">{t("wf.targetHint")}</p>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="requireAllTodosDone"
+              defaultChecked={d.requireAllTodosDone ?? false}
+              className="h-4 w-4 accent-indigo-600"
+            />
+            {t("wf.requireTodos")}
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="requireTimeTracking"
+              defaultChecked={d.requireTimeTracking ?? false}
+              className="h-4 w-4 accent-indigo-600"
+            />
+            {t("wf.requireTime")}
+          </label>
+
+          {!isEdit && (
+            <div className="space-y-2">
+              <Label htmlFor="todosBulk">{t("wf.todosBulk")}</Label>
+              <Textarea
+                id="todosBulk"
+                name="todosBulk"
+                rows={4}
+                placeholder={t("wf.todosBulkPlaceholder")}
+              />
+            </div>
+          )}
+        </fieldset>
+      )}
+
       {state.error && (
         <p className="text-sm font-medium text-destructive">
-          {state.error === "BLOCKED" ? t("task.blocked") : state.error}
+          {["BLOCKED", "TARGET_LOCKED", "TODOS_OPEN", "TIME_REQUIRED"].includes(state.error)
+            ? t(statusGateMessageKey(state.error))
+            : state.error}
         </p>
       )}
 

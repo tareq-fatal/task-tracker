@@ -418,7 +418,7 @@ export default async function TaskDetailPage({
           thing they DO drive: the status. No banner, no lock, no "read-only". */}
       {!canEditContent && (
         <div className="mb-4 inline-flex items-center gap-2 rounded-lg border bg-card px-4 py-2.5">
-          <StatusControl taskId={task.id} status={task.status} />
+          <StatusControl taskId={task.id} status={task.status} allowedTargetColumn={task.allowedTargetColumn} />
         </div>
       )}
 
