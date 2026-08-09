@@ -64,6 +64,48 @@ export async function updateProjectAction(
   return { ok: true };
 }
 
+/** Attach EXISTING tasks to a project (picker on the project page) —
+ *  admin-only, tenant-scoped; tasks already in the project are skipped. */
+export async function addTasksToProjectAction(
+  projectId: string,
+  taskIds: string[]
+): Promise<{ ok?: boolean; added?: number; error?: string }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project || project.tenantId !== tenant.id) return { error: "NOT_FOUND" };
+
+  const ids = [...new Set(taskIds.filter(Boolean))].slice(0, 500);
+  if (ids.length === 0) return { ok: true, added: 0 };
+  // Tenant scoping keeps foreign ids out; soft-deleted rows are excluded by
+  // the prisma client extension.
+  const tasks = await prisma.task.findMany({
+    where: {
+      id: { in: ids },
+      tenantId: tenant.id,
+      OR: [{ projectId: null }, { projectId: { not: projectId } }],
+    },
+    select: { id: true },
+  });
+  if (tasks.length) {
+    await prisma.task.updateMany({
+      where: { id: { in: tasks.map((x) => x.id) }, tenantId: tenant.id },
+      data: { projectId },
+    });
+    // Same activity trail a manual project change via the edit form leaves.
+    await Promise.all(
+      tasks.map((x) =>
+        prisma.activityLog
+          .create({ data: { taskId: x.id, userId: user.id, type: "project", detail: `→ ${project.name}` } })
+          .catch(() => {})
+      )
+    );
+  }
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/projects");
+  return { ok: true, added: tasks.length };
+}
+
 /** Members of a project + the tenant users not yet on it (admin picker). */
 export async function getProjectMembersView(projectId: string) {
   const { user, tenant } = await requireTenant();
