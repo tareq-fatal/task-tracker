@@ -5,7 +5,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskCardSelect } from "@/lib/task-select";
 import { compareTasks } from "@/lib/tasks";
-import { parseTaskFilters, buildTaskWhere } from "@/lib/filters";
+import { parseTaskFilters, buildTaskWhere, personInvolvedWhere } from "@/lib/filters";
 import { loadFilterOptions } from "@/lib/filter-data";
 import { TASK_STATUSES, isAdminRole, type Locale } from "@/lib/enums";
 import { TaskCard } from "@/components/task-card";
@@ -35,7 +35,9 @@ export default async function UserDetailPage({
   if (!user || user.tenantId !== tenant.id) notFound();
 
   const filters = parseTaskFilters(searchParams);
-  const base = { assignedToUserId: user.id, tenantId: tenant.id };
+  // Every task the person is attached to in ANY role (Hauptkopf, co-assignee,
+  // creator) — mirrors the focus person view.
+  const base = { tenantId: tenant.id, ...personInvolvedWhere(user.id) };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
   const [options, total, tasks] = await Promise.all([

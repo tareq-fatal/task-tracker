@@ -113,6 +113,26 @@ export function dateRangeFor(
   }
 }
 
+/**
+ * Prisma `where` matching every task a person is attached to, in ANY role:
+ * Hauptkopf (assignedToUserId), co-assignee (#13 TaskAssignee), or creator.
+ * Same involvement semantics as the dashboard's "مهامي" and taskVisibility.
+ * Accepts one id or several (several = any of them involved).
+ */
+export function personInvolvedWhere(
+  ids: string | string[]
+): Record<string, unknown> {
+  const single = typeof ids === "string";
+  const idMatch = single ? ids : { in: ids };
+  return {
+    OR: [
+      { assignedToUserId: idMatch },
+      { assignees: { some: { userId: idMatch } } },
+      { createdByUserId: idMatch },
+    ],
+  };
+}
+
 /** Build a Prisma `where` from filters (all ANDed). */
 export function buildTaskWhere(
   filters: TaskFilters,
@@ -121,10 +141,14 @@ export function buildTaskWhere(
   const where: Record<string, unknown> = {};
   if (filters.project) where.projectId = filters.project;
   if (filters.team) where.teamId = filters.team;
-  if (filters.assignees.length === 1) {
-    where.assignedToUserId = filters.assignees[0];
-  } else if (filters.assignees.length > 1) {
-    where.assignedToUserId = { in: filters.assignees };
+  if (filters.assignees.length) {
+    // Person facet = involvement in any role, not just the Hauptkopf. Lives
+    // under AND so it can't collide with the free-text OR below.
+    where.AND = [
+      personInvolvedWhere(
+        filters.assignees.length === 1 ? filters.assignees[0] : filters.assignees
+      ),
+    ];
   }
   if (filters.status) where.status = { in: STATUS_GROUPS[filters.status] };
   if (filters.priority) where.priority = filters.priority;
