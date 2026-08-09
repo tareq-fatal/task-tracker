@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
 import { computeKpis, type ReportTask } from "@/lib/reports";
+import { personInvolvedWhere } from "@/lib/filters";
 import {
   buildHeatmap,
   distribution,
@@ -72,7 +73,8 @@ export default async function InfographicsPage({
   let viewData: InfographicData | null = null;
   if (id) {
     const where =
-      type === "user" ? { tenantId: tenant.id, assignedToUserId: id }
+      // user = involvement in any role (Hauptkopf, co-assignee, creator)
+      type === "user" ? { tenantId: tenant.id, ...personInvolvedWhere(id) }
       : type === "team" ? { tenantId: tenant.id, teamId: id }
       : { tenantId: tenant.id, projectId: id };
 

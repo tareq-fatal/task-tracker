@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseTaskFilters,
   buildTaskWhere,
+  personInvolvedWhere,
   dateRangeFor,
   activeFilterCount,
   filtersToParams,
@@ -56,14 +57,31 @@ describe("buildTaskWhere", () => {
     );
     expect(where.projectId).toBe("p1");
     expect(where.teamId).toBe("t1");
-    expect(where.assignedToUserId).toBe("u1");
+    // Person facet matches ANY involvement role, ANDed next to the q-OR.
+    expect(where.AND).toEqual([personInvolvedWhere("u1")]);
     expect(where.status).toEqual({ in: ["Todo", "InProgress"] });
     expect(where.priority).toBe("High");
     expect(where.OR).toHaveLength(2);
   });
-  it("uses `in` for multiple assignees", () => {
+  it("uses `in` for multiple assignees across all roles", () => {
     const where = buildTaskWhere(parseTaskFilters({ assignee: "a,b,c" }));
-    expect(where.assignedToUserId).toEqual({ in: ["a", "b", "c"] });
+    expect(where.AND).toEqual([personInvolvedWhere(["a", "b", "c"])]);
+  });
+  it("personInvolvedWhere covers Hauptkopf, co-assignee and creator", () => {
+    expect(personInvolvedWhere("u1")).toEqual({
+      OR: [
+        { assignedToUserId: "u1" },
+        { assignees: { some: { userId: "u1" } } },
+        { createdByUserId: "u1" },
+      ],
+    });
+    expect(personInvolvedWhere(["a", "b"])).toEqual({
+      OR: [
+        { assignedToUserId: { in: ["a", "b"] } },
+        { assignees: { some: { userId: { in: ["a", "b"] } } } },
+        { createdByUserId: { in: ["a", "b"] } },
+      ],
+    });
   });
   it("is empty without filters", () => {
     expect(Object.keys(buildTaskWhere(parseTaskFilters({})))).toHaveLength(0);
