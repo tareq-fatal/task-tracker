@@ -43,6 +43,28 @@ export async function createTeamAction(
   redirect(`/admin/teams/${team.id}`);
 }
 
+/** Rename/edit a team (name + description) — admin-only, tenant-scoped. */
+export async function updateTeamAction(
+  teamId: string,
+  input: { name: string; description: string }
+): Promise<{ ok?: boolean; error?: string }> {
+  const { tenant } = await requireTenantAdmin();
+  const parsed = teamSchema
+    .pick({ name: true, description: true })
+    .safeParse(input);
+  if (!parsed.success) return { error: "EMPTY_NAME" };
+  const team = await prisma.team.findUnique({ where: { id: teamId } });
+  if (!team || team.tenantId !== tenant.id) return { error: "NOT_FOUND" };
+
+  await prisma.team.update({
+    where: { id: teamId },
+    data: { name: parsed.data.name, description: parsed.data.description || null },
+  });
+  revalidatePath("/admin/teams");
+  revalidatePath(`/admin/teams/${teamId}`);
+  return { ok: true };
+}
+
 export async function deleteTeamAction(teamId: string): Promise<void> {
   const { tenant } = await requireTenantAdmin();
   const team = await prisma.team.findUnique({ where: { id: teamId } });
