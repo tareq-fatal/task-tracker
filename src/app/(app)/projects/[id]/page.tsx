@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban } from "lucide-react";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
+import { AddTasksToProjectDialog } from "@/components/add-tasks-to-project-dialog";
 import { RestoreProjectButton } from "@/components/restore-project-button";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -112,12 +113,28 @@ export default async function ProjectDetailPage({
   const base = { projectId: project.id, ...(await taskVisibility(user, tenant.id)) };
   const where = { AND: [base, buildTaskWhere(filters)] };
 
-  const [options, total, tasks] = await Promise.all([
+  const [options, total, tasks, candidateRows] = await Promise.all([
     loadFilterOptions(user, tenant.id),
     prisma.task.count({ where: base }),
     prisma.task.findMany({ where, select: taskCardSelect }),
+    // Picker: existing tasks an admin may attach to THIS project — everything
+    // in the tenant that isn't already here (soft-deletes excluded by the
+    // prisma extension, archived stays out of the picker).
+    isAdmin
+      ? prisma.task.findMany({
+          where: {
+            tenantId: tenant.id,
+            status: { not: "Archived" },
+            OR: [{ projectId: null }, { projectId: { not: project.id } }],
+          },
+          select: { id: true, title: true, project: { select: { name: true } } },
+          orderBy: { updatedAt: "desc" },
+          take: 300,
+        })
+      : Promise.resolve([]),
   ]);
   tasks.sort((a, b) => compareTasks(a, b));
+  const candidates = candidateRows.map((c) => ({ id: c.id, title: c.title, projectName: c.project?.name ?? null }));
 
   return (
     <div className="container py-6">
@@ -165,6 +182,9 @@ export default async function ProjectDetailPage({
               {t["projects.openBoard"]}
             </Link>
           </Button>
+          {isAdmin && (
+            <AddTasksToProjectDialog projectId={project.id} candidates={candidates} />
+          )}
           <Button asChild>
             <Link href={`/tasks/new?project=${project.id}`}>
               <Plus className="me-1 h-4 w-4" />
