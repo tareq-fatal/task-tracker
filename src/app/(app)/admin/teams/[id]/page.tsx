@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { TeamMembers } from "@/components/team-members";
 import { DeleteTeamButton } from "@/components/delete-team-button";
+import { EditTeamDialog } from "@/components/edit-team-dialog";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,6 +102,7 @@ export default async function TeamDetailPage({
               {t["nav.newTask"]}
             </Link>
           </Button>
+          <EditTeamDialog teamId={team.id} name={team.name} description={team.description} />
           <DeleteTeamButton
             teamId={team.id}
             label={t["task.delete"]}

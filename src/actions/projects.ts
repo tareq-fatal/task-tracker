@@ -41,6 +41,29 @@ export async function createProjectAction(
   redirect(`/projects/${project.id}`);
 }
 
+/** Rename/edit a project (name + description) — admin-only, tenant-scoped. */
+export async function updateProjectAction(
+  projectId: string,
+  input: { name: string; description: string }
+): Promise<{ ok?: boolean; error?: string }> {
+  const { user, tenant } = await requireTenant();
+  if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
+  const parsed = projectSchema
+    .pick({ name: true, description: true })
+    .safeParse(input);
+  if (!parsed.success) return { error: "EMPTY_NAME" };
+  const project = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!project || project.tenantId !== tenant.id) return { error: "NOT_FOUND" };
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { name: parsed.data.name, description: parsed.data.description || null },
+  });
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
+}
+
 /** Members of a project + the tenant users not yet on it (admin picker). */
 export async function getProjectMembersView(projectId: string) {
   const { user, tenant } = await requireTenant();

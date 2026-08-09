@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban } from "lucide-react";
 import { DeleteProjectButton } from "@/components/delete-project-button";
+import { EditProjectDialog } from "@/components/edit-project-dialog";
 import { RestoreProjectButton } from "@/components/restore-project-button";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -144,6 +145,9 @@ export default async function ProjectDetailPage({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <EditProjectDialog projectId={project.id} name={project.name} description={project.description} />
+          )}
           {isAdmin && (
             <DeleteProjectButton projectId={project.id} projectName={project.name} />
           )}
