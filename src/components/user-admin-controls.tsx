@@ -15,6 +15,7 @@ import {
 export type UserRow = {
   id: string;
   name: string;
+  username: string;
   email: string | null;
   phone: string | null;
   locale: string;
@@ -141,24 +142,47 @@ export function UserAdminControls({
               </button>
             </div>
             <div className="space-y-3">
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("users.name")} />
-              <Input dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
-              <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t("users.phone")} />
-              <select
-                value={form.locale}
-                onChange={(e) => setForm({ ...form, locale: e.target.value })}
-                className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
-              >
-                <option value="ar">العربية</option>
-                <option value="de">Deutsch</option>
-                <option value="en">English</option>
-                <option value="tr">Türkçe</option>
-              </select>
-              {err && <p className="text-xs text-destructive">{err}</p>}
+              {/* Login id is fixed — labeled and visibly disabled so it can't be
+                  mistaken for the (editable) display name right below, which
+                  often holds the identical string. */}
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("login.username")}</label>
+                <Input dir="ltr" value={user.username} disabled />
+              </div>
+              <div>
+                <label htmlFor={`edit-user-name-${user.id}`} className="mb-1 block text-xs font-medium text-muted-foreground">{t("users.name")}</label>
+                <Input id={`edit-user-name-${user.id}`} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("users.name")} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("admin.users.email")}</label>
+                <Input dir="ltr" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@example.com" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("users.phone")}</label>
+                <Input dir="ltr" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={t("users.phone")} />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("settings.language")}</label>
+                <select
+                  value={form.locale}
+                  onChange={(e) => setForm({ ...form, locale: e.target.value })}
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                >
+                  <option value="ar">العربية</option>
+                  <option value="de">Deutsch</option>
+                  <option value="en">English</option>
+                  <option value="tr">Türkçe</option>
+                </select>
+              </div>
+              {err && (
+                <p className="text-xs text-destructive">
+                  {t((["EMPTY_NAME", "BAD_EMAIL", "EMAIL_TAKEN"].includes(err) ? `users.err.${err}` : "users.err.ERR") as Parameters<typeof t>[0])}
+                </p>
+              )}
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setEditOpen(false)}>{t("project.delete.cancel")}</Button>
                 <Button
-                  disabled={pending}
+                  disabled={pending || !form.name.trim()}
                   onClick={() =>
                     start(async () => {
                       const res = await updateUserBasicAction(user.id, form).catch(() => ({ error: "ERR" }));

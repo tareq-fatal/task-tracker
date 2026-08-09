@@ -85,6 +85,7 @@ export default async function AdminUsersPage() {
                 user={{
                   id: u.id,
                   name: u.name,
+                  username: u.username,
                   email: u.email,
                   phone: u.phone,
                   locale: u.locale,
