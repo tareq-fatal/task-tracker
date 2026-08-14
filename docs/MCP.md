@@ -99,6 +99,17 @@ kennt den Status: die Scrum-Spalte `to-verify` („Zur Prüfung", 🔍) unter
 **Ansichten**. `statusForColumn()` bildet sie bewusst auf `InProgress` ab, eine
 Aufgabe dort zählt also nicht als erledigt (`src/lib/scrum.ts`).
 
+Seit PR #79 geht das über die Schnittstelle selbst — erst der Kommentar an
+Tarek, dann die Spalte:
+
+```js
+await mcp("add_comment", { taskId, content: "@tarekfatal Fertig: … Zu prüfen: … Zu sehen: …" });
+await mcp("update_task", { taskId, assignee: "tarekfatal", scrumColumn: "to-verify" });
+```
+
+Der Zug läuft durch dasselbe Gate wie ein Ziehen auf dem Board und pingt die
+Person, die abnehmen soll. Ohne Node-Zugriff weiterhin auf dem VPS:
+
 ```bash
 bash infra/mcp-taskcare.sh --review --keys "TOF-0119,TOF-0120"
 ```
@@ -177,9 +188,22 @@ dem Stand der Datei ist. Also: Datei ändern, committen, Skript laufen lassen.
 > sortieren nach Priorität, und `Titel` ist eine klickbare Sortierspalte, in der
 > `TOF-0000` zuerst kommt. Erfasst als TOF-0147.
 
-Warum das alles über ein Skript statt über die MCP läuft: `POST /api/mcp`
-kennt weder Verknüpfungen noch die Scrum-Spalte, und `update_task` hat kein
-Zuweisungsfeld (nur `create_task`). Erfasst als TOF-0144 bis TOF-0146.
+**4. Fertig heißt: erst Kommentar, dann Prüf-Status.** Ein `add_comment`, der
+mit `@tarekfatal` beginnt und in drei Zeilen sagt, was gemacht wurde, was zu
+prüfen ist und wo man es sieht — danach `scrumColumn: "to-verify"`. Nie `Done`.
+Die Erwähnung wird serverseitig ausgewertet, also auch aus einer Sitzung: die
+Antwort von `add_comment` nennt unter `mentions.notified`, wer benachrichtigt
+wurde, und unter `mentions.unknown` jeden `@namen`, den es nicht gibt. Steht
+dort ein Name, hat ihn niemand bekommen (TOF-0386).
+
+**5. Immer die Aufgabennummer nennen.** Jede Rückmeldung an Tarek trägt ihre
+`TOF-XXXX`. Gibt es für die Arbeit noch keine Aufgabe, wird sie zuerst angelegt.
+
+Was die MCP seit PR #79 selbst kann: zuweisen (`assignee`, nimmt den
+**Benutzernamen**), die Scrum-Spalte setzen (`scrumColumn`), die Menschen des
+Mandanten auflisten (`list_users`). Was ihr weiterhin fehlt: **Verknüpfungen**
+(`TaskLink`) — dafür bleibt `infra/mcp-taskcare.sh` auf dem VPS nötig. Erfasst
+als TOF-0144 bis TOF-0146.
 
 ## 2. Claude Code einrichten
 
