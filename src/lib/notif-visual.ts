@@ -12,6 +12,7 @@ export type NotifVisual = {
 const VISUALS: Record<string, NotifVisual> = {
   assigned: { icon: "user-plus", circle: "bg-indigo-500" },
   status: { icon: "refresh-cw", circle: "bg-sky-500" },
+  review: { icon: "search-check", circle: "bg-fuchsia-500" },
   comment: { icon: "message-square", circle: "bg-blue-500" },
   mention: { icon: "at-sign", circle: "bg-violet-500" },
   due_soon: { icon: "clock", circle: "bg-amber-500" },

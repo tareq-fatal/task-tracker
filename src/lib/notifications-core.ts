@@ -3,6 +3,7 @@
 export const NOTIFICATION_EVENTS = [
   "assigned",
   "status",
+  "review", // „Zur Prüfung" — jemand bittet um Abnahme
   "comment",
   "mention",
   "due_soon",
@@ -28,7 +29,15 @@ export function isNotificationEvent(v: string): v is NotificationEvent {
 export function defaultPrefs(event: NotificationEvent): ChannelPrefs {
   // In-app always on by default; web/native push on; email off (opt-in).
   // Noisy bulk events (due_soon/overdue) default email-on since they're digest-y.
-  const emailDefault = event === "due_soon" || event === "overdue";
+  // E-Mail ist grundsätzlich opt-in, AUSSER bei den drei Ereignissen, die eine
+  // Person direkt adressieren (Erwähnung, Zuweisung, Bitte um Abnahme) und bei
+  // den Sammel-Erinnerungen. Alles davon bleibt pro Benutzer abschaltbar.
+  const emailDefault =
+    event === "due_soon" ||
+    event === "overdue" ||
+    event === "mention" ||
+    event === "assigned" ||
+    event === "review";
   return { inApp: true, webPush: true, email: emailDefault, native: true };
 }
 

@@ -33,7 +33,7 @@ function opBlocks(): Map<string, string> {
 
 const OPS = opBlocks();
 
-const READ_OPS = ["whoami", "list_projects", "list_tasks", "get_task", "list_steps"];
+const READ_OPS = ["whoami", "list_projects", "list_tasks", "list_users", "get_task", "list_steps"];
 const WRITE_OPS = [
   "create_task",
   "update_task",

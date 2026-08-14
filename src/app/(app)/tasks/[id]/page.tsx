@@ -38,6 +38,7 @@ import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
 import { AttachmentGallery } from "@/components/attachment-gallery";
+import { CommentBody } from "@/components/comment-body";
 import { isImageMime, isInlineViewable } from "@/lib/attachment-view";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { VoiceNotePlayer } from "@/components/voice-note-player";
@@ -229,6 +230,15 @@ export default async function TaskDetailPage({
       </div>
     );
   }
+
+  // Wer im eigenen Mandanten erwähnt werden kann. Dieselbe Liste entscheidet
+  // über die Hervorhebung im Kommentar wie über den Versand der
+  // Benachrichtigung — eine Erwähnung quer über Mandanten ist damit weder
+  // sichtbar noch zustellbar.
+  const mentionUsers = await prisma.user.findMany({
+    where: { tenantId: tenant.id, deactivatedAt: null },
+    select: { id: true, username: true, name: true },
+  });
 
   // Uploader names for the attachment meta line ("wer · wann") — uploadedBy
   // is a bare id column (no relation); one batched lookup covers all cards.
@@ -946,7 +956,7 @@ export default async function TaskDetailPage({
                       }
                     />
                   ) : (
-                    <p className="whitespace-pre-wrap text-sm">{c.content}</p>
+                    <CommentBody content={c.content} users={mentionUsers} canLink={isAdminRole(user.role)} />
                   )}
                 </div>
                 </CommentShell>

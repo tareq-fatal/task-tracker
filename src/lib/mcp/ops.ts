@@ -8,11 +8,17 @@ import { isAdminRole, isStaffRole, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } 
 import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { progressFromSubtasks } from "@/lib/tasks";
+import { isScrumColumn, statusForColumn, SCRUM_COLUMNS } from "@/lib/scrum";
+
+/** Scrum column keys as a zod-friendly tuple. */
+const SCRUM_COLUMN_KEYS = SCRUM_COLUMNS.map((c) => c.key) as unknown as [string, ...string[]];
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME, MIME_EXTENSION } from "@/lib/validation";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { writeThumbnail } from "@/lib/thumbnail";
 import { notifyMany } from "@/lib/notifications";
 import { notifyMentions } from "@/lib/mentions";
+import { unknownMentions } from "@/lib/mention-render";
+import { notifyReviewRequested } from "@/lib/review-notify";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
 import { formatPromptComment } from "./prompt-format";
@@ -77,6 +83,21 @@ async function assertCanEditContent(ctx: McpContext, taskId: string) {
     throw new McpError("forbidden", 403);
   }
   return task;
+}
+
+/**
+ * Resolve "who is next?" from either a username or a user id — always inside
+ * the active tenant. Agents think in names ("claude", "tarekfatal"), the
+ * database thinks in ids; without this the MCP could only assign by id, which
+ * no session has at hand.
+ */
+async function resolveTenantUser(tenantId: string, ref: string): Promise<string> {
+  const user = await prisma.user.findFirst({
+    where: { tenantId, deactivatedAt: null, OR: [{ id: ref }, { username: ref.toLowerCase() }] },
+    select: { id: true },
+  });
+  if (!user) throw new McpError(`no such user in this mandant: ${ref}`, 404);
+  return user.id;
 }
 
 /**
@@ -234,6 +255,21 @@ export const OPS: Record<string, McpOp> = {
         color: p.color,
         taskCount: p._count.tasks,
       }));
+    },
+  },
+
+  list_users: {
+    scope: "read",
+    describe:
+      "The people in my mandant — needed to assign a task or to write an @mention that actually resolves.",
+    schema: z.object({}).strict(),
+    run: async (ctx) => {
+      const users = await prisma.user.findMany({
+        where: { tenantId: ctx.tenant.id, deactivatedAt: null },
+        select: { id: true, name: true, username: true, role: true },
+        orderBy: { name: "asc" },
+      });
+      return users;
     },
   },
 
@@ -487,7 +523,7 @@ export const OPS: Record<string, McpOp> = {
   update_task: {
     scope: "write",
     describe:
-      "Update a task. `descriptionAppend` adds a paragraph without overwriting what is already there.",
+      "Update a task. `descriptionAppend` adds a paragraph without overwriting what is already there. `assignee` takes a username, `scrumColumn` moves the card (use \"to-verify\" for Zur Prüfung).",
     schema: z
       .object({
         taskId: idSchema,
@@ -498,6 +534,11 @@ export const OPS: Record<string, McpOp> = {
         priority: z.enum(TASK_PRIORITIES).optional(),
         projectId: idSchema.nullable().optional(),
         dueDate: z.string().trim().datetime({ offset: true }).nullable().optional(),
+        // "Wer ist als Nächstes dran?" — username or user id, null clears it.
+        assignee: z.string().trim().min(1).max(120).nullable().optional(),
+        // Scrum column, incl. "to-verify" (Zur Prüfung). Keeps `status`
+        // coherent exactly like a drag on the board does.
+        scrumColumn: z.enum(SCRUM_COLUMN_KEYS).optional(),
       })
       .strict()
       .refine(
@@ -508,7 +549,9 @@ export const OPS: Record<string, McpOp> = {
           v.status !== undefined ||
           v.priority !== undefined ||
           v.projectId !== undefined ||
-          v.dueDate !== undefined,
+          v.dueDate !== undefined ||
+          v.assignee !== undefined ||
+          v.scrumColumn !== undefined,
         { message: "nothing to update" }
       ),
     run: async (
@@ -522,6 +565,8 @@ export const OPS: Record<string, McpOp> = {
         priority?: string;
         projectId?: string | null;
         dueDate?: string | null;
+        assignee?: string | null;
+        scrumColumn?: string;
       }
     ) => {
       const contentChange =
@@ -552,18 +597,42 @@ export const OPS: Record<string, McpOp> = {
         data.projectId = rel.projectId;
       }
 
-      if (params.status !== undefined && params.status !== task.status) {
+      // A scrum move implies a status — resolve it first so the gate below
+      // sees the effective target, exactly like setTaskScrumColumnAction.
+      let wantStatus = params.status;
+      if (params.scrumColumn !== undefined) {
+        if (!isScrumColumn(params.scrumColumn)) {
+          throw new McpError(`unknown scrum column: ${params.scrumColumn}`, 400);
+        }
+        data.scrumColumn = params.scrumColumn;
+        wantStatus = statusForColumn(params.scrumColumn);
+      }
+
+      if (params.assignee !== undefined) {
+        // Non-admins may only put a task on themselves — the same rule the
+        // assignment control enforces in the UI.
+        const wanted =
+          params.assignee === null
+            ? null
+            : await resolveTenantUser(ctx.tenant.id, params.assignee);
+        if (!isAdminRole(ctx.user.role) && wanted !== ctx.user.id) {
+          throw new McpError("only an admin may assign a task to someone else", 403);
+        }
+        data.assignedToUserId = wanted;
+      }
+
+      if (wantStatus !== undefined && wantStatus !== task.status) {
         // Admin workflow control: target column, mandatory todos, mandatory
         // time tracking. Non-admins hit exactly the same gate as in the UI.
-        const gate = await statusGateFor(params.taskId, ctx.user.role, task.status, params.status);
+        const gate = await statusGateFor(params.taskId, ctx.user.role, task.status, wantStatus);
         if (!gate.ok) {
           // TARGET_LOCKED | TODOS_OPEN | TIME_REQUIRED — passed through verbatim
           // so the agent can explain precisely why the move was refused.
           throw new McpError(`status change blocked: ${gate.error}`, 409);
         }
-        data.status = params.status;
-        data.completedAt = params.status === "Done" ? new Date() : null;
-        if (params.status === "Done") data.progress = 100;
+        data.status = wantStatus;
+        data.completedAt = wantStatus === "Done" ? new Date() : null;
+        if (wantStatus === "Done") data.progress = 100;
       }
 
       const updated = await prisma.task.update({
@@ -573,6 +642,39 @@ export const OPS: Record<string, McpOp> = {
       });
 
       await logActivity(params.taskId, ctx.user.id, "updated", "via MCP");
+
+      // Whoever just became responsible gets told — otherwise "assign to the
+      // person who is next" is a silent change nobody sees.
+      if (
+        typeof data.assignedToUserId === "string" &&
+        data.assignedToUserId !== task.assignedToUserId
+      ) {
+        await prisma.taskAssignee
+          .create({ data: { taskId: params.taskId, userId: data.assignedToUserId } })
+          .catch(() => undefined); // already a co-assignee
+        await notifyMany([data.assignedToUserId], {
+          tenantId: ctx.tenant.id,
+          type: "assigned",
+          titleKey: "notif.t.assignedNew",
+          body: updated.title,
+          url: `/tasks/${params.taskId}`,
+          taskId: params.taskId,
+          actorUserId: ctx.user.id,
+        });
+      }
+
+      // "Zur Prüfung" is a request directed at a person: it must ping, or the
+      // hand-over rule ("Tarek nimmt ab") depends on him noticing by chance.
+      if (data.scrumColumn === "to-verify" && task.scrumColumn !== "to-verify") {
+        await notifyReviewRequested({
+          tenantId: ctx.tenant.id,
+          taskId: params.taskId,
+          taskTitle: updated.title,
+          assignedToUserId: (data.assignedToUserId as string | null | undefined) ?? task.assignedToUserId,
+          createdByUserId: task.createdByUserId,
+          actor: { id: ctx.user.id, name: ctx.user.name },
+        });
+      }
       // "task.completed" is the only status-related webhook the product defines
       // (WEBHOOK_EVENTS) — other transitions stay silent, as they do in the UI.
       if (data.status === "Done") {
@@ -589,7 +691,8 @@ export const OPS: Record<string, McpOp> = {
 
   add_comment: {
     scope: "write",
-    describe: "Add a comment to a task (notifies watchers, like a comment written in the UI).",
+    describe:
+      "Add a comment to a task (notifies watchers, like a comment written in the UI). @mentions are resolved server-side; the reply reports who was notified and which names matched nobody.",
     schema: z.object({ taskId: idSchema, content: z.string().trim().min(1).max(4000) }).strict(),
     run: async (ctx, params: { taskId: string; content: string }) => {
       const task = await assertCanAct(ctx, params.taskId);
@@ -633,7 +736,24 @@ export const OPS: Record<string, McpOp> = {
         actorUserId: ctx.user.id,
       });
 
-      return { id: comment.id, createdAt: comment.createdAt.toISOString() };
+      // Ehrliche Rückmeldung: ein @-Name, den es im Mandanten nicht gibt, ist
+      // nur Text — die Sitzung soll das erfahren und nicht glauben, sie habe
+      // jemanden erreicht. `notified` sind die tatsächlich Benachrichtigten
+      // (Erwähnte, die die Aufgabe auch sehen dürfen).
+      const tenantUsers = await prisma.user.findMany({
+        where: { tenantId: ctx.tenant.id, deactivatedAt: null },
+        select: { id: true, username: true, name: true },
+      });
+      const unknown = unknownMentions(params.content, tenantUsers);
+
+      return {
+        id: comment.id,
+        createdAt: comment.createdAt.toISOString(),
+        mentions: {
+          notified: tenantUsers.filter((u) => mentionedIds.has(u.id)).map((u) => u.username),
+          unknown,
+        },
+      };
     },
   },
 

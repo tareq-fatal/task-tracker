@@ -63,6 +63,18 @@ services:
       # Secrets are resolved from files by the entrypoint (the *_FILE convention).
       DATABASE_URL_FILE: /run/secrets/database_url
       SESSION_SECRET_FILE: /run/secrets/session_secret
+      # E-Mail-Versand (docs/EMAIL-SETUP.md). Alles optional: ohne Werte
+      # verschickt die Anwendung keine E-Mail und läuft unverändert weiter.
+      # Werte kommen aus deployment/.env neben dieser Datei.
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      APP_URL: ${APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
     secrets:
       - database_url
       - session_secret

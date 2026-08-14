@@ -125,7 +125,7 @@ export async function processExportJob(job: JobRow): Promise<{ ok: boolean; erro
 }
 
 async function notifyReady(job: JobRow, locale: Locale, fileName: string): Promise<void> {
-  if (!emailEnabled || !job.userEmail) return;
+  if (!emailEnabled() || !job.userEmail) return;
   const t = makeExportT(locale);
   const url = `/download/export/${job.id}?token=${job.token}`;
   const html = basicEmailTemplate(

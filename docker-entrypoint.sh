@@ -13,7 +13,7 @@ set -e
 # and pass SESSION_SECRET_FILE=/run/secrets/session_secret instead of baking the
 # plaintext into the environment. If <VAR> is already set it is left untouched;
 # <VAR>_FILE wins only when <VAR> is empty.
-for var in DATABASE_URL SESSION_SECRET VAPID_PRIVATE_KEY ADMIN_PASSWORD DEMO_PASSWORD; do
+for var in DATABASE_URL SESSION_SECRET VAPID_PRIVATE_KEY ADMIN_PASSWORD DEMO_PASSWORD SMTP_PASSWORD RESEND_API_KEY; do
   eval cur_val="\${$var:-}"
   eval file_path="\${${var}_FILE:-}"
   if [ -z "$cur_val" ] && [ -n "$file_path" ]; then
