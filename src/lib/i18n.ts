@@ -2,6 +2,8 @@ import { DEFAULT_LOCALE, type Locale } from "./enums";
 
 export const dictionaries = {
   ar: {
+    "notif.ev.review": "طلب مراجعة",
+    "notif.t.review": "🔍 مهمة بانتظار مراجعتك",
     "nav.next": "التالي",
     "next.title": "التالي",
     "next.subtitle": "عشر مهام على الأكثر بانتظارك الآن.",
@@ -1165,6 +1167,8 @@ export const dictionaries = {
     "export.activityDays": "المدة (أيام)",
   },
   de: {
+    "notif.ev.review": "Zur Prüfung",
+    "notif.t.review": "🔍 Aufgabe wartet auf deine Prüfung",
     "nav.next": "Als Nächstes",
     "next.title": "Als Nächstes",
     "next.subtitle": "Höchstens zehn Aufgaben, die jetzt auf dich warten.",
@@ -2325,6 +2329,8 @@ export const dictionaries = {
     "export.activityDays": "Zeitraum (Tage)",
   },
   en: {
+    "notif.ev.review": "Review requested",
+    "notif.t.review": "🔍 A task is waiting for your review",
     "nav.next": "Up next",
     "next.title": "Up next",
     "next.subtitle": "At most ten tasks waiting on you right now.",
@@ -3485,6 +3491,8 @@ export const dictionaries = {
     "export.activityDays": "Time window (days)",
   },
   tr: {
+    "notif.ev.review": "İnceleme istendi",
+    "notif.t.review": "🔍 Bir görev incelemeni bekliyor",
     "nav.next": "Sırada",
     "next.title": "Sırada",
     "next.subtitle": "Şu anda seni bekleyen en fazla on görev.",

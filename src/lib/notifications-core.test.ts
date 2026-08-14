@@ -13,10 +13,20 @@ describe("isNotificationEvent / defaultPrefs", () => {
     expect(isNotificationEvent("assigned")).toBe(true);
     expect(isNotificationEvent("nope")).toBe(false);
   });
-  it("in-app on by default; email off except for due/overdue", () => {
-    expect(defaultPrefs("assigned")).toMatchObject({ inApp: true, email: false });
+  it("in-app on by default; email on for what is addressed at a person", () => {
+    // Geändert am 14.08.2026 (TOF-0387): die drei Ereignisse, die jemanden
+    // direkt ansprechen, kommen auch per E-Mail an — sonst hängt die Regel
+    // „fertig → @tarekfatal → Zur Prüfung" daran, dass er die App offen hat.
+    // Jede davon bleibt pro Benutzer abschaltbar.
+    expect(defaultPrefs("mention")).toMatchObject({ inApp: true, email: true });
+    expect(defaultPrefs("assigned").email).toBe(true);
+    expect(defaultPrefs("review").email).toBe(true);
     expect(defaultPrefs("due_soon").email).toBe(true);
     expect(defaultPrefs("overdue").email).toBe(true);
+    // Alltagsrauschen bleibt opt-in.
+    expect(defaultPrefs("comment")).toMatchObject({ inApp: true, email: false });
+    expect(defaultPrefs("status").email).toBe(false);
+    expect(defaultPrefs("reaction").email).toBe(false);
   });
 });
 
