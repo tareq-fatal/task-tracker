@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { initials, PRIORITY_ACCENT } from "@/lib/tasks";
 import type { TaskPriority } from "@/lib/enums";
 import { dueBucket, type DueBucket } from "@/lib/due";
+import { isImageMime } from "@/lib/attachment-view";
 import { formatDate } from "@/lib/format";
 import { StatusBadge, PriorityBadge } from "@/components/task-badges";
 import { ProgressBar } from "@/components/progress-bar";
@@ -30,6 +31,8 @@ export type TaskCardData = {
   _count?: { comments: number; attachments: number; subtasks: number };
   linksFrom?: { linkedTask: { status: string } }[];
   linksTo?: { task: { status: string } }[];
+  /** Image attachments for the card preview strip (max 3, see taskCardSelect). */
+  attachments?: { id: string; fileName: string; mimeType: string }[];
 };
 
 const PRIORITY_DOT: Record<TaskPriority, string> = {
@@ -59,6 +62,10 @@ export function TaskCard({
   const showBar = task.progress > 0 || subtaskCount > 0;
   const bucket = done ? null : dueBucket(task.dueDate, new Date());
   const avatarSrc = task.assignedTo?.avatar && /^https?:|^\//.test(task.assignedTo.avatar) ? task.assignedTo.avatar : undefined;
+  // SVG is deliberately excluded from inline rendering everywhere (stored-XSS),
+  // so it is not previewed here either.
+  const previews = (task.attachments ?? []).filter((a) => isImageMime(a.mimeType));
+  const extraImages = Math.max(0, (task._count?.attachments ?? 0) - previews.length);
   const openStatus = (s: string) => s !== "Done" && s !== "Archived";
   const waitingOn = done
     ? 0
@@ -125,6 +132,29 @@ export function TaskCard({
             </span>
           )}
         </div>
+
+        {/* Bildvorschau — "164 Zeilen Text helfen nicht" (Tarek, 14.08.2026).
+            Thumbnails come from the access-checked download route; a broken or
+            missing preview simply leaves the strip out. */}
+        {previews.length > 0 && (
+          <div className="mb-3 flex gap-1.5">
+            {previews.map((a) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={a.id}
+                src={`/download/attachment/${a.id}?thumb=1`}
+                alt={a.fileName}
+                loading="lazy"
+                className="h-14 w-14 rounded-md object-cover ring-1 ring-black/5"
+              />
+            ))}
+            {extraImages > 0 && (
+              <span className="grid h-14 w-14 place-items-center rounded-md bg-secondary text-xs font-medium text-muted-foreground">
+                +{extraImages}
+              </span>
+            )}
+          </div>
+        )}
 
         {showBar && (
           <div className="mb-3 space-y-1">

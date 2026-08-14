@@ -5,6 +5,7 @@ import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { parseOptions, type FieldType } from "@/lib/custom-fields";
+import { isImageMime } from "@/lib/attachment-view";
 import { TaskTable, type CustomCol } from "@/components/task-table";
 
 export default async function ListPage() {
@@ -17,6 +18,14 @@ export default async function ListPage() {
       select: {
         id: true, title: true, status: true, priority: true, dueDate: true, storyPoints: true,
         assignedTo: { select: { name: true } },
+        project: { select: { name: true, color: true } },
+        // Miniaturen in der Liste — bis zu drei Bilder je Zeile.
+        attachments: {
+          where: { deletedAt: null, mimeType: { startsWith: "image/" } },
+          orderBy: { uploadedAt: "asc" },
+          take: 3,
+          select: { id: true, fileName: true, mimeType: true },
+        },
         customValues: { select: { fieldId: true, value: true } },
       },
       take: 500,
@@ -46,6 +55,11 @@ export default async function ListPage() {
           id: r.id, title: r.title, status: r.status, priority: r.priority,
           dueDate: r.dueDate ? r.dueDate.toISOString() : null, storyPoints: r.storyPoints,
           assignedTo: r.assignedTo,
+          project: r.project,
+          // SVG bleibt außen vor (wird nirgends inline gerendert).
+          images: r.attachments
+            .filter((a) => isImageMime(a.mimeType))
+            .map((a) => ({ id: a.id, fileName: a.fileName })),
           custom: Object.fromEntries(r.customValues.map((v) => [v.fieldId, v.value])),
         }))}
         customFields={customFields}
