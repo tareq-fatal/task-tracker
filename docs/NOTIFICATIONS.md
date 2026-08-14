@@ -16,6 +16,22 @@ Events (each toggleable per channel, per user, in Settings → Notification pref
 Per-user: **quiet hours** (suppress push/email/native instantly, keep in-app) and
 a **daily digest** flag.
 
+## @-mentions
+
+Typing `@` in a comment opens a people picker (`MentionTextarea`) and inserts the
+**username** — `parseMentions` resolves mentions by username, not display name.
+A mention fires the `mention` event on every channel the recipient has enabled
+(in-app, web-push, Telegram — which rides the web-push preference — email,
+native), and the mentioned person is left out of the broader `comment`
+notification so nobody is pinged twice.
+
+Who can be mentioned is gated on **task visibility** (`canSeeTask`): staff see
+the whole tenant, everyone else only tasks they are involved in. The gate holds
+in both directions — the picker offers nobody else, and `notifyMentions` drops a
+hand-typed `@name` for someone without access. Without it, a mention would push
+the task title into a stranger's Telegram and link them to a task they can't
+open. The UI and the MCP `add_comment` op share that one helper.
+
 ## Setup (env)
 
 ```bash

@@ -39,7 +39,8 @@ import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
 import { parentTypeAllowed, wouldCreateCycle } from "@/lib/hierarchy";
 import { clampProgress, progressFromSubtasks, runningHours } from "@/lib/tasks";
 import { notify, notifyMany } from "@/lib/notifications";
-import { parseMentions, type NotificationEvent } from "@/lib/notifications-core";
+import { notifyMentions } from "@/lib/mentions";
+import { type NotificationEvent } from "@/lib/notifications-core";
 import {
   isBlockedByLinks,
   normalizeDependencyEdge,
@@ -900,28 +901,18 @@ export async function addCommentAction(
         excerpt: parsed.data.content.slice(0, 140),
       },
     });
-    const mentionNames = parseMentions(parsed.data.content);
-    const mentioned = mentionNames.length
-      ? await prisma.user.findMany({
-          where: { username: { in: mentionNames }, tenantId: task.tenantId },
-          select: { id: true },
-        })
-      : [];
-    const mentionedIds = new Set(mentioned.map((u) => u.id));
     // Body format (push + Telegram): task title, author, short excerpt — the
     // localized headline comes from titleKey per recipient locale.
     const commentBody = `«${task.title}»\n👤 ${user.name}: ${parsed.data.content.slice(0, 60)}`;
-    if (mentionedIds.size) {
-      await notifyMany([...mentionedIds], {
-        tenantId: task.tenantId,
-        type: "mention",
-        titleKey: "notif.t.mention",
-        body: commentBody,
-        url: `/tasks/${taskId}`,
-        taskId,
-        actorUserId: user.id,
-      });
-    }
+    // @mentions are resolved and delivered centrally (visibility-gated, all
+    // channels) so this path and the MCP one can't drift apart.
+    const mentionedIds = await notifyMentions({
+      content: parsed.data.content,
+      taskId,
+      taskTitle: task.title,
+      tenantId: task.tenantId,
+      actor: { id: user.id, name: user.name },
+    });
     // comment to watchers who weren't already mentioned — co-assignees
     // (#13 TaskAssignee) included, not just the Hauptkopf.
     const commentCoAssignees = await prisma.taskAssignee.findMany({

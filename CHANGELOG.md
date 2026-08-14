@@ -6,6 +6,13 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **@-mentions in comments** — typing `@` opens a people picker and inserts the
+  username, so a mention actually resolves. The mentioned person is notified on
+  every channel they have enabled (in-app, web push, Telegram, email, native)
+  and is left out of the plain `comment` notification, so nobody is pinged
+  twice. Candidates are gated on task visibility, and the MCP `add_comment` op
+  now parses mentions through the same helper — an agent writing `@name` pings
+  that person exactly like a human would
 - **Rename a Mandant** — BackendAdmins can change a Mandant's display name from
   the Mandanten list (pencil next to delete). The slug stays read-only in the
   dialog: it is the tenant's identity in the switch cookie, `/t/{slug}` links,

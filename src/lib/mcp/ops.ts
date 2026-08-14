@@ -11,6 +11,7 @@ import { progressFromSubtasks } from "@/lib/tasks";
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME, MIME_EXTENSION } from "@/lib/validation";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { notifyMany } from "@/lib/notifications";
+import { notifyMentions } from "@/lib/mentions";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
 import { formatPromptComment } from "./prompt-format";
@@ -591,6 +592,16 @@ export const OPS: Record<string, McpOp> = {
       });
       await logActivity(params.taskId, ctx.user.id, "comment", params.content.slice(0, 80));
 
+      // @mentions from the agent notify exactly like a comment written in the
+      // UI — same helper, same visibility gate, same channels.
+      const mentionedIds = await notifyMentions({
+        content: params.content,
+        taskId: params.taskId,
+        taskTitle: task.title,
+        tenantId: ctx.tenant.id,
+        actor: { id: ctx.user.id, name: ctx.user.name },
+      });
+
       const coAssignees = await prisma.taskAssignee.findMany({
         where: { taskId: params.taskId },
         select: { userId: true },
@@ -599,7 +610,7 @@ export const OPS: Record<string, McpOp> = {
         task.assignedToUserId,
         task.createdByUserId,
         ...coAssignees.map((a) => a.userId),
-      ].filter((x): x is string => Boolean(x));
+      ].filter((x): x is string => Boolean(x) && !mentionedIds.has(x as string));
       await notifyMany(watchers, {
         tenantId: ctx.tenant.id,
         type: "comment",
