@@ -322,7 +322,14 @@ export const OPS: Record<string, McpOp> = {
           },
           attachments: {
             where: { deletedAt: null },
-            select: { id: true, fileName: true, mimeType: true, sizeBytes: true, uploadedAt: true },
+            select: {
+              id: true,
+              fileName: true,
+              mimeType: true,
+              sizeBytes: true,
+              uploadedAt: true,
+              thumbPath: true,
+            },
             orderBy: { uploadedAt: "desc" },
           },
         },
@@ -343,6 +350,10 @@ export const OPS: Record<string, McpOp> = {
           mimeType: a.mimeType,
           sizeBytes: a.sizeBytes,
           uploadedAt: a.uploadedAt.toISOString(),
+          // Whether a downscaled preview exists. An agent that sees `false` on
+          // an image knows the card will fall back to the full file — that is
+          // the only externally visible signal that preview rendering broke.
+          hasPreview: a.thumbPath !== null,
         })),
       });
     },
