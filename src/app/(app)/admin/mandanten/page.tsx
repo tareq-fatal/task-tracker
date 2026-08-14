@@ -6,6 +6,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { getTenants } from "@/actions/tenants";
 import { TenantWizard } from "@/components/tenant-wizard";
 import { DeleteTenantButton } from "@/components/delete-tenant-button";
+import { RenameTenantButton } from "@/components/rename-tenant-button";
 import { TenantFeatureToggles } from "@/components/tenant-feature-toggles";
 import { translationConfigured } from "@/lib/translate";
 
@@ -39,6 +40,7 @@ export default async function TenantsPage() {
               }}
               translationConfigured={translationConfigured()}
             />
+            <RenameTenantButton tenantId={tn.id} tenantName={tn.name} tenantSlug={tn.slug} />
             <DeleteTenantButton tenantId={tn.id} tenantName={tn.name} ownTenantId={user.tenantId} />
           </li>
         ))}

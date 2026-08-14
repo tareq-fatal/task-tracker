@@ -6,6 +6,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Rename a Mandant** — BackendAdmins can change a Mandant's display name from
+  the Mandanten list (pencil next to delete). The slug stays read-only in the
+  dialog: it is the tenant's identity in the switch cookie, `/t/{slug}` links,
+  upload paths, sessions and audit payloads. The name is display-only, so the
+  rename is a pure relabel, logged to the DB audit trail
 - **MCP integration for Claude Code** — an agent can now work in the tracker:
   create/update tasks, manage checklist steps, upload attachments and list
   projects. Dependency-free stdio server at `mcp/task-tracker-mcp.mjs`, wired
