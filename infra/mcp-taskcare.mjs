@@ -134,8 +134,48 @@ async function main() {
     console.log(`\n  ${neu} neue Verknüpfungen, ${schon} bestanden bereits\n`);
   }
 
-  if (!flag("assign") && !flag("review") && !flag("link")) {
-    die("nichts zu tun — erwartet mindestens eines von --assign, --review, --link");
+  // ── Wiederaufnahme-Prompt (TOF-0000) ───────────────────────────────────────
+  // Der Prompt steht an zwei Stellen: docs/WIEDERAUFNAHME-PROMPT.md und als
+  // Aufgabe TOF-0000. Damit sie nicht auseinanderlaufen, ist die Datei die
+  // Quelle und dieser Schalter schreibt sie in die Aufgabe.
+  if (flag("resume-prompt")) {
+    const datei = arg("file") ?? "/app/.wiederaufnahme.md";
+    const { readFile } = await import("node:fs/promises");
+    let md;
+    try {
+      md = await readFile(datei, "utf8");
+    } catch {
+      die(`Datei nicht lesbar: ${datei}`);
+    }
+    // Alles nach der ersten Trennlinie ist der kopierfertige Block; davor steht
+    // nur die Erklärung für Leser des Repos.
+    const teile = md.split(/\r?\n---\r?\n/);
+    if (teile.length < 2) die("in der Datei fehlt die Trennlinie '---' vor dem Prompt");
+    const prompt = teile[1].trim();
+    if (!prompt) die("der Block nach der Trennlinie ist leer");
+
+    const t = byKey.get("TOF-0000");
+    if (!t) {
+      die(
+        "TOF-0000 existiert noch nicht — einmalig über die MCP anlegen " +
+          "(create_task, Projekt Task-Tracker, Priorität Critical), danach pflegt dieser Schalter sie."
+      );
+    }
+    const neu = "Diesen Text kopieren und in eine neue, leere Unterhaltung einfügen:\n\n" + prompt;
+    const aktuell = await prisma.task.findUnique({
+      where: { id: t.id },
+      select: { description: true },
+    });
+    if (aktuell.description === neu) {
+      console.log("  unverändert TOF-0000 ist schon auf dem Stand der Datei\n");
+    } else {
+      await prisma.task.update({ where: { id: t.id }, data: { description: neu } });
+      console.log(`  erneuert    TOF-0000 aus ${datei} (${neu.length} Zeichen)\n`);
+    }
+  }
+
+  if (!flag("assign") && !flag("review") && !flag("link") && !flag("resume-prompt")) {
+    die("nichts zu tun — erwartet mindestens eines von --assign, --review, --link, --resume-prompt");
   }
 }
 
