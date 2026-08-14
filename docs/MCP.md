@@ -52,6 +52,42 @@ npm run mcp:token -- revoke --id <tokenId> # sofort ungültig
 > Historie unter dem echten Namen — nicht als anonymer Roboter. Ein Token kann
 > weder die Rolle noch den Mandanten wechseln.
 
+### In Produktion: `infra/mcp-setup.sh`
+
+`npm run mcp:token` läuft **nicht** im Produktions-Container: das Runtime-Image
+enthält bewusst weder `tsx` noch `src/` (siehe `Dockerfile`), und `mcp-token.mjs`
+importiert `src/lib/api-token.ts` durch `tsx`. Auf dem VPS übernimmt deshalb
+`infra/mcp-setup.sh` — es macht aus „neuer Mandant soll den Tracker aus Claude
+Code bedienen können" einen Einzeiler:
+
+```bash
+bash infra/mcp-setup.sh \
+  --tenant-name "Tarek & Claude" --slug tarek-claude \
+  --owner-name Claude --owner-username claude \
+  --owner-email claude@tasks.coastshield.net --owner-password '…' \
+  --token-label "Claude Code" --scopes read,write
+```
+
+Der Reihe nach, jeder Schritt für sich wiederholbar:
+
+1. `prisma migrate deploy` (idempotent, läuft ohnehin bei jedem Container-Boot),
+2. Mandant nach Slug — nur angelegt, wenn er fehlt,
+3. Eigentümer nach Login-Namen — nur angelegt, wenn er fehlt, direkt als `Admin`
+   (wie `createTenantAction`), bestehende Passwörter/Rollen bleiben unangetastet,
+4. Token — ein aktiver Token mit demselben Etikett wird **wiederverwendet**
+   statt neu erzeugt (der Rohwert ist nicht wiederherstellbar, ein zweiter
+   Token würde den ersten stillschweigend verwaisen lassen),
+5. **Ende-zu-Ende-Prüfung** — der frische Token geht gegen das echte
+   `GET /api/mcp` und muss mit dem erwarteten Benutzer und Mandanten
+   antworten. Erst danach wird die `export`-Zeile ausgegeben.
+
+| Zusatzoption | Wirkung |
+| --- | --- |
+| `--rotate-token` | Widerruft die bisherigen Tokens dieses Etiketts und erzeugt einen neuen. |
+| `--reset-password` | Setzt das Passwort eines bestehenden Kontos neu (sonst nie angefasst). |
+| `--adopt-user` | Holt ein bestehendes Konto in diesen Mandanten — nur wenn es dort nichts besitzt. |
+| `--token-days N` | Befristet den Token. |
+
 ## 2. Claude Code einrichten
 
 Die Datei `.mcp.json` liegt bereits im Repo und liest zwei Umgebungsvariablen,
