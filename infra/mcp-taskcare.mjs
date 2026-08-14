@@ -65,11 +65,28 @@ async function main() {
     if (!user) die(`kein Benutzer '${username}'`);
     if (user.tenantId !== tenant.id) die(`'${username}' gehört nicht zu '${tenant.slug}'`);
 
-    // Nur Aufgaben ohne Zuständigen — eine bestehende Zuweisung wird nie
-    // überschrieben, sonst nimmt ein Lauf jemandem seine Aufgabe weg.
-    const offen = rows.filter((t) => !t.assignedToUserId);
-    for (const t of offen) {
-      await prisma.$transaction([
+    // Zwei Betriebsarten:
+    //   ohne --assign-keys  → nur Aufgaben OHNE Zuständigen. Eine bestehende
+    //                         Zuweisung wird nie überschrieben, sonst nimmt ein
+    //                         Massenlauf jemandem seine Aufgabe weg.
+    //   mit  --assign-keys  → genau diese Aufgaben, auch wenn sie schon jemandem
+    //                         gehören. Umhängen ist hier die Absicht.
+    const keys = (arg("assign-keys") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    let ziel;
+    if (keys.length > 0) {
+      ziel = [];
+      for (const k of keys) {
+        const t = byKey.get(k);
+        if (!t) { console.log(`  ?           ${k} nicht gefunden`); continue; }
+        if (t.assignedToUserId === user.id) { console.log(`  bereits     ${k} gehört schon ${user.username}`); continue; }
+        ziel.push(t);
+      }
+    } else {
+      ziel = rows.filter((t) => !t.assignedToUserId);
+    }
+
+    for (const t of ziel) {
+      const schritte = [
         prisma.task.update({ where: { id: t.id }, data: { assignedToUserId: user.id } }),
         // Der Hauptzuständige wird zusätzlich in TaskAssignee gespiegelt — so
         // macht es create_task auch, sonst fehlt die Aufgabe in Personen-Filtern.
@@ -78,10 +95,26 @@ async function main() {
           create: { taskId: t.id, userId: user.id },
           update: {},
         }),
-      ]);
+      ];
+      // Beim Umhängen den alten Hauptzuständigen aus der Spiegelung nehmen,
+      // sonst steht die Aufgabe weiter in seiner Personen-Liste.
+      if (t.assignedToUserId && t.assignedToUserId !== user.id) {
+        schritte.push(
+          prisma.taskAssignee.deleteMany({
+            where: { taskId: t.id, userId: t.assignedToUserId },
+          })
+        );
+      }
+      await prisma.$transaction(schritte);
+      if (keys.length > 0) console.log(`  umgehängt   ${t.title.split(" ")[0]} -> ${user.username}`);
     }
-    console.log(`  zugewiesen  ${offen.length} Aufgaben an ${user.name} (${user.username})`);
-    console.log(`  unberührt   ${rows.length - offen.length} (hatten schon eine Zuständigkeit)\n`);
+
+    if (keys.length > 0) {
+      console.log(`\n  ${ziel.length} Aufgaben auf ${user.name} (${user.username}) umgehängt\n`);
+    } else {
+      console.log(`  zugewiesen  ${ziel.length} Aufgaben an ${user.name} (${user.username})`);
+      console.log(`  unberührt   ${rows.length - ziel.length} (hatten schon eine Zuständigkeit)\n`);
+    }
   }
 
   // ── Prüf-Status ────────────────────────────────────────────────────────────

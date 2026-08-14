@@ -23,7 +23,7 @@ Regeln beim Arbeiten:
 
 - **Schließe keine Aufgabe selbst ab.** Was du fertig hast, kommt auf „Zur Prüfung" — Tarek nimmt ab. Im Repo `task-tracker` auf dem VPS: `bash infra/mcp-taskcare.sh --review --keys "TOF-XXXX"`.
 - **Verknüpfe, was zusammenhängt** — `--link --links "TOF-A:DependsOn:TOF-B"`, Typen `DependsOn`, `Blocks`, `RelatedTo`, `SubtaskOf`.
-- **Weise dir zu, woran du arbeitest** — `--assign --assign-to claude`. Alle Sessions handeln als Benutzer `claude`, weil sie sich denselben Token teilen.
+- **Weise jede Aufgabe jemandem zu** — die Frage ist immer „wer ist als Nächstes dran?". Bauen, prüfen und dokumentieren liegt bei `claude` (alle Sessions handeln als dieser Benutzer, weil sie sich denselben Token teilen). Auf `tarekfatal` gehört alles, was nur Tarek kann: Entscheidungen, Zugänge und Schlüssel liefern oder rotieren, SQL einspielen, Vorlagen importieren, App-Store-Formulare, Passwörter ändern, Hardware kaufen — und alles, was auf sein „Go" wartet. Aufgaben auf „Zur Prüfung" gehören ebenfalls ihm, er nimmt ab. Nichts bleibt unzugewiesen. Umhängen: `--assign --assign-to tarekfatal --assign-keys "TOF-XXXX,TOF-YYYY"`.
 - **Neue Aufgaben:** Titel `TOF-XXXX — Kurztitel`, fortlaufend, **immer mit Projekt**. Hol die höchste vergebene Nummer frisch aus der Datenbank, nicht aus einer Notiz — es arbeiten mehrere Agenten parallel. `list_tasks` liefert nur 100 Zeilen und taugt dafür nicht.
 - **Nie Zugangsdaten in Aufgabentexte.** Kein Passwort, kein Token, kein Schlüssel — schreib stattdessen „Zugangsdaten liegen bei Tarek".
 - **Beschreibungen kurz und ohne Jargon.** Tarek will keine Fachwortwände.

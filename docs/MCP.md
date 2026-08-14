@@ -115,10 +115,27 @@ bash infra/mcp-taskcare.sh --review --keys "TOF-0119,TOF-0120"
 bash infra/mcp-taskcare.sh --link --links "TOF-0013:DependsOn:TOF-0014,TOF-0011:SubtaskOf:TOF-0005"
 ```
 
-**3. Aufgaben zuweisen.** Eine Aufgabe, an der gearbeitet wird, gehört jemandem.
+**3. Aufgaben zuweisen — nach der Frage „wer ist als Nächstes dran?"**
+
+| Nächster Schritt | Zuständig |
+| --- | --- |
+| eine Session baut, prüft, dokumentiert | `claude` |
+| eine Entscheidung (Frontend-Weg, Paket-Kennung, löschen ja/nein) | `tarekfatal` |
+| Zugang, Schlüssel oder Lizenz liefern bzw. rotieren | `tarekfatal` |
+| SQL einspielen, Vorlage importieren, Konto anlegen | `tarekfatal` |
+| App-Store-Formulare, Passwörter ändern, Hardware kaufen | `tarekfatal` |
+| irgendetwas wartet auf sein „Go" | `tarekfatal` |
+| Aufgabe steht auf **Zur Prüfung** | `tarekfatal` (er nimmt ab) |
+
+Nichts bleibt unzugewiesen — sonst geht es unter. Was auf `tarekfatal` liegt,
+ist seine To-do-Liste; was auf `claude` liegt, ist Arbeit für eine Session.
 
 ```bash
+# Massenlauf: nur Aufgaben OHNE Zuständigen, überschreibt nie
 bash infra/mcp-taskcare.sh --assign --assign-to claude
+
+# gezielt umhängen (überschreibt bewusst)
+bash infra/mcp-taskcare.sh --assign --assign-to tarekfatal --assign-keys "TOF-0060,TOF-0074"
 ```
 
 > **Ein Token = ein Benutzer.** Alle Sessions, die sich denselben Token teilen,
