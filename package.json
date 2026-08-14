@@ -22,7 +22,9 @@
     "apk:debug": "cd android && ./gradlew assembleDebug",
     "apk:release": "cd android && ./gradlew assembleRelease",
     "audit:tenant": "node scripts/audit-tenant-scope.mjs",
-    "openapi:gen": "tsx scripts/gen-openapi.mjs"
+    "openapi:gen": "tsx scripts/gen-openapi.mjs",
+    "mcp:token": "tsx scripts/mcp-token.mjs",
+    "mcp:serve": "node mcp/task-tracker-mcp.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -71,3 +71,6 @@ deployment/**/*.zip
 
 # runtime upload storage (K-6: moved out of public/)
 /var/uploads/
+
+# MCP: which task the local session journals prompts onto (per-machine state)
+/.claude/task-tracker-active.json

@@ -60,6 +60,25 @@ These are meant to be invoked by an external scheduler (cron, GitHub Actions,
 a systemd timer on the VPS) — the app itself does not run a background job
 loop.
 
+### MCP / agent integration (requires a per-user `Bearer tt_mcp_…` token)
+
+| Route | Methods | Purpose |
+| --- | --- | --- |
+| `/api/mcp` | `GET` | Discovery — the identity the token acts as, its scopes, and the ops it may call |
+| `/api/mcp` | `POST` | Single RPC entry point: `{ "op": "...", "params": { ... } }` |
+
+This is the **only** part of the product with a real machine-callable write
+API. It is one RPC route rather than a REST tree because an agent calls tools
+by name — one dispatch point means exactly one auth check and one scope check
+to audit (`src/app/api/mcp/route.ts` → `src/lib/mcp/ops.ts`).
+
+Unlike the cron routes there is no shared secret: access is per-user
+`ApiToken` rows (SHA-256-hashed, `read` or `read,write` scope, revocable,
+optionally expiring). A token binds one user **and** one tenant, so every op
+runs with that person's role inside their mandant and inherits the same
+guards as the UI — including the `404 not found` (never `403`) answer for a
+task in another tenant. See [MCP.md](MCP.md).
+
 ## Server Actions (`src/actions/**`)
 
 One file per resource; every action re-derives the current user + tenant

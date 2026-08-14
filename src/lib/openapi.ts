@@ -324,6 +324,17 @@ const securitySchemes: Json = {
       "equal the server's `SYNC_SECRET` env var. When `SYNC_SECRET` is unset the " +
       "endpoints return `503`.",
   },
+  mcpToken: {
+    type: "http",
+    scheme: "bearer",
+    description:
+      "Per-user machine token for the MCP endpoint (`tt_mcp_…`), sent as " +
+      "`Authorization: Bearer`. Minted with `npm run mcp:token -- mint --user <username>`; " +
+      "only its SHA-256 hash is stored, so the value is shown exactly once. The token " +
+      "binds ONE user and ONE tenant — every call runs with that user's role inside that " +
+      "mandant and cannot widen either. Carries a `read` or `read,write` scope, and is " +
+      "refused once revoked, expired, or when its user is deactivated.",
+  },
   oauth2: {
     type: "oauth2",
     description:
@@ -501,6 +512,100 @@ const paths: Json = {
       { ok: true, ran: 1 }
     ),
   },
+  "/api/mcp": {
+    get: {
+      summary: "MCP discovery — identity and available operations",
+      description:
+        "Returns the user/tenant the token acts as, its scopes, and the operations it may " +
+        "call. Used by the MCP server (`mcp/task-tracker-mcp.mjs`) and as a connectivity " +
+        "check. See [MCP.md](https://github.com/tareq-fatal/task-tracker/blob/main/docs/MCP.md).",
+      tags: ["MCP"],
+      security: [{ mcpToken: [] }],
+      responses: {
+        "200": {
+          description: "Token is valid.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  ok: { type: "boolean" },
+                  user: { type: "object" },
+                  tenant: { type: "object" },
+                  scopes: { type: "array", items: { type: "string", enum: ["read", "write"] } },
+                  ops: { type: "array", items: { type: "object" } },
+                },
+              },
+              example: {
+                ok: true,
+                user: { id: "clx…", name: "Tarek", username: "tarek", role: "Admin" },
+                tenant: { id: "clx…", slug: "objektus", name: "Objektus" },
+                scopes: ["read", "write"],
+                ops: [{ name: "create_task", scope: "write", describe: "Create a task…" }],
+              },
+            },
+          },
+        },
+        "401": {
+          description:
+            "Missing, unknown, revoked or expired token — or its user is deactivated. All " +
+            "four are reported identically so the endpoint cannot be used to probe tokens.",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "unauthorized" } } },
+        },
+      },
+    },
+    post: {
+      summary: "MCP operation call (RPC)",
+      description:
+        "Single RPC entry point: `{ \"op\": \"<name>\", \"params\": { … } }`. Deliberately not a " +
+        "REST tree — an agent calls tools by name, so one dispatch point keeps the whole " +
+        "machine-facing surface to exactly one auth check and one scope check.\n\n" +
+        "Read ops: `whoami`, `list_tasks`, `get_task`, `list_steps`, `list_projects`. " +
+        "Write ops (need the `write` scope): `create_task`, `update_task`, `add_comment`, " +
+        "`log_prompt`, `add_step`, `complete_step`, `upload_attachment`, `create_project`.\n\n" +
+        "Every op inherits the token user's permissions: a task in another tenant reports " +
+        "`404 task not found`, never `403`.",
+      tags: ["MCP"],
+      security: [{ mcpToken: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["op"],
+              properties: {
+                op: { type: "string", description: "Operation name." },
+                params: { type: "object", description: "Operation parameters; schema per op (strict — unknown keys are rejected)." },
+              },
+            },
+            example: {
+              op: "create_task",
+              params: { title: "Kalender: Feiertage anzeigen", priority: "High", steps: ["Quelle waehlen", "Einbauen"] },
+            },
+          },
+        },
+      },
+      responses: {
+        "200": {
+          description: "Operation ran.",
+          content: {
+            "application/json": {
+              schema: { type: "object", properties: { ok: { type: "boolean" }, data: {} } },
+              example: { ok: true, data: { id: "clx…", title: "Kalender: Feiertage anzeigen", status: "Todo", url: "/tasks/clx…" } },
+            },
+          },
+        },
+        "400": { description: "Malformed body, missing `op`, or params that fail the op's schema.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "invalid params: title — String must contain at least 1 character(s)" } } } },
+        "401": { description: "Token missing or not usable.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "unauthorized" } } } },
+        "403": { description: "Token lacks the op's scope, or the user may not perform it.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "op 'create_task' requires the 'write' scope" } } } },
+        "404": { description: "Unknown op — or a task that does not exist *for this token's tenant*.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "task not found" } } } },
+        "409": { description: "Blocked by the admin workflow gate (`TARGET_LOCKED`, `TODOS_OPEN`, `TIME_REQUIRED`).", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "status change blocked: TODOS_OPEN" } } } },
+        "413": { description: "Attachment exceeds the 10 MB upload limit.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "file too large (max 10485760 bytes)" } } } },
+        "415": { description: "Attachment MIME type is not on the allowlist.", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" }, example: { ok: false, error: "mime type not allowed: text/html" } } } },
+      },
+    },
+  },
   "/api/push": {
     post: {
       summary: "Register a Web-Push subscription",
@@ -634,6 +739,7 @@ export const openApiDocument: Json = {
   tags: [
     { name: "Authentication", description: "Sign-in, OAuth/SSO, logout." },
     { name: "Cron & sync", description: "Machine-to-machine jobs guarded by `x-sync-secret`." },
+    { name: "MCP", description: "Agent integration (Claude Code) via per-user machine tokens." },
     { name: "Web Push", description: "Browser push-notification subscriptions." },
     { name: "Attachments", description: "Tenant-scoped file downloads." },
     { name: "Tenancy", description: "Multi-tenant switching." },
