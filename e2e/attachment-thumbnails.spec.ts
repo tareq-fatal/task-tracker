@@ -1,5 +1,17 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { login } from "./helpers";
+
+/**
+ * Anmelden und die Willkommens-Einführung wegklicken. Sie erscheint beim
+ * ersten Login eines Benutzers und legt sich als Dialog über die Seite —
+ * ohne das misst man hier den Tour-Dialog statt der Aufgabenansicht.
+ */
+async function loginClean(page: Page, user: string, pass: string) {
+  await login(page, user, pass, "de");
+  const skip = page.getByRole("button", { name: "Überspringen" });
+  if (await skip.isVisible().catch(() => false)) await skip.click();
+  await expect(page.getByText(/Willkommen,/)).toHaveCount(0);
+}
 
 /**
  * Bildanhänge (2026-08-14).
@@ -11,7 +23,7 @@ import { login } from "./helpers";
  */
 
 test("the preview route is tenant-locked, exactly like the full file", async ({ page }) => {
-  await login(page, "tarek", "Demo-2026!", "de");
+  await loginClean(page, "tarek", "Demo-2026!");
 
   // Ein Anhang aus einem fremden Mandanten (oder eine erfundene ID) darf weder
   // in voller Größe noch als Vorschau ausgeliefert werden. ?thumb=1 ist kein
@@ -23,7 +35,7 @@ test("the preview route is tenant-locked, exactly like the full file", async ({ 
 });
 
 test("an uploaded image shows up as a picture, not just a file name", async ({ page }) => {
-  await login(page, "tarek", "Demo-2026!", "de");
+  await loginClean(page, "tarek", "Demo-2026!");
   await page.goto("/list");
 
   // Erste Aufgabe öffnen und ein Bild anhängen.
@@ -54,15 +66,24 @@ test("an uploaded image shows up as a picture, not just a file name", async ({ p
 });
 
 test("the list groups by project instead of one long strip", async ({ page }) => {
-  await login(page, "tarek", "Demo-2026!", "de");
+  await loginClean(page, "tarek", "Demo-2026!");
   await page.goto("/list");
-  // Gruppierung ist der Standard — die Kopfzeilen tragen die Projektnamen.
-  await expect(page.getByRole("button", { name: /Nach Projekt/i })).toBeVisible();
-  await expect(page.locator("tbody")).not.toHaveCount(1);
+  // Gruppierung ist der Standard: jede Gruppe bekommt eine eigene Kopfzeile
+  // mit Projektnamen und Anzahl. (Wie viele Gruppen es sind, hängt am
+  // Datenbestand — geprüft wird, DASS gruppiert wird.)
+  const toggle = page.getByRole("button", { name: /Nach Projekt/i });
+  await expect(toggle).toBeVisible();
+  const groupHeaders = page.locator("table tbody tr td[colspan]");
+  const grouped = await groupHeaders.count();
+  expect(grouped).toBeGreaterThan(0);
+
+  // Und der Schalter hebt die Gruppierung wieder auf.
+  await toggle.click();
+  await expect(groupHeaders).toHaveCount(0);
 });
 
 test("'Als Nächstes' never shows more than ten tasks", async ({ page }) => {
-  await login(page, "tarek", "Demo-2026!", "de");
+  await loginClean(page, "tarek", "Demo-2026!");
   await page.goto("/next");
   await expect(page.getByRole("heading", { name: "Als Nächstes" })).toBeVisible();
   const cards = page.locator("a[href^='/tasks/']");
