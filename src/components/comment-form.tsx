@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Send } from "lucide-react";
 import { addCommentAction } from "@/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { TooltipHelp } from "@/components/ui/tooltip";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "@/components/mention-textarea";
 import { useT } from "@/components/i18n-provider";
 
 function Submit({ label }: { label: string }) {
@@ -24,6 +24,7 @@ function Submit({ label }: { label: string }) {
 export function CommentForm({ taskId }: { taskId: string }) {
   const { t } = useT();
   const ref = useRef<HTMLFormElement>(null);
+  const [value, setValue] = useState("");
   const action = addCommentAction.bind(null, taskId);
   const [, formAction] = useFormState(action, {});
 
@@ -33,16 +34,21 @@ export function CommentForm({ taskId }: { taskId: string }) {
       action={async (fd) => {
         await formAction(fd);
         ref.current?.reset();
+        setValue("");
       }}
       className="space-y-2"
     >
-      <Textarea
+      <MentionTextarea
+        taskId={taskId}
         name="content"
         required
         rows={2}
         placeholder={t("task.addComment")}
+        value={value}
+        onChange={setValue}
       />
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        <span className="text-xs text-muted-foreground">{t("mention.hint")}</span>
         <Submit label={t("task.send")} />
       </div>
     </form>

@@ -46,6 +46,30 @@ export function taskVisibilityClause(
   };
 }
 
+export type TaskInvolvement = {
+  createdByUserId: string;
+  assignedToUserId: string | null;
+  assigneeIds: string[];
+};
+
+/**
+ * Pure, single-task counterpart of `taskVisibilityClause`: may this user SEE
+ * this one task? Same rule — staff see the whole tenant, everyone else only
+ * what they are personally involved in. Used by the @-mention picker and the
+ * mention notification gate, where a `where` clause doesn't fit.
+ */
+export function canSeeTask(
+  user: { id: string; role: string },
+  task: TaskInvolvement
+): boolean {
+  if (isStaffRole(user.role)) return true;
+  return (
+    task.createdByUserId === user.id ||
+    task.assignedToUserId === user.id ||
+    task.assigneeIds.includes(user.id)
+  );
+}
+
 /**
  * Prisma `where` scoping tasks to the active tenant AND (for non-admins) to
  * the tasks they may see. No DB lookup needed since the hardening — project

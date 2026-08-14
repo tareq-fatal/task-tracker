@@ -68,6 +68,49 @@ export async function setTenantBillingAction(
   return { ok: true };
 }
 
+/** BackendAdmin-only: rename a Mandant — DISPLAY NAME ONLY.
+ *
+ *  The slug stays frozen on purpose: it is the tenant's identity everywhere —
+ *  the switch cookie (tt_tenant), /t/{slug} deep links, upload paths
+ *  (/uploads/tenants/{slug}/logo.*), session tokens, webhook + audit payloads
+ *  and generated usernames (import/SSO). Renaming it would orphan all of those.
+ *  The name is display-only (header, login branding, exports, MCP identity) and
+ *  is never used as a lookup key, so changing it is safe and takes effect on
+ *  the next render. */
+export async function renameTenantAction(
+  tenantId: string,
+  name: string
+): Promise<TenantState> {
+  const actor = await requireSuper();
+
+  const next = name.trim();
+  if (!next) return { error: "EMPTY" };
+  if (next.length > 120) return { error: "TOO_LONG" };
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) return { error: "NOT_FOUND" };
+  if (tenant.name === next) return { ok: true, slug: tenant.slug };
+
+  await prisma.tenant.update({ where: { id: tenantId }, data: { name: next } });
+
+  // Audit trail (same channel as tenant deletion).
+  await prisma.dbAuditLog
+    .create({
+      data: {
+        userId: actor.id,
+        userName: actor.name,
+        sql: `[RENAME TENANT] ${tenant.slug}: "${tenant.name}" -> "${next}"`,
+        mode: "write",
+        rowCount: 1,
+      },
+    })
+    .catch(() => {});
+
+  revalidatePath("/admin/mandanten");
+  revalidatePath("/", "layout"); // header, branding and login page carry the name
+  return { ok: true, slug: tenant.slug };
+}
+
 /** Onboard a new customer: create an empty tenant + its first TenantAdmin. */
 export async function createTenantAction(input: {
   name: string; slug: string; primaryColor?: string;

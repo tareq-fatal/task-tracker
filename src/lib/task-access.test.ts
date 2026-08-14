@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { taskVisibilityClause, canEditTaskContent } from "./task-access";
+import { taskVisibilityClause, canEditTaskContent, canSeeTask } from "./task-access";
 
 const admin = { id: "a1", role: "Admin" };
 const backend = { id: "b1", role: "BackendAdmin" };
@@ -62,5 +62,27 @@ describe("canEditTaskContent (#36 assigned-task edit lock)", () => {
     expect(canEditTaskContent(admin, adminTask)).toBe(true);
     expect(canEditTaskContent(backend, adminTask)).toBe(true);
     expect(canEditTaskContent(legacy, adminTask)).toBe(true);
+  });
+});
+
+describe("canSeeTask (@-mention gate)", () => {
+  const foreign = { createdByUserId: "someone", assignedToUserId: "other", assigneeIds: [] };
+
+  it("staff see every task in the tenant — mentionable everywhere", () => {
+    expect(canSeeTask(admin, foreign)).toBe(true);
+    expect(canSeeTask(backend, foreign)).toBe(true);
+    expect(canSeeTask({ id: "s2", role: "SubAdmin" }, foreign)).toBe(true);
+  });
+
+  it("a plain user sees only tasks they are involved in", () => {
+    expect(canSeeTask(user, foreign)).toBe(false);
+    expect(canSeeTask(user, { ...foreign, createdByUserId: "u1" })).toBe(true);
+    expect(canSeeTask(user, { ...foreign, assignedToUserId: "u1" })).toBe(true);
+    expect(canSeeTask(user, { ...foreign, assigneeIds: ["x", "u1"] })).toBe(true);
+  });
+
+  it("matches taskVisibilityClause: involvement, never project membership", () => {
+    // a project colleague who is not on the task stays invisible (2026-07-27)
+    expect(canSeeTask({ id: "colleague", role: "User" }, foreign)).toBe(false);
   });
 });
