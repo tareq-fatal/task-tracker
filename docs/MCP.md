@@ -138,7 +138,29 @@ bash infra/mcp-taskcare.sh --assign --assign-to claude
 >
 > Der Mandant besteht ja schon, das Skript legt dann nur Benutzer und Token an.
 
-Warum diese drei über ein Skript statt über die MCP laufen: `POST /api/mcp`
+**4. TOF-0000 aktuell halten.** `TOF-0000` ist die Wiederaufnahme-Aufgabe: ihr
+Inhalt ist ein fertiger Text, den Tarek in eine neue, leere Unterhaltung
+kopieren kann, damit eine frische Session sofort weiterarbeiten kann — auch
+wenn er die alte Unterhaltung gelöscht hat.
+
+Ändert sich etwas Grundsätzliches — ein neues Repo, ein neuer Zugang, eine
+geänderte Arbeitsregel — gehört es dort hinein. Quelle ist
+[`docs/WIEDERAUFNAHME-PROMPT.md`](./WIEDERAUFNAHME-PROMPT.md); die Aufgabe wird
+daraus erneuert, damit die beiden Stellen nicht auseinanderlaufen:
+
+```bash
+bash infra/mcp-taskcare.sh --resume-prompt
+```
+
+Der Aufruf ist idempotent und meldet „unverändert", wenn die Aufgabe schon auf
+dem Stand der Datei ist. Also: Datei ändern, committen, Skript laufen lassen.
+
+> `TOF-0000` steht bewusst vor `TOF-0001` und trägt Priorität `Critical`, damit
+> sie oben steht. Ein echtes Anheften kennt der Tracker nicht — die Listen
+> sortieren nach Priorität, und `Titel` ist eine klickbare Sortierspalte, in der
+> `TOF-0000` zuerst kommt. Erfasst als TOF-0147.
+
+Warum das alles über ein Skript statt über die MCP läuft: `POST /api/mcp`
 kennt weder Verknüpfungen noch die Scrum-Spalte, und `update_task` hat kein
 Zuweisungsfeld (nur `create_task`). Erfasst als TOF-0144 bis TOF-0146.
 

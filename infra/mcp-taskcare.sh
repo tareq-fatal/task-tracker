@@ -8,6 +8,7 @@
 #   bash infra/mcp-taskcare.sh --assign --assign-to claude
 #   bash infra/mcp-taskcare.sh --review --keys "TOF-0119,TOF-0120"
 #   bash infra/mcp-taskcare.sh --link --links "TOF-0013:DependsOn:TOF-0014"
+#   bash infra/mcp-taskcare.sh --resume-prompt        # TOF-0000 aus der Doku erneuern
 #
 # Warum nicht über die MCP: POST /api/mcp kennt weder ein Zuweisungsfeld in
 # update_task noch Verknüpfungen noch die Scrum-Spalte. Solange das so ist,
@@ -28,5 +29,15 @@ docker inspect -f '{{.State.Running}}' "$SERVICE" 2>/dev/null | grep -qx true \
 
 # Muss nach /app: Node sucht node_modules vom Skript aus aufwärts.
 docker cp "$WORKER" "$SERVICE:/app/.mcp-taskcare.mjs" >/dev/null
+
+# --resume-prompt liest die Doku-Datei; die liegt auf dem Host, nicht im Image.
+PROMPT_DOC="${PROMPT_DOC:-$HERE/../docs/WIEDERAUFNAHME-PROMPT.md}"
+case " $* " in
+  *" --resume-prompt "*)
+    [ -f "$PROMPT_DOC" ] || fail "Wiederaufnahme-Prompt nicht gefunden: $PROMPT_DOC"
+    docker cp "$PROMPT_DOC" "$SERVICE:/app/.wiederaufnahme.md" >/dev/null
+    ;;
+esac
+
 docker exec "$SERVICE" node /app/.mcp-taskcare.mjs "$@"
-docker exec -u 0 "$SERVICE" rm -f /app/.mcp-taskcare.mjs 2>/dev/null || true
+docker exec -u 0 "$SERVICE" rm -f /app/.mcp-taskcare.mjs /app/.wiederaufnahme.md 2>/dev/null || true
