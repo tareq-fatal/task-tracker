@@ -10,6 +10,7 @@ import { statusGateFor } from "@/lib/task-workflow-gate";
 import { progressFromSubtasks } from "@/lib/tasks";
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME, MIME_EXTENSION } from "@/lib/validation";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
+import { writeThumbnail } from "@/lib/thumbnail";
 import { notifyMany } from "@/lib/notifications";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
@@ -753,11 +754,15 @@ export const OPS: Record<string, McpOp> = {
       // Keep only the basename: a path in the display name would be confusing
       // at best and misleading in the activity log at worst.
       const displayName = path.basename(params.fileName);
+      // Same preview as a UI upload — an agent-supplied screenshot has to show
+      // up on the task card, not just as a file name.
+      const thumbPath = await writeThumbnail(bytes, params.mimeType, `/uploads/${safeName}`);
       const attachment = await prisma.taskAttachment.create({
         data: {
           taskId: params.taskId,
           fileName: displayName,
           filePath: `/uploads/${safeName}`,
+          thumbPath,
           mimeType: params.mimeType,
           sizeBytes: bytes.length,
           uploadedBy: ctx.user.id,

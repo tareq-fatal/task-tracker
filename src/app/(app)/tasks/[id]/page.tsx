@@ -37,6 +37,7 @@ import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges"
 import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
+import { AttachmentGallery } from "@/components/attachment-gallery";
 import { isImageMime, isInlineViewable } from "@/lib/attachment-view";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { VoiceNotePlayer } from "@/components/voice-note-player";
@@ -761,6 +762,12 @@ export default async function TaskDetailPage({
           </h2>
           <AttachmentUpload taskId={task.id} />
         </div>
+        {/* Bilder zuerst und groß — der Dateiname allein sagt nichts. */}
+        <AttachmentGallery
+          images={task.attachments
+            .filter((a) => isImageMime(a.mimeType))
+            .map((a) => ({ id: a.id, fileName: a.fileName }))}
+        />
         {task.attachments.length > 0 && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {task.attachments.map((a) => {
@@ -779,7 +786,7 @@ export default async function TaskDetailPage({
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={`/download/attachment/${a.id}?inline=1`}
+                      src={`/download/attachment/${a.id}?thumb=1`}
                       alt={a.fileName}
                       loading="lazy"
                       className="h-11 w-11 shrink-0 rounded object-cover ring-1 ring-black/5"

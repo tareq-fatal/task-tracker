@@ -11,6 +11,7 @@ import {
   Users,
   Users2,
   ListChecks,
+  ListTodo,
   FileUp,
   FileSpreadsheet,
   BarChart3,
@@ -75,6 +76,8 @@ type NavItem = {
 // Timeline tabs, not a separate nav entry.
 const MAIN: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard, tip: "tooltip.dashboard" },
+  // Einstieg für den Alltag: höchstens 10 Aufgaben statt der vollen Liste.
+  { href: "/next", label: "nav.next", icon: ListTodo },
   { href: "/board", label: "nav.board", icon: KanbanSquare, tour: "nav-board", tip: "tooltip.board" },
   { href: "/tasks", label: "nav.focus", icon: Target, adminOnly: true, tip: "tooltip.focus" },
   { href: "/list", label: "nav.list", icon: Table2, tip: "tooltip.list" },
@@ -85,7 +88,7 @@ const MAIN: NavItem[] = [
 ];
 
 // Mobile bottom nav = the 4 everyday views; everything else lives in "More".
-const MOBILE_PRIMARY = ["/", "/board", "/list", "/views"];
+const MOBILE_PRIMARY = ["/", "/next", "/board", "/list"];
 
 const ADMIN: NavItem[] = [
   { href: "/admin/users", label: "nav.admin.users", icon: Users, tour: "nav-users" },

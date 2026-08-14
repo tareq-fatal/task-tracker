@@ -795,6 +795,10 @@ model TaskAttachment {
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   fileName   String
   filePath   String // public path, e.g. /uploads/xxxx.png
+  // Server-side downscaled preview of an image attachment, same path style
+  // (/uploads/xxxx.thumb.webp). Null for non-images and for rows uploaded
+  // before 2026-08-14 — callers fall back to the full file.
+  thumbPath  String?
   mimeType   String
   sizeBytes  Int
   uploadedBy String? // uploader (tracked since 2026-07-28; older rows null)

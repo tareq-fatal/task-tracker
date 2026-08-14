@@ -33,6 +33,7 @@ import { decodeUploadFilename } from "@/lib/filename-encoding";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { detectCommentLanguage } from "@/lib/lang-detect";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
+import { writeThumbnail } from "@/lib/thumbnail";
 import { applyAutomations } from "@/lib/automation-run";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import type { TaskStatus, TaskLinkType, TaskType } from "@/lib/enums";
@@ -1006,11 +1007,16 @@ export async function uploadAttachmentAction(
     return { error: "WRITE_FAILED" };
   }
 
+  // Downscaled preview so task cards can show the picture without shipping the
+  // original. Best-effort: null just means "fall back to the full image".
+  const thumbPath = await writeThumbnail(bytes, file.type, `/uploads/${safeName}`);
+
   await prisma.taskAttachment.create({
     data: {
       taskId,
       fileName,
       filePath: `/uploads/${safeName}`,
+      thumbPath,
       mimeType: file.type,
       sizeBytes: file.size,
       uploadedBy: user.id,
