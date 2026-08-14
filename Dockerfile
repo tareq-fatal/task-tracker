@@ -82,6 +82,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Cheap insurance (~20 MB) against a runtime "engine not found" / missing .node.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@node-rs ./node_modules/@node-rs
+# Same insurance for sharp (attachment previews): the JS wrapper plus the musl
+# native binary. Without the @img overlay a traced sharp throws at require()
+# time — the app survives that (previews are optional by design) but every task
+# card would fall back to shipping full-size photos.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@img ./node_modules/@img
 # Prisma schema + migrations for `migrate deploy`.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 # Prisma CLI (+engines) in a dedicated dir so it never clobbers standalone's

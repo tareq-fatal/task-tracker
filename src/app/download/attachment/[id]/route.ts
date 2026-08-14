@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { isInlineViewable, isImageMime } from "@/lib/attachment-view";
-import { THUMB_MIME } from "@/lib/thumbnail";
+import { THUMB_MIME, writeThumbnail } from "@/lib/thumbnail";
 
 // Serve an attachment. Access-checked: same tenant + can view the task.
 // `?inline=1` renders safe types (images, PDF) IN PLACE — the browser and the
@@ -55,10 +55,29 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   // must not be reachable one inch wider than the file it previews. No preview
   // (older rows, non-images) → fall through to the original, still inline.
   const wantThumb = params_.get("thumb") === "1" && isImageMime(att.mimeType);
-  const useThumb = wantThumb && !!att.thumbPath;
+  let thumbPath = att.thumbPath;
+
+  // Nachziehen: everything uploaded before the preview column existed has no
+  // thumbPath. Rendering it on first request (once, then persisted) beats a
+  // migration script — it also repairs a preview that a restore lost. Failure
+  // is silent: the original is served instead.
+  if (wantThumb && !thumbPath) {
+    const orig = resolveUploadPath(att.filePath);
+    const bytes = orig ? await readFile(orig).catch(() => null) : null;
+    if (bytes) {
+      thumbPath = await writeThumbnail(bytes, att.mimeType, att.filePath);
+      if (thumbPath) {
+        await prisma.taskAttachment
+          .update({ where: { id: att.id }, data: { thumbPath } })
+          .catch(() => undefined);
+      }
+    }
+  }
+
+  const useThumb = wantThumb && !!thumbPath;
 
   // filePath is "/uploads/<hash>.<ext>" → var/uploads/<hash>.<ext>
-  const abs = resolveUploadPath(useThumb ? att.thumbPath! : att.filePath);
+  const abs = resolveUploadPath(useThumb ? thumbPath! : att.filePath);
   let data = abs ? await readFile(abs).catch(() => null) : null;
   let serveMime = useThumb ? THUMB_MIME : att.mimeType;
   // A missing preview file (e.g. volume restored without it) must not 404 the
