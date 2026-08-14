@@ -3,6 +3,31 @@
 All notable changes to this project are documented in this file. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **MCP integration for Claude Code** — an agent can now work in the tracker:
+  create/update tasks, manage checklist steps, upload attachments and list
+  projects. Dependency-free stdio server at `mcp/task-tracker-mcp.mjs`, wired
+  up by the committed `.mcp.json`. See [docs/MCP.md](docs/MCP.md)
+- **Automatic prompt journaling** — a `UserPromptSubmit` hook
+  (`mcp/prompt-log-hook.mjs`) appends every Claude Code prompt to the pinned
+  task, so an instruction given in passing is not lost. Silent by design (no
+  notifications) and strictly fail-open: it never blocks or delays a prompt
+- `POST /api/mcp` — single RPC endpoint behind the MCP server, plus `GET /api/mcp`
+  for discovery. Documented in the OpenAPI spec under the new `MCP` tag
+- `ApiToken` model — per-user machine tokens (SHA-256-hashed, `read`/`read,write`
+  scope, revocable, optionally expiring), bound to one user **and** one tenant
+- `npm run mcp:token` — mint, list and revoke those tokens from the CLI
+
+### Security
+- The MCP surface reuses the UI's guards rather than re-implementing them:
+  tenant isolation (a foreign task answers `404`, never `403`), the creator/
+  assignee/admin edit tiers, the admin workflow gate on status changes, and the
+  attachment MIME allowlist with the extension derived from the validated type.
+  `tenantId` and authorship are always stamped from the token, never accepted
+  as parameters. Pinned by `src/lib/mcp/surface.test.ts`
+
 ## [v3.0.0] — 2026-07-04 (incl. v3.0.1, v3.0.2 follow-ups)
 
 The v3.0 line consolidates admin-support tooling, multi-assignee tasks,

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "task-tracker": {
+      "command": "node",
+      "args": ["mcp/task-tracker-mcp.mjs"],
+      "env": {
+        "TASK_TRACKER_URL": "${TASK_TRACKER_URL}",
+        "TASK_TRACKER_TOKEN": "${TASK_TRACKER_TOKEN}"
+      }
+    }
+  }
+}

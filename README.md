@@ -226,6 +226,7 @@ docs/              deep-dive docs — see the list below
 | [docs/ADMIN-GUIDE.md](docs/ADMIN-GUIDE.md) | Tenant admins & BackendAdmins |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Developers — system design, data model, folder structure |
 | [docs/API-DOCS.md](docs/API-DOCS.md) | Developers — HTTP routes + server actions |
+| [docs/MCP.md](docs/MCP.md) | Developers/Admins — Claude Code integration (tasks, attachments, automatic prompt journaling) |
 | [docs/DEPLOY.md](docs/DEPLOY.md) | Ops — deployment (Docker/VPS, Vercel, Cloudflare) |
 | [docs/MULTI-TENANT-SECURITY.md](docs/MULTI-TENANT-SECURITY.md) | Developers — tenant isolation model & audit |
 | [docs/NOTIFICATIONS.md](docs/NOTIFICATIONS.md) | Developers/Admins — notification channels & setup |

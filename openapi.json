@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task-Tracker API",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "description": "# Task-Tracker API\n\n> **DE** · **EN** · **العربية** — a trilingual introduction follows.\n\n---\n\n## 🇩🇪 Deutsch\n\nDie **Task-Tracker-API** ist die HTTP-Schnittstelle der mandantenfähigen\nAufgabenverwaltung. Dokumentiert sind die tatsächlichen HTTP-Endpunkte\n(Next.js *Route Handler*): **OAuth/SSO-Anmeldung**, **Cron-/Sync-Webhooks**,\n**Web-Push-Abonnements**, **Datei-Download**, **Mandantenwechsel** und **Logout**.\n\nDie meisten schreibenden Operationen der Anwendung laufen über **Next.js Server\nActions** und sind bewusst *nicht* Teil dieser REST-Dokumentation — sie besitzen\nkeinen stabilen, extern aufrufbaren HTTP-Vertrag. Die zugehörigen\nValidierungsschemata sind unter `components.schemas` als Datenmodelle abgebildet.\n\n**Authentifizierung.** Benutzer-Sitzungen laufen über ein **httpOnly-Session-Cookie**\n(`tt_session`, 30 Tage, serverseitig in der Datenbank hinterlegt). Cron-Endpunkte\nsind über den Header `x-sync-secret` (gemeinsames Geheimnis) abgesichert. **JWT**\nkommt ausschließlich im OAuth-`id_token` der Identity-Provider vor und wird\nserverseitig verifiziert — die API akzeptiert **kein** clientseitig übergebenes\nBearer-JWT.\n\n## 🇬🇧 English\n\nThe **Task-Tracker API** is the HTTP surface of the multi-tenant task-management\napp. What is documented here are the real HTTP endpoints (Next.js *Route\nHandlers*): **OAuth/SSO sign-in**, **cron/sync webhooks**, **Web-Push\nsubscriptions**, **file download**, **tenant switching** and **logout**.\n\nMost write operations run through **Next.js Server Actions** and are deliberately\n*out of scope* for this REST reference — they have no stable, client-callable HTTP\ncontract. The validation schemas those actions use are mirrored under\n`components.schemas` as the domain models.\n\n**Authentication.** User sessions use an **httpOnly session cookie** (`tt_session`,\n30 days, backed by a database row). Cron endpoints are guarded by a shared-secret\nheader (`x-sync-secret`). **JWT** appears *only* inside the OAuth `id_token`\nreturned by identity providers and is verified server-side — the API does **not**\naccept a client-supplied bearer JWT.\n\n## 🇸🇦 العربية\n\n**واجهة برمجة تطبيقات متعقّب المهام** هي الواجهة عبر HTTP لتطبيق إدارة المهام\nمتعدّد المستأجرين. المُوثَّق هنا هو النقاط الطرفية الفعلية عبر HTTP (معالِجات\nالمسارات في Next.js): **تسجيل الدخول عبر OAuth/SSO**، و**خطافات المزامنة\nوالمهام المجدولة (cron)**، و**اشتراكات الإشعارات الفورية (Web-Push)**، و**تنزيل\nالملفات**، و**تبديل المستأجر**، و**تسجيل الخروج**.\n\nتعمل معظم عمليات الكتابة في التطبيق عبر **إجراءات الخادم (Server Actions)** في\nNext.js، وهي خارج نطاق هذا المرجع عن قصد لأنها لا تملك عقد HTTP مستقرًّا قابلًا\nللاستدعاء من العميل. ومع ذلك، فإن مخطّطات التحقّق المستخدَمة في تلك الإجراءات\nمُدرَجة ضمن `components.schemas` كنماذج بيانات.\n\n**المصادقة.** تعتمد جلسات المستخدم على **كوكي جلسة من نوع httpOnly** (`tt_session`،\nمدّته 30 يومًا، مدعوم بسجلّ في قاعدة البيانات). أمّا نقاط cron فمحميّة بترويسة\nسرّ مشترك (`x-sync-secret`). يظهر **JWT** حصريًّا داخل `id_token` الخاص بـ OAuth\nالقادم من مزوّدي الهوية ويُتحقَّق منه في الخادم — والواجهة **لا** تقبل رمز JWT\nمن نوع bearer مُرسَلًا من العميل.\n\n---\n\n## Rate limits\n\nThe application layer does **not** currently enforce request rate limiting; there\nis no per-IP or per-token quota, and endpoints do not emit `RateLimit-*` headers\nor `429` responses. In production the service runs behind a **Caddy reverse\nproxy** (see `next.config`), which is the recommended place to apply coarse\nnetwork-level limits. Practical bounds that *do* exist today:\n\n| Guard | Where | Limit |\n| --- | --- | --- |\n| Server-action body size | `next.config` `serverActions.bodySizeLimit` | **6 MB** per request |\n| Attachment upload size | `MAX_UPLOAD_BYTES` | **10 MB** per file |\n| OAuth `state` lifetime | `tt_sso_state` cookie `maxAge` | **10 minutes** |\n| Session lifetime | `tt_session` cookie / DB row | **30 days** |\n\nIf you add rate limiting, document the resulting `429` + `Retry-After` behaviour\nhere.",
     "contact": {
       "name": "Task-Tracker",
@@ -30,6 +30,10 @@
     {
       "name": "Cron & sync",
       "description": "Machine-to-machine jobs guarded by `x-sync-secret`."
+    },
+    {
+      "name": "MCP",
+      "description": "Agent integration (Claude Code) via per-user machine tokens."
     },
     {
       "name": "Web Push",
@@ -539,6 +543,269 @@
         }
       }
     },
+    "/api/mcp": {
+      "get": {
+        "summary": "MCP discovery — identity and available operations",
+        "description": "Returns the user/tenant the token acts as, its scopes, and the operations it may call. Used by the MCP server (`mcp/task-tracker-mcp.mjs`) and as a connectivity check. See [MCP.md](https://github.com/tareq-fatal/task-tracker/blob/main/docs/MCP.md).",
+        "tags": [
+          "MCP"
+        ],
+        "security": [
+          {
+            "mcpToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token is valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "user": {
+                      "type": "object"
+                    },
+                    "tenant": {
+                      "type": "object"
+                    },
+                    "scopes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "read",
+                          "write"
+                        ]
+                      }
+                    },
+                    "ops": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "user": {
+                    "id": "clx…",
+                    "name": "Tarek",
+                    "username": "tarek",
+                    "role": "Admin"
+                  },
+                  "tenant": {
+                    "id": "clx…",
+                    "slug": "objektus",
+                    "name": "Objektus"
+                  },
+                  "scopes": [
+                    "read",
+                    "write"
+                  ],
+                  "ops": [
+                    {
+                      "name": "create_task",
+                      "scope": "write",
+                      "describe": "Create a task…"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, unknown, revoked or expired token — or its user is deactivated. All four are reported identically so the endpoint cannot be used to probe tokens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "unauthorized"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "MCP operation call (RPC)",
+        "description": "Single RPC entry point: `{ \"op\": \"<name>\", \"params\": { … } }`. Deliberately not a REST tree — an agent calls tools by name, so one dispatch point keeps the whole machine-facing surface to exactly one auth check and one scope check.\n\nRead ops: `whoami`, `list_tasks`, `get_task`, `list_steps`, `list_projects`. Write ops (need the `write` scope): `create_task`, `update_task`, `add_comment`, `log_prompt`, `add_step`, `complete_step`, `upload_attachment`, `create_project`.\n\nEvery op inherits the token user's permissions: a task in another tenant reports `404 task not found`, never `403`.",
+        "tags": [
+          "MCP"
+        ],
+        "security": [
+          {
+            "mcpToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "op"
+                ],
+                "properties": {
+                  "op": {
+                    "type": "string",
+                    "description": "Operation name."
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Operation parameters; schema per op (strict — unknown keys are rejected)."
+                  }
+                }
+              },
+              "example": {
+                "op": "create_task",
+                "params": {
+                  "title": "Kalender: Feiertage anzeigen",
+                  "priority": "High",
+                  "steps": [
+                    "Quelle waehlen",
+                    "Einbauen"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operation ran.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "data": {}
+                  }
+                },
+                "example": {
+                  "ok": true,
+                  "data": {
+                    "id": "clx…",
+                    "title": "Kalender: Feiertage anzeigen",
+                    "status": "Todo",
+                    "url": "/tasks/clx…"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body, missing `op`, or params that fail the op's schema.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "invalid params: title — String must contain at least 1 character(s)"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing or not usable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "unauthorized"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Token lacks the op's scope, or the user may not perform it.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "op 'create_task' requires the 'write' scope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown op — or a task that does not exist *for this token's tenant*.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "task not found"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Blocked by the admin workflow gate (`TARGET_LOCKED`, `TODOS_OPEN`, `TIME_REQUIRED`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "status change blocked: TODOS_OPEN"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Attachment exceeds the 10 MB upload limit.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "file too large (max 10485760 bytes)"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Attachment MIME type is not on the allowlist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "ok": false,
+                  "error": "mime type not allowed: text/html"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/push": {
       "post": {
         "summary": "Register a Web-Push subscription",
@@ -863,6 +1130,11 @@
         "name": "x-sync-secret",
         "description": "Shared-secret guard for machine-to-machine cron/sync endpoints. The value must equal the server's `SYNC_SECRET` env var. When `SYNC_SECRET` is unset the endpoints return `503`."
       },
+      "mcpToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Per-user machine token for the MCP endpoint (`tt_mcp_…`), sent as `Authorization: Bearer`. Minted with `npm run mcp:token -- mint --user <username>`; only its SHA-256 hash is stored, so the value is shown exactly once. The token binds ONE user and ONE tenant — every call runs with that user's role inside that mandant and cannot widen either. Carries a `read` or `read,write` scope, and is refused once revoked, expired, or when its user is deactivated."
+      },
       "oauth2": {
         "type": "oauth2",
         "description": "SSO sign-in via an identity provider (Microsoft/Azure-AD, Google, GitHub, Apple). The browser is redirected through the provider; on return the server verifies the provider's `id_token` (a JWT) and issues its own `tt_session` cookie. This is a redirect flow driven by `/api/auth/{provider}/start` and `/api/auth/{provider}/callback`, not a token the client sends to this API.",
@@ -881,6 +1153,7 @@
         "enum": [
           "BackendAdmin",
           "Admin",
+          "SubAdmin",
           "User"
         ],
         "description": "User role. `BackendAdmin` (legacy `SuperAdmin`) spans all tenants."
@@ -931,7 +1204,8 @@
         "enum": [
           "ar",
           "en",
-          "de"
+          "de",
+          "tr"
         ],
         "description": "UI locale. `ar` is the default (RTL)."
       },
@@ -1124,7 +1398,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "example": "Tarek Fatal"
+            "example": "Ahmed Ali"
           },
           "username": {
             "type": "string",

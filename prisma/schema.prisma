@@ -53,6 +53,7 @@ model Tenant {
   plannerSyncs  PlannerSync[]
   sprints       Sprint[]
   webhooks      Webhook[]
+  apiTokens     ApiToken[]
 }
 
 model Sprint {
@@ -178,6 +179,7 @@ model User {
   notifyDevices     NotificationDevice[]
   voiceNotes        VoiceNote[]
   timeEntries       TaskTimeEntry[]
+  apiTokens         ApiToken[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -264,6 +266,43 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+// Machine token for the MCP endpoint (POST /api/mcp) — lets an agent such as
+// Claude Code act on tasks without a browser session.
+//
+// SECURITY, deliberately:
+//  - Only the SHA-256 hash is stored; the raw token is shown exactly once at
+//    mint time and is unrecoverable afterwards (same posture as Session, which
+//    at least is httpOnly-cookie-bound — a machine token is copy-pasted around,
+//    so a DB leak must not hand out working credentials).
+//  - The token BINDS a user and a tenant. Every MCP call inherits that user's
+//    role and that tenant's scope; there is no way to widen either through the
+//    API. A token can therefore never reach across mandants.
+//  - `scopes` is a CSV of "read"/"write". A read-only token cannot mutate
+//    anything, which is the safe default for an agent that only reports.
+model ApiToken {
+  id        String @id @default(cuid())
+  name      String // human label, e.g. "Claude Code — Laptop Tarek"
+  tokenHash String @unique // sha256(raw), hex
+  prefix    String // first chars of the raw token, for display/identification
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Denormalized from the user so the auth path resolves the tenant in one
+  // query and a moved user can never carry a token into a new mandant.
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  scopes     String    @default("read") // CSV: "read" | "read,write"
+  lastUsedAt DateTime?
+  expiresAt  DateTime? // null = no expiry
+  revokedAt  DateTime? // set instead of deleting, so the audit trail survives
+  revokedBy  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tenantId])
 }
 
 model Project {
