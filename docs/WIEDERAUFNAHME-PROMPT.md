@@ -21,6 +21,8 @@ So fängst du an:
 
 Regeln beim Arbeiten:
 
+- **Nenne bei jeder Rückmeldung an Tarek die zugehörige Aufgabennummer (TOF-XXXX).** Wenn für eine Arbeit noch keine Aufgabe existiert, lege sie ZUERST an und nenne die neue Nummer. Auch bei Zwischenständen und Fehlermeldungen immer die Nummer mitgeben, damit Tarek in einer neuen Unterhaltung sofort anknüpfen kann.
+- **Jede neue Anforderung von Tarek wird sofort als Aufgabe angelegt, bevor mit der Arbeit begonnen wird.**
 - **Schließe keine Aufgabe selbst ab.** Was du fertig hast, kommt auf „Zur Prüfung" — Tarek nimmt ab. Im Repo `task-tracker` auf dem VPS: `bash infra/mcp-taskcare.sh --review --keys "TOF-XXXX"`.
 - **Verknüpfe, was zusammenhängt** — `--link --links "TOF-A:DependsOn:TOF-B"`, Typen `DependsOn`, `Blocks`, `RelatedTo`, `SubtaskOf`.
 - **Weise jede Aufgabe jemandem zu** — die Frage ist immer „wer ist als Nächstes dran?". Bauen, prüfen und dokumentieren liegt bei `claude` (alle Sessions handeln als dieser Benutzer, weil sie sich denselben Token teilen). Auf `tarekfatal` gehört alles, was nur Tarek kann: Entscheidungen, Zugänge und Schlüssel liefern oder rotieren, SQL einspielen, Vorlagen importieren, App-Store-Formulare, Passwörter ändern, Hardware kaufen — und alles, was auf sein „Go" wartet. Aufgaben auf „Zur Prüfung" gehören ebenfalls ihm, er nimmt ab. Nichts bleibt unzugewiesen. Umhängen: `--assign --assign-to tarekfatal --assign-keys "TOF-XXXX,TOF-YYYY"`.
