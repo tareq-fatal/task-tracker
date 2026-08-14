@@ -88,6 +88,60 @@ Der Reihe nach, jeder Schritt für sich wiederholbar:
 | `--adopt-user` | Holt ein bestehendes Konto in diesen Mandanten — nur wenn es dort nichts besitzt. |
 | `--token-days N` | Befristet den Token. |
 
+### Arbeitsregeln für Sessions (Tarek, 14.08.2026)
+
+Drei Regeln, die beim Anlegen und Pflegen von Aufgaben gelten. Sie stehen hier,
+weil sie sonst in jeder neuen Session neu erklärt werden müssten.
+
+**1. Nichts selbst abschließen.** Was eine Session fertiggestellt hat, geht
+NICHT auf `Done`, sondern in den Prüf-Status — Tarek nimmt ab. Der Tracker
+kennt den Status: die Scrum-Spalte `to-verify` („Zur Prüfung", 🔍) unter
+**Ansichten**. `statusForColumn()` bildet sie bewusst auf `InProgress` ab, eine
+Aufgabe dort zählt also nicht als erledigt (`src/lib/scrum.ts`).
+
+```bash
+bash infra/mcp-taskcare.sh --review --keys "TOF-0119,TOF-0120"
+```
+
+> Einschränkung, ehrlich: das Haupt-Board gruppiert nach `status` und zeigt
+> solche Aufgaben als „In Arbeit". Nur die Ansicht **Scrum-Board** hat die
+> eigene Spalte. `Done` bleibt `Done` für alles, was historisch abgeschlossen
+> ist — umgehängt wird nur, was eine Session selbst gebaut hat.
+
+**2. Zusammenhänge verknüpfen.** `TaskLink` kennt vier Typen: `DependsOn`,
+`Blocks`, `RelatedTo`, `SubtaskOf`.
+
+```bash
+bash infra/mcp-taskcare.sh --link --links "TOF-0013:DependsOn:TOF-0014,TOF-0011:SubtaskOf:TOF-0005"
+```
+
+**3. Aufgaben zuweisen.** Eine Aufgabe, an der gearbeitet wird, gehört jemandem.
+
+```bash
+bash infra/mcp-taskcare.sh --assign --assign-to claude
+```
+
+> **Ein Token = ein Benutzer.** Alle Sessions, die sich denselben Token teilen,
+> handeln als `claude` — auch parallel laufende. Getrennte Namen je Agent
+> (`claude-fsm`, `claude-docs`, …) ergeben deshalb nur Sinn, wenn jeder Agent
+> auch einen EIGENEN Token bekommt; sonst wären es Konten, unter denen niemand
+> arbeitet. Der einfachere Weg ist deshalb: alle laufen unter `claude`, die
+> Zuständigkeit steht am Feld. Wenn getrennte Namen gewünscht sind, ist das
+> ein Aufruf je Agent:
+>
+> ```bash
+> bash infra/mcp-setup.sh --tenant-name "Tarek & Claude" --slug tarek-claude \
+>   --owner-name "Claude FSM" --owner-username claude-fsm \
+>   --owner-password '…' --token-label "Claude Code FSM" --scopes read,write \
+>   --adopt-user
+> ```
+>
+> Der Mandant besteht ja schon, das Skript legt dann nur Benutzer und Token an.
+
+Warum diese drei über ein Skript statt über die MCP laufen: `POST /api/mcp`
+kennt weder Verknüpfungen noch die Scrum-Spalte, und `update_task` hat kein
+Zuweisungsfeld (nur `create_task`). Erfasst als TOF-0144 bis TOF-0146.
+
 ## 2. Claude Code einrichten
 
 Die Datei `.mcp.json` liegt bereits im Repo und liest zwei Umgebungsvariablen,
