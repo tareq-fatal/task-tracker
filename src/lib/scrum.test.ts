@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextWorkflowColumn, WORKFLOW_CHAIN, columnOf, statusForColumn, stickyRotation, isOverWip, isScrumColumn, SCRUM_COLUMNS } from "./scrum";
+import { columnForStatusChange, nextWorkflowColumn, WORKFLOW_CHAIN, columnOf, statusForColumn, stickyRotation, isOverWip, isScrumColumn, SCRUM_COLUMNS } from "./scrum";
 
 describe("columnOf", () => {
   it("uses explicit scrumColumn when valid", () => {
@@ -78,5 +78,38 @@ describe("Ablauf-Kette (Tarek, 16.08.2026)", () => {
   it("lässt eine Karte ohne gesetzte Spalte weiterhin über den Status finden", () => {
     expect(columnOf({ scrumColumn: null, status: "InProgress" })).toBe("in-progress");
     expect(columnOf({ scrumColumn: "release", status: "InProgress" })).toBe("release");
+  });
+});
+
+describe("columnForStatusChange", () => {
+  it("holt eine geschlossene Karte aus der Ablaufspalte heraus", () => {
+    // Sonst stünde eine erledigte Aufgabe weiter unter „Release" und das
+    // Board zeigte sie als laufende Arbeit.
+    expect(columnForStatusChange("Done", "release")).toBe("done");
+    expect(columnForStatusChange("Done", "to-verify")).toBe("done");
+    expect(columnForStatusChange("Archived", "in-progress")).toBe("done");
+  });
+
+  it("lässt eine bereits abgeschlossene Karte in Ruhe", () => {
+    expect(columnForStatusChange("Done", "done")).toBeNull();
+    expect(columnForStatusChange("Done", "ready-for-golive")).toBeNull();
+  });
+
+  it("holt eine wieder geöffnete Karte aus der Erledigt-Spalte", () => {
+    expect(columnForStatusChange("InProgress", "done")).toBe("in-progress");
+    expect(columnForStatusChange("Todo", "done")).toBe("to-do");
+  });
+
+  it("mischt sich zwischen den offenen Spalten nicht ein", () => {
+    // Dort trägt die Spalte mehr Bedeutung als der Status — alle vier
+    // Schritte der Kette sind derselbe Status.
+    for (const col of ["in-progress", "self-test", "to-verify", "release", "waiting"]) {
+      expect(columnForStatusChange("InProgress", col), col).toBeNull();
+    }
+  });
+
+  it("kommt mit einer Karte ohne gesetzte Spalte zurecht", () => {
+    expect(columnForStatusChange("Done", null)).toBe("done");
+    expect(columnForStatusChange("InProgress", null)).toBeNull();
   });
 });

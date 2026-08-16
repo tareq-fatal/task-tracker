@@ -31,6 +31,7 @@ import { can } from "@/lib/roles";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { decodeUploadFilename } from "@/lib/filename-encoding";
 import { statusGateFor } from "@/lib/task-workflow-gate";
+import { columnForStatusChange } from "@/lib/scrum";
 import { detectCommentLanguage } from "@/lib/lang-detect";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { writeThumbnail } from "@/lib/thumbnail";
@@ -795,6 +796,13 @@ export async function updateTaskStatusAction(
       ...(becameDone ? { completedAt: new Date() } : {}),
       ...(leftDone ? { completedAt: null } : {}),
       ...(becameDone && subtaskCount === 0 ? { progress: 100 } : {}),
+      // Sonst bliebe eine geschlossene Karte in ihrer alten Ablaufspalte
+      // stehen (z. B. „Release") und das Board zeigte sie weiter als
+      // laufende Arbeit. Gleiche Regel wie über die Schnittstelle.
+      ...(() => {
+        const moved = columnForStatusChange(status, existing.scrumColumn);
+        return moved ? { scrumColumn: moved } : {};
+      })(),
     },
   });
 
