@@ -42,6 +42,7 @@ const WRITE_OPS = [
   "add_step",
   "complete_step",
   "upload_attachment",
+  "link_tasks",
   "create_project",
 ];
 
@@ -93,6 +94,7 @@ describe("tenant + permission scoping", () => {
         "add_step",
         "complete_step",
         "get_task",
+        "link_tasks",
         "list_steps",
         "log_prompt",
         "update_task",

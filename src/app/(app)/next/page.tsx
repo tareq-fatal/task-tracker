@@ -85,8 +85,17 @@ export default async function NextUpPage() {
         <div className="space-y-6">
           {groups.map(({ bucket, tasks }) => (
             <section key={bucket}>
-              <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {BUCKET_EMOJI[bucket]} {t[BUCKET_LABEL[bucket] as keyof typeof t]} ({tasks.length})
+              <h2 className="mb-2 flex flex-wrap items-baseline gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>
+                  {BUCKET_EMOJI[bucket]} {t[BUCKET_LABEL[bucket] as keyof typeof t]} ({tasks.length})
+                </span>
+                {/* Die Abnahmeliste ist regelmäßig länger als zehn — von hier
+                    aus geht es zur vollständigen, ungekürzten Liste. */}
+                {bucket === "verify" && (
+                  <Link href="/list?spalte=to-verify&nur=ich" className="font-normal normal-case text-primary hover:underline">
+                    {t["next.allReview"]}
+                  </Link>
+                )}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {tasks.map((task) => (

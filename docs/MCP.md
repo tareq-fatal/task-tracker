@@ -93,8 +93,23 @@ Der Reihe nach, jeder Schritt für sich wiederholbar:
 Drei Regeln, die beim Anlegen und Pflegen von Aufgaben gelten. Sie stehen hier,
 weil sie sonst in jeder neuen Session neu erklärt werden müssten.
 
-**1. Nichts selbst abschließen.** Was eine Session fertiggestellt hat, geht
-NICHT auf `Done`, sondern in den Prüf-Status — Tarek nimmt ab. Der Tracker
+**0. Der Ablauf für jede Aufgabe** (Tarek, 16.08.2026) — ausführlich in
+[ABLAUF.md](ABLAUF.md):
+
+```
+1  umsetzen        → Spalte in-progress → claude
+2  selbst testen   → Spalte self-test   → claude
+3  Tarek nimmt ab  → Spalte to-verify   → tarekfatal
+4  ausliefern      → Spalte release     → claude → danach status: "Done"
+```
+
+Die Zuständigkeit hängt an der Spalte (vier Automatik-Regeln, Einstellungen →
+Automatik) und muss nicht mitgegeben werden. Geschlossen wird **erst nach
+Schritt 3** — das ersetzt die frühere Regel „nie selbst abschließen".
+
+**1. Nicht vor der Abnahme abschließen.** Was eine Session fertiggestellt hat, geht
+NICHT direkt auf `Done`, sondern erst in Schritt 3 — Tarek nimmt ab, gibt zurück,
+danach Schritt 4 und schließen. Der Tracker
 kennt den Status: die Scrum-Spalte `to-verify` („Zur Prüfung", 🔍) unter
 **Ansichten**. `statusForColumn()` bildet sie bewusst auf `InProgress` ab, eine
 Aufgabe dort zählt also nicht als erledigt (`src/lib/scrum.ts`).
@@ -120,10 +135,11 @@ bash infra/mcp-taskcare.sh --review --keys "TOF-0119,TOF-0120"
 > ist — umgehängt wird nur, was eine Session selbst gebaut hat.
 
 **2. Zusammenhänge verknüpfen.** `TaskLink` kennt vier Typen: `DependsOn`,
-`Blocks`, `RelatedTo`, `SubtaskOf`.
+`Blocks`, `RelatedTo`, `SubtaskOf`. Eine Abhängigkeit, die nur im Text steht,
+taucht in keiner Ansicht auf und blockiert nichts.
 
-```bash
-bash infra/mcp-taskcare.sh --link --links "TOF-0013:DependsOn:TOF-0014,TOF-0011:SubtaskOf:TOF-0005"
+```js
+await mcp("link_tasks", { taskId, linkedTaskId, type: "DependsOn" });
 ```
 
 **3. Aufgaben zuweisen — nach der Frage „wer ist als Nächstes dran?"**
@@ -199,11 +215,11 @@ dort ein Name, hat ihn niemand bekommen (TOF-0386).
 **5. Immer die Aufgabennummer nennen.** Jede Rückmeldung an Tarek trägt ihre
 `TOF-XXXX`. Gibt es für die Arbeit noch keine Aufgabe, wird sie zuerst angelegt.
 
-Was die MCP seit PR #79 selbst kann: zuweisen (`assignee`, nimmt den
-**Benutzernamen**), die Scrum-Spalte setzen (`scrumColumn`), die Menschen des
-Mandanten auflisten (`list_users`). Was ihr weiterhin fehlt: **Verknüpfungen**
-(`TaskLink`) — dafür bleibt `infra/mcp-taskcare.sh` auf dem VPS nötig. Erfasst
-als TOF-0144 bis TOF-0146.
+Was die MCP kann: zuweisen (`assignee`, nimmt den **Benutzernamen**), die
+Scrum-Spalte setzen (`scrumColumn`), den Fortschritt setzen (`progress`),
+verknüpfen (`link_tasks`) und die Menschen des Mandanten auflisten
+(`list_users`). `infra/mcp-taskcare.sh` auf dem VPS wird damit nur noch für
+Sammelläufe und `--resume-prompt` gebraucht. Erfasst als TOF-0144 bis TOF-0146.
 
 ## 2. Claude Code einrichten
 

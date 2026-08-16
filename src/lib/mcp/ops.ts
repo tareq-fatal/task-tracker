@@ -565,6 +565,8 @@ export const OPS: Record<string, McpOp> = {
         dueDate: z.string().trim().datetime({ offset: true }).nullable().optional(),
         // "Wer ist als Nächstes dran?" — username or user id, null clears it.
         assignee: z.string().trim().min(1).max(120).nullable().optional(),
+        // Fortschritt in Prozent — damit der Stand sichtbar ist, ohne zu fragen.
+        progress: z.number().int().min(0).max(100).optional(),
         // Scrum column, incl. "to-verify" (Zur Prüfung). Keeps `status`
         // coherent exactly like a drag on the board does.
         scrumColumn: z.enum(SCRUM_COLUMN_KEYS).optional(),
@@ -580,6 +582,7 @@ export const OPS: Record<string, McpOp> = {
           v.projectId !== undefined ||
           v.dueDate !== undefined ||
           v.assignee !== undefined ||
+          v.progress !== undefined ||
           v.scrumColumn !== undefined,
         { message: "nothing to update" }
       ),
@@ -595,6 +598,7 @@ export const OPS: Record<string, McpOp> = {
         projectId?: string | null;
         dueDate?: string | null;
         assignee?: string | null;
+        progress?: number;
         scrumColumn?: string;
       }
     ) => {
@@ -604,7 +608,8 @@ export const OPS: Record<string, McpOp> = {
         params.descriptionAppend !== undefined ||
         params.priority !== undefined ||
         params.projectId !== undefined ||
-        params.dueDate !== undefined;
+        params.dueDate !== undefined ||
+        params.progress !== undefined;
 
       // Status alone is an "act"; rewriting the task is "edit content" (#36).
       const task = contentChange
@@ -620,6 +625,7 @@ export const OPS: Record<string, McpOp> = {
           : params.descriptionAppend;
       }
       if (params.priority !== undefined) data.priority = params.priority;
+      if (params.progress !== undefined) data.progress = params.progress;
       if (params.dueDate !== undefined) data.dueDate = params.dueDate ? new Date(params.dueDate) : null;
       if (params.projectId !== undefined) {
         const rel = await scopedRelations(ctx.tenant.id, { projectId: params.projectId });
@@ -671,6 +677,19 @@ export const OPS: Record<string, McpOp> = {
       });
 
       await logActivity(params.taskId, ctx.user.id, "updated", "via MCP");
+
+      // Spaltenwechsel → Automatik (u. a. die Zuständigkeits-Kette des
+      // vereinbarten Ablaufs). Wurde beim selben Aufruf ausdrücklich jemand
+      // zugewiesen, bleibt diese Zuweisung stehen — sonst würde die Regel eine
+      // bewusste Entscheidung sofort wieder überschreiben.
+      if (typeof data.scrumColumn === "string" && data.scrumColumn !== task.scrumColumn) {
+        await applyAutomations(
+          ctx.tenant.id,
+          params.taskId,
+          { type: "column_to", value: data.scrumColumn, projectId: updated.project?.id ?? null },
+          { keepAssignee: params.assignee !== undefined }
+        );
+      }
 
       // Whoever just became responsible gets told — otherwise "assign to the
       // person who is next" is a silent change nobody sees.
@@ -944,6 +963,52 @@ export const OPS: Record<string, McpOp> = {
       return {
         ...attachment,
         downloadUrl: `/download/attachment/${attachment.id}`,
+      };
+    },
+  },
+
+  link_tasks: {
+    scope: "write",
+    describe:
+      "Link two tasks: DependsOn | Blocks | RelatedTo | SubtaskOf. Both must be in my mandant. Use this instead of describing a dependency in prose.",
+    schema: z
+      .object({
+        taskId: idSchema,
+        linkedTaskId: idSchema,
+        type: z.enum(["DependsOn", "Blocks", "RelatedTo", "SubtaskOf"]),
+      })
+      .strict(),
+    run: async (
+      ctx,
+      params: { taskId: string; linkedTaskId: string; type: string }
+    ) => {
+      if (params.taskId === params.linkedTaskId) {
+        throw new McpError("a task cannot be linked to itself", 400);
+      }
+      // Beide Enden durch dasselbe Tor: eine Verknüpfung auf eine fremde
+      // Aufgabe würde deren Titel in die Ansicht der eigenen holen.
+      const task = await assertCanAct(ctx, params.taskId);
+      const other = await prisma.task.findUnique({
+        where: { id: params.linkedTaskId },
+        select: { id: true, title: true, tenantId: true, deletedAt: true },
+      });
+      if (!other || other.tenantId !== ctx.tenant.id || other.deletedAt) {
+        throw new McpError("linked task not found", 404);
+      }
+
+      const link = await prisma.taskLink
+        .create({
+          data: { taskId: params.taskId, linkedTaskId: params.linkedTaskId, type: params.type },
+          select: { id: true },
+        })
+        .catch(() => null); // schon vorhanden → nicht als Fehler behandeln
+      await logActivity(params.taskId, ctx.user.id, "updated", `Verknüpfung ${params.type} → ${other.title.slice(0, 60)}`);
+      return {
+        id: link?.id ?? null,
+        alreadyExisted: link === null,
+        task: { id: task.id, title: task.title },
+        linkedTask: { id: other.id, title: other.title },
+        type: params.type,
       };
     },
   },

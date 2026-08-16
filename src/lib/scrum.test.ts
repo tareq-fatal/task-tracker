@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { columnOf, statusForColumn, stickyRotation, isOverWip, isScrumColumn, SCRUM_COLUMNS } from "./scrum";
+import { nextWorkflowColumn, WORKFLOW_CHAIN, columnOf, statusForColumn, stickyRotation, isOverWip, isScrumColumn, SCRUM_COLUMNS } from "./scrum";
 
 describe("columnOf", () => {
   it("uses explicit scrumColumn when valid", () => {
@@ -42,6 +42,41 @@ describe("isOverWip / isScrumColumn", () => {
   it("validates column keys", () => {
     expect(isScrumColumn("done")).toBe(true);
     expect(isScrumColumn("nope")).toBe(false);
-    expect(SCRUM_COLUMNS).toHaveLength(6);
+    // 4 Ablaufschritte + Rückstand + zwei Nebengleise + Abschluss.
+    expect(SCRUM_COLUMNS).toHaveLength(8);
+    expect(isScrumColumn("self-test")).toBe(true);
+    expect(isScrumColumn("release")).toBe(true);
+  });
+});
+
+describe("Ablauf-Kette (Tarek, 16.08.2026)", () => {
+  it("führt in der vereinbarten Reihenfolge", () => {
+    expect([...WORKFLOW_CHAIN]).toEqual(["in-progress", "self-test", "to-verify", "release"]);
+    expect(nextWorkflowColumn("in-progress")).toBe("self-test");
+    expect(nextWorkflowColumn("self-test")).toBe("to-verify");
+    expect(nextWorkflowColumn("to-verify")).toBe("release");
+  });
+
+  it("endet nach dem Release — geschlossen wird eigens", () => {
+    expect(nextWorkflowColumn("release")).toBeNull();
+  });
+
+  it("kennt die Nebengleise nicht als Schritt", () => {
+    expect(nextWorkflowColumn("waiting")).toBeNull();
+    expect(nextWorkflowColumn("to-do")).toBeNull();
+  });
+
+  it("hält jeden Schritt der Kette offen — nur `done` ist erledigt", () => {
+    for (const col of WORKFLOW_CHAIN) {
+      expect(statusForColumn(col), col).toBe("InProgress");
+    }
+    // Der Kern der Regel: ausgeliefert ist noch nicht geschlossen.
+    expect(statusForColumn("release")).not.toBe("Done");
+    expect(statusForColumn("done")).toBe("Done");
+  });
+
+  it("lässt eine Karte ohne gesetzte Spalte weiterhin über den Status finden", () => {
+    expect(columnOf({ scrumColumn: null, status: "InProgress" })).toBe("in-progress");
+    expect(columnOf({ scrumColumn: "release", status: "InProgress" })).toBe("release");
   });
 });

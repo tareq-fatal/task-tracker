@@ -6,15 +6,55 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility } from "@/lib/task-access";
 import { parseOptions, type FieldType } from "@/lib/custom-fields";
 import { isImageMime } from "@/lib/attachment-view";
+import { isScrumColumn } from "@/lib/scrum";
 import { TaskTable, type CustomCol } from "@/components/task-table";
 
-export default async function ListPage() {
+/**
+ * Filter auf eine Ablaufspalte. Karten ohne gesetzten Wert gehören trotzdem in
+ * eine Spalte (`columnOf` leitet sie aus dem Status ab) — ohne diese Ableitung
+ * fände der Filter weniger als das Board zeigt.
+ *
+ * Das Ergebnis ist ein EIGENER `OR`-Block, der per `AND` angehängt wird. Ein
+ * `OR` direkt neben `taskVisibility` zu spreaden würde dessen eigenes `OR`
+ * überschreiben und damit die Sichtbarkeitsprüfung für Nicht-Verwaltende
+ * aufheben.
+ */
+function columnFilter(col: string | undefined): Record<string, unknown>[] {
+  if (!isScrumColumn(col ?? "")) return [];
+  const derived =
+    col === "to-do" ? "Todo" : col === "in-progress" ? "InProgress" : col === "done" ? "Done" : null;
+  return [
+    {
+      OR: [
+        { scrumColumn: col },
+        ...(derived ? [{ scrumColumn: null, status: derived }] : []),
+      ],
+    },
+  ];
+}
+
+export default async function ListPage({
+  searchParams,
+}: {
+  searchParams: { spalte?: string; nur?: string };
+}) {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
 
   const [rows, defs] = await Promise.all([
     prisma.task.findMany({
-      where: { ...(await taskVisibility(user, tenant.id)), status: { not: "Archived" } },
+      where: {
+        ...(await taskVisibility(user, tenant.id)),
+        status: { not: "Archived" },
+        // `?spalte=to-verify` ist die verlinkbare Prüfliste: alles in einer
+        // Ablaufspalte, ohne Zehner-Deckel. `?nur=ich` grenzt auf die eigene
+        // Zuständigkeit ein. Ein unbekannter Wert filtert nicht, statt eine
+        // leere Seite zu zeigen.
+        AND: [
+          ...columnFilter(searchParams.spalte),
+          ...(searchParams.nur === "ich" ? [{ assignedToUserId: user.id }] : []),
+        ],
+      },
       select: {
         id: true, title: true, status: true, priority: true, dueDate: true, storyPoints: true,
         assignedTo: { select: { name: true } },
