@@ -2,8 +2,8 @@
 // A rule = WHEN <trigger> THEN <action>. One evaluation pass (no chaining), so
 // an action never re-triggers another rule — keeps things predictable + loop-free.
 
-export const TRIGGER_TYPES = ["status_to", "priority_to", "created"] as const;
-export const ACTION_TYPES = ["set_status", "set_priority"] as const;
+export const TRIGGER_TYPES = ["status_to", "priority_to", "column_to", "created"] as const;
+export const ACTION_TYPES = ["set_status", "set_priority", "assign_to"] as const;
 export type TriggerType = (typeof TRIGGER_TYPES)[number];
 export type ActionType = (typeof ACTION_TYPES)[number];
 
@@ -38,7 +38,8 @@ export function matchingActions(rules: Rule[], event: AutoEvent): AppliedAction[
     // no-op guard: don't set the same field back to the triggering value
     const sameField =
       (event.type === "status_to" && r.actionType === "set_status") ||
-      (event.type === "priority_to" && r.actionType === "set_priority");
+      (event.type === "priority_to" && r.actionType === "set_priority") ||
+      (event.type === "column_to" && r.actionType === "set_status");
     if (sameField && r.actionValue === event.value) continue;
 
     out.push({ type: r.actionType as ActionType, value: r.actionValue });

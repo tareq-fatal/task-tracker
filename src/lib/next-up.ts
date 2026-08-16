@@ -40,9 +40,15 @@ export function bucketOf(task: NextUpTask): NextBucket | null {
   if (task.status === "Done" || task.status === "Archived") return null;
   const col: ScrumColumn = columnOf(task);
   if (col === "done" || col === "ready-for-golive") return null;
+  // Schritt 3 des Ablaufs — die Abnahme. Steht immer oben, auch wenn die
+  // Aufgabe zusätzlich blockiert ist: sie wartet auf eine Entscheidung,
+  // nicht auf Arbeit.
   if (col === "to-verify") return "verify";
   if (task.blockedByOpen > 0) return "blocked";
   if (col === "waiting") return "decide";
+  // in-progress, self-test (Schritt 2) und release (Schritt 4) sind alle
+  // „ich bin dran" — sie unterscheiden sich in der Tätigkeit, nicht in der
+  // Frage, wer als Nächstes handeln muss.
   return "doing";
 }
 

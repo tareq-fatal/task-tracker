@@ -7,6 +7,7 @@ import { isAdminRole } from "@/lib/enums";
 import { isScrumColumn, statusForColumn } from "@/lib/scrum";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { notifyReviewRequested } from "@/lib/review-notify";
+import { applyAutomations } from "@/lib/automation-run";
 
 /** Move a card into a scrum column (drag&drop); keeps `status` coherent. */
 export async function setTaskScrumColumnAction(
@@ -25,6 +26,7 @@ export async function setTaskScrumColumnAction(
       scrumColumn: true,
       createdByUserId: true,
       assignedToUserId: true,
+      projectId: true,
     },
   });
   if (!task) return { ok: false };
@@ -48,7 +50,18 @@ export async function setTaskScrumColumnAction(
     },
   });
 
-  // Karte landet in „Zur Prüfung" → die Person, die abnehmen soll, wird
+  // Der vereinbarte Ablauf hängt die Zuständigkeit an die Spalte (Regeln in
+  // der Automatik, siehe docs/ABLAUF.md) — Ziehen auf dem Board löst sie
+  // genauso aus wie ein Zug über die Schnittstelle.
+  if (column !== task.scrumColumn) {
+    await applyAutomations(tenant.id, taskId, {
+      type: "column_to",
+      value: column,
+      projectId: task.projectId,
+    });
+  }
+
+  // Karte landet in „Test (Auftraggeber)" → die Person, die abnehmen soll, wird
   // benachrichtigt. Gleiche Funktion wie über die Schnittstelle, damit Board
   // und Agent nicht auseinanderlaufen.
   if (column === "to-verify" && task.scrumColumn !== "to-verify") {

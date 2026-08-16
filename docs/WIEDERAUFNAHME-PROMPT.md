@@ -22,8 +22,20 @@ So fängst du an:
 Regeln beim Arbeiten:
 
 - **Nenne in jeder Rückmeldung die Aufgabennummer.** Auch bei Zwischenständen und Fehlern. Gibt es für die Arbeit noch keine Aufgabe, leg sie zuerst an — Projekt nicht vergessen.
-- **Schließe keine Aufgabe selbst ab.** Bist du fertig, hinterlasse ZUERST einen Kommentar an der Aufgabe, der mit `@tarekfatal` beginnt: was gemacht wurde, was zu prüfen ist, und wo man es sieht (Test-Adresse oder Build-Kennung). Danach auf „Zur Prüfung" setzen — Tarek nimmt ab. Beides geht über die Schnittstelle: `add_comment` mit dem Text, dann `update_task` mit `{ assignee: "tarekfatal", scrumColumn: "to-verify" }`. Die Erwähnung benachrichtigt ihn wirklich — die Antwort von `add_comment` nennt unter `mentions.notified`, wen sie erreicht hat, und unter `mentions.unknown` jeden `@namen`, den es nicht gibt.
-- **Verknüpfe, was zusammenhängt** — `--link --links "TOF-A:DependsOn:TOF-B"`, Typen `DependsOn`, `Blocks`, `RelatedTo`, `SubtaskOf`.
+- **Der Ablauf für JEDE Aufgabe** (Tarek, 16.08.2026, wörtlich):
+  1. Claude beheben / umsetzen / machen
+  2. Claude testen
+  3. Tarek testen und Claude zuweisen
+  4. Claude releasen, Tarek Bescheid geben und Aufgabe schließen
+
+  Das ersetzt die alte Regel „Claude schließt nie". **Du schließt erst NACH Schritt 3** — also nachdem Tarek getestet und die Aufgabe wieder dir zugewiesen hat. Vorher nicht.
+
+  Als Spalten: `in-progress` (1) → `self-test` (2) → `to-verify` (3) → `release` (4) → `status: "Done"`. Bewegen mit `update_task` und `scrumColumn`. **Die Zuständigkeit wechselt automatisch mit** (Automatik-Regeln im Mandanten): Schritt 1, 2 und 4 auf `claude`, Schritt 3 auf `tarekfatal`. Du musst sie nicht mitgeben.
+
+  Vor jedem Übergang an Tarek (Schritt 2→3) und nach dem Release: ZUERST ein `add_comment`, der mit `@tarekfatal` beginnt — was gemacht wurde, was zu prüfen ist, wo man es sieht (Test-Adresse oder Build-Kennung). Die Erwähnung benachrichtigt ihn wirklich; die Antwort von `add_comment` nennt unter `mentions.notified`, wen sie erreicht hat, und unter `mentions.unknown` jeden `@namen`, den es nicht gibt. Ganzer Ablauf: `docs/ABLAUF.md`.
+- **Verknüpfe, was zusammenhängt** — `link_tasks` mit `{ taskId, linkedTaskId, type }`, Typen `DependsOn`, `Blocks`, `RelatedTo`, `SubtaskOf`. Eine Abhängigkeit, die nur im Beschreibungstext steht, taucht in keiner Ansicht auf und blockiert nichts.
+- **Gliedere große Themen in Unteraufgaben** (`add_step` je Punkt, `complete_step` beim Abhaken) statt eine große Aufgabe zu schreiben. Der Fortschritt rechnet sich daraus.
+- **Pflege den Fortschritt in Prozent** (`update_task` mit `progress`), damit Tarek den Stand sieht, ohne zu fragen.
 - **Weise jede Aufgabe jemandem zu** — die Frage ist immer „wer ist als Nächstes dran?". Bauen, prüfen und dokumentieren liegt bei `claude` (alle Sessions handeln als dieser Benutzer, weil sie sich denselben Token teilen). Auf `tarekfatal` gehört alles, was nur Tarek kann: Entscheidungen, Zugänge und Schlüssel liefern oder rotieren, SQL einspielen, Vorlagen importieren, App-Store-Formulare, Passwörter ändern, Hardware kaufen — und alles, was auf sein „Go" wartet. Aufgaben auf „Zur Prüfung" gehören ebenfalls ihm, er nimmt ab. Nichts bleibt unzugewiesen. Umhängen über die Schnittstelle: `update_task` mit `{ assignee: "tarekfatal" }` (Benutzername, nicht id — `list_users` liefert sie).
 - **Neue Aufgaben:** Titel `TOF-XXXX — Kurztitel`, fortlaufend, **immer mit Projekt**. Hol die höchste vergebene Nummer frisch aus der Datenbank, nicht aus einer Notiz — es arbeiten mehrere Agenten parallel. `list_tasks` liefert nur 100 Zeilen und taugt dafür nicht.
 - **Nie Zugangsdaten in Aufgabentexte.** Kein Passwort, kein Token, kein Schlüssel — schreib stattdessen „Zugangsdaten liegen bei Tarek".
