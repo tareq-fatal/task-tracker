@@ -155,6 +155,8 @@ type TaskRow = {
   createdAt: Date;
   updatedAt: Date;
   scrumColumn: string | null;
+  externalId?: string | null;
+  bucket?: string | null;
   project?: { id: string; name: string } | null;
   assignedTo?: { id: string; name: string; username: string } | null;
 };
@@ -176,6 +178,8 @@ function serializeTask(t: TaskRow, extra: Record<string, unknown> = {}) {
     // Aufrufer die Regel nachbauen.
     scrumColumn: columnOf({ scrumColumn: t.scrumColumn, status: t.status }),
     awaitingReview: columnOf({ scrumColumn: t.scrumColumn, status: t.status }) === "to-verify",
+    externalId: t.externalId ?? null,
+    bucket: t.bucket ?? null,
     project: t.project ? { id: t.project.id, name: t.project.name } : null,
     assignedTo: t.assignedTo
       ? { id: t.assignedTo.id, name: t.assignedTo.name, username: t.assignedTo.username }
@@ -200,6 +204,10 @@ const TASK_SELECT = {
   // unterscheiden — beide sind Status InProgress. Genau die Prüfliste wäre
   // damit nicht berichtbar.
   scrumColumn: true,
+  // Herkunft aus einer Fremdquelle (heute: MS Planner). Ohne das lässt sich
+  // von außen nicht sagen, welche Aufgaben aus einem Abgleich stammen.
+  externalId: true,
+  bucket: true,
   project: { select: { id: true, name: true } },
   assignedTo: { select: { id: true, name: true, username: true } },
 } as const;
@@ -273,6 +281,46 @@ export const OPS: Record<string, McpOp> = {
         color: p.color,
         taskCount: p._count.tasks,
       }));
+    },
+  },
+
+  sync_status: {
+    scope: "read",
+    describe:
+      "State of the MS Planner sync in my mandant: which project is linked to which plan, direction, whether it is enabled, when it last ran and with what result.",
+    schema: z.object({}).strict(),
+    run: async (ctx) => {
+      const syncs = await prisma.plannerSync.findMany({
+        where: { tenantId: ctx.tenant.id },
+        select: {
+          planId: true,
+          direction: true,
+          enabled: true,
+          intervalMin: true,
+          lastSyncedAt: true,
+          lastStatus: true,
+          project: { select: { id: true, name: true } },
+        },
+      });
+      // Wie viele Aufgaben tragen überhaupt eine Fremdkennung? Das ist der
+      // ehrlichste Beleg dafür, ob je etwas geflossen ist — unabhängig davon,
+      // was in der Konfiguration steht.
+      const fromExternal = await prisma.task.count({
+        where: { tenantId: ctx.tenant.id, externalId: { not: null } },
+      });
+      return {
+        configured: syncs.length,
+        syncs: syncs.map((s) => ({
+          project: s.project,
+          planId: s.planId,
+          direction: s.direction,
+          enabled: s.enabled,
+          intervalMin: s.intervalMin,
+          lastSyncedAt: s.lastSyncedAt?.toISOString() ?? null,
+          lastStatus: s.lastStatus,
+        })),
+        tasksWithExternalId: fromExternal,
+      };
     },
   },
 

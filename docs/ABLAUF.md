@@ -26,8 +26,23 @@ steht; `WORKFLOW_CHAIN` nennt die vier Schritte.
 | **4** | `release` | Release | `claude` | ausliefern, Bescheid geben, dann schließen |
 | — | `done` | Erledigt | — | geschlossen |
 
-Nebengleise, die es weiterhin gibt: `waiting` (liegt auf einer Zulieferung) und
-`ready-for-golive`.
+### Test gegen Entscheidung — zwei verschiedene Dinge
+
+Nicht alles, was bei Tarek liegt, ist ein Test. Manches wartet auf eine
+**Handlung** von ihm: einen Zugang, einen Schlüssel, eine Freigabe, eine
+Bundle-ID. Das gehört nicht in Schritt 3, sonst sucht er dort vergeblich nach
+etwas zum Ausprobieren.
+
+| Es geht um | Spalte | Anzeige |
+| --- | --- | --- |
+| etwas ausprobieren und abnehmen | `to-verify` | Test (Auftraggeber) |
+| etwas entscheiden oder liefern | `waiting` | Wartet auf Entscheidung |
+
+Beide sind auf `tarekfatal` zugewiesen. Der Tracker kennt keine Labels — die
+Spalte IST die Kennzeichnung. Bei einer Entscheidungsaufgabe gehört die Frage
+samt Auswahlmöglichkeiten in die Beschreibung, jede mit einem Satz Folge.
+
+Weiteres Nebengleis: `ready-for-golive`.
 
 Wichtig: **jeder Schritt der Kette hat den Status `InProgress`** — auch
 `release`. Ausgeliefert ist noch nicht geschlossen. Nur `done` zählt als
@@ -94,6 +109,7 @@ Die Zuweisung muss man nicht mitgeben — die Regel erledigt sie.
 
 - **`/list?spalte=to-verify&nur=ich`** — die vollständige Prüfliste, ohne
   Kürzung, gruppiert nach Projekt. Das ist die Adresse zum Merken.
+- **`/list?spalte=waiting&nur=ich`** — was auf eine Entscheidung von ihm wartet.
 - **`/next`** — die zehn dringendsten, Schritt 3 ganz oben, mit einem Link auf
   die vollständige Liste.
 - **`/views`** — das Board mit allen Spalten nebeneinander.
