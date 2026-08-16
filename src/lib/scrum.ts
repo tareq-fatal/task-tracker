@@ -61,6 +61,24 @@ export function statusForColumn(col: ScrumColumn): TaskStatus {
   return "InProgress"; // in-progress | self-test | waiting | to-verify | release
 }
 
+/**
+ * Auf welche Spalte muss die Karte, wenn sich der STATUS ändert?
+ *
+ * Nur die Fälle, in denen die alte Spalte sonst lügen würde: eine
+ * geschlossene Aufgabe darf nicht in „Release" stehen bleiben, eine wieder
+ * geöffnete nicht in „Erledigt". Innerhalb der offenen Spalten bleibt die
+ * Karte, wo sie ist — dort trägt die Spalte mehr Bedeutung als der Status.
+ *
+ * @returns die neue Spalte, oder null wenn die alte gültig bleibt.
+ */
+export function columnForStatusChange(status: string, current: string | null): ScrumColumn | null {
+  const closed = status === "Done" || status === "Archived";
+  const inClosedColumn = current === "done" || current === "ready-for-golive";
+  if (closed && !inClosedColumn) return "done";
+  if (!closed && inClosedColumn) return statusForColumn("to-do") === status ? "to-do" : "in-progress";
+  return null;
+}
+
 /** Deterministic small rotation (deg) per id — avoids hydration mismatch. */
 export function stickyRotation(id: string): number {
   let h = 0;

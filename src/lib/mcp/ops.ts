@@ -8,7 +8,7 @@ import { isAdminRole, isStaffRole, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } 
 import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { progressFromSubtasks } from "@/lib/tasks";
-import { columnOf, isScrumColumn, statusForColumn, SCRUM_COLUMNS } from "@/lib/scrum";
+import { columnForStatusChange, columnOf, isScrumColumn, statusForColumn, SCRUM_COLUMNS } from "@/lib/scrum";
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME, MIME_EXTENSION } from "@/lib/validation";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { writeThumbnail } from "@/lib/thumbnail";
@@ -668,6 +668,13 @@ export const OPS: Record<string, McpOp> = {
         data.status = wantStatus;
         data.completedAt = wantStatus === "Done" ? new Date() : null;
         if (wantStatus === "Done") data.progress = 100;
+        // Sonst bliebe die geschlossene Karte in „Release" stehen und das
+        // Board zeigte sie weiter als laufende Arbeit. Eine ausdrücklich
+        // mitgegebene Spalte gewinnt.
+        if (params.scrumColumn === undefined) {
+          const moved = columnForStatusChange(wantStatus, task.scrumColumn);
+          if (moved) data.scrumColumn = moved;
+        }
       }
 
       const updated = await prisma.task.update({

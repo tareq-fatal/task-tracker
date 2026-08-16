@@ -119,6 +119,9 @@ test("closing happens after step 3, and only deliberately", async () => {
   const t = await row(id);
   expect(t.status).toBe("Done");
   expect(t.progress).toBe(100);
+  // Die Karte darf nicht in „Release" hängen bleiben, sonst zeigt das Board
+  // sie weiter als laufende Arbeit.
+  expect(t.scrumColumn).toBe("done");
 });
 
 test("an explicit assignee beats the rule instead of being overwritten", async () => {
