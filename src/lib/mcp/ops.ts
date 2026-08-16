@@ -22,6 +22,14 @@ import { formatPromptComment } from "./prompt-format";
 import type { ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
 
+/**
+ * Obergrenze für eine Aufgabenbeschreibung. Die Datenbankspalte ist unbegrenzt;
+ * die Grenze hier ist nur ein Riegel gegen Unfug. 5000 waren zu knapp — der
+ * Wiederaufnahme-Prompt in TOF-0000 ist allein schon 5700 Zeichen lang und
+ * ließ sich darum über die Schnittstelle nicht mehr aktuell halten.
+ */
+const MAX_DESCRIPTION_CHARS = 20000;
+
 /** Scrum column keys as a zod-friendly tuple. */
 const SCRUM_COLUMN_KEYS = SCRUM_COLUMNS.map((c) => c.key) as unknown as [string, ...string[]];
 
@@ -458,7 +466,7 @@ export const OPS: Record<string, McpOp> = {
     schema: z
       .object({
         title: z.string().trim().min(1).max(200),
-        description: z.string().trim().max(5000).optional(),
+        description: z.string().trim().max(MAX_DESCRIPTION_CHARS).optional(),
         status: z.enum(TASK_STATUSES).default("Todo"),
         priority: z.enum(TASK_PRIORITIES).default("Medium"),
         type: z.enum(TASK_TYPES).default("Task"),
@@ -557,7 +565,7 @@ export const OPS: Record<string, McpOp> = {
       .object({
         taskId: idSchema,
         title: z.string().trim().min(1).max(200).optional(),
-        description: z.string().trim().max(5000).optional(),
+        description: z.string().trim().max(MAX_DESCRIPTION_CHARS).optional(),
         descriptionAppend: z.string().trim().min(1).max(2000).optional(),
         status: z.enum(TASK_STATUSES).optional(),
         priority: z.enum(TASK_PRIORITIES).optional(),
