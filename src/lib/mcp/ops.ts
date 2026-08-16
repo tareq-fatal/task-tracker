@@ -8,10 +8,7 @@ import { isAdminRole, isStaffRole, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } 
 import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { progressFromSubtasks } from "@/lib/tasks";
-import { isScrumColumn, statusForColumn, SCRUM_COLUMNS } from "@/lib/scrum";
-
-/** Scrum column keys as a zod-friendly tuple. */
-const SCRUM_COLUMN_KEYS = SCRUM_COLUMNS.map((c) => c.key) as unknown as [string, ...string[]];
+import { columnOf, isScrumColumn, statusForColumn, SCRUM_COLUMNS } from "@/lib/scrum";
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME, MIME_EXTENSION } from "@/lib/validation";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
 import { writeThumbnail } from "@/lib/thumbnail";
@@ -24,6 +21,9 @@ import { applyAutomations } from "@/lib/automation-run";
 import { formatPromptComment } from "./prompt-format";
 import type { ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
+
+/** Scrum column keys as a zod-friendly tuple. */
+const SCRUM_COLUMN_KEYS = SCRUM_COLUMNS.map((c) => c.key) as unknown as [string, ...string[]];
 
 /* ------------------------------------------------------------------ */
 /* Errors                                                              */
@@ -146,6 +146,7 @@ type TaskRow = {
   dueDate: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  scrumColumn: string | null;
   project?: { id: string; name: string } | null;
   assignedTo?: { id: string; name: string; username: string } | null;
 };
@@ -162,6 +163,11 @@ function serializeTask(t: TaskRow, extra: Record<string, unknown> = {}) {
     dueDate: t.dueDate?.toISOString() ?? null,
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
+    // Abgeleitet, nicht roh: eine Aufgabe ohne gesetzte Spalte gehört trotzdem
+    // in eine (columnOf leitet sie aus dem Status ab), sonst müsste jeder
+    // Aufrufer die Regel nachbauen.
+    scrumColumn: columnOf({ scrumColumn: t.scrumColumn, status: t.status }),
+    awaitingReview: columnOf({ scrumColumn: t.scrumColumn, status: t.status }) === "to-verify",
     project: t.project ? { id: t.project.id, name: t.project.name } : null,
     assignedTo: t.assignedTo
       ? { id: t.assignedTo.id, name: t.assignedTo.name, username: t.assignedTo.username }
@@ -182,6 +188,10 @@ const TASK_SELECT = {
   dueDate: true,
   createdAt: true,
   updatedAt: true,
+  // Ohne die Spalte ist „Zur Prüfung" von außen nicht von „In Arbeit" zu
+  // unterscheiden — beide sind Status InProgress. Genau die Prüfliste wäre
+  // damit nicht berichtbar.
+  scrumColumn: true,
   project: { select: { id: true, name: true } },
   assignedTo: { select: { id: true, name: true, username: true } },
 } as const;
@@ -276,7 +286,7 @@ export const OPS: Record<string, McpOp> = {
   list_tasks: {
     scope: "read",
     describe:
-      "List/search tasks I may see. Filter by status, priority, project, assignee (\"me\") or a text query.",
+      "List/search tasks I may see. Filter by status, priority, project, assignee (\"me\"), scrum column (\"to-verify\" = Zur Prüfung) or a text query.",
     schema: z
       .object({
         query: z.string().trim().max(200).optional(),
@@ -285,6 +295,7 @@ export const OPS: Record<string, McpOp> = {
         projectId: idSchema.optional(),
         mine: z.boolean().default(false),
         openOnly: z.boolean().default(false),
+        scrumColumn: z.enum(SCRUM_COLUMN_KEYS).optional(),
         limit: z.number().int().min(1).max(100).default(25),
       })
       .strict(),
@@ -297,6 +308,7 @@ export const OPS: Record<string, McpOp> = {
         projectId?: string;
         mine: boolean;
         openOnly: boolean;
+        scrumColumn?: string;
         limit: number;
       }
     ) => {
@@ -308,6 +320,23 @@ export const OPS: Record<string, McpOp> = {
       else if (params.openOnly) filters.status = { notIn: ["Done", "Archived"] };
       if (params.priority) filters.priority = params.priority;
       if (params.projectId) filters.projectId = params.projectId;
+      if (params.scrumColumn) {
+        // „to-do" und „in-progress" sind auch für Aufgaben gültig, die gar
+        // keine Spalte gesetzt haben — dieselbe Ableitung wie columnOf().
+        const implied =
+          params.scrumColumn === "to-do"
+            ? ["Todo", "Backlog"]
+            : params.scrumColumn === "in-progress"
+              ? ["InProgress"]
+              : params.scrumColumn === "done"
+                ? ["Done", "Archived"]
+                : null;
+        and.push(
+          implied
+            ? { OR: [{ scrumColumn: params.scrumColumn }, { scrumColumn: null, status: { in: implied } }] }
+            : { scrumColumn: params.scrumColumn }
+        );
+      }
       if (params.mine) {
         and.push({
           OR: [{ assignedToUserId: ctx.user.id }, { assignees: { some: { userId: ctx.user.id } } }],
