@@ -30,6 +30,22 @@ Regeln beim Arbeiten:
 
   Das ersetzt die alte Regel „Claude schließt nie". **Du schließt erst NACH Schritt 3** — also nachdem Tarek getestet und die Aufgabe wieder dir zugewiesen hat. Vorher nicht.
 
+  **Ausnahme, seit 17.08.2026 (Tarek, wörtlich: „wenn du einfach da selber was schon getestet hast und erfolgreich gemeldet hast, dann kannst du's auch selber schließen. Ich vertrau dir erst mal."):**
+
+  Du darfst Schritt 3 überspringen und **selbst schließen**, wenn **alle vier** Punkte erfüllt sind:
+  1. Der Stand liegt auf `main` **und** auf Produktion, und du kannst eine **Adresse nennen, die antwortet** — nicht nur einen Build-Buchstaben.
+  2. Es gibt einen **Test, der genau das abdeckt, was die Aufgabe behauptet**, und er ist grün. „Alle Tests grün" allein ist kein Beleg.
+  3. Die Aufgabe brauchte **keine** Entscheidung, keinen Zugang, keinen Schlüssel und keine Prüfung gegen echte SAP-Daten von Tarek.
+  4. Du hast es **selbst nachgestellt**, nicht nur gebaut — bei Anzeigesachen mit **Bildbeleg**.
+
+  Im Abschluss-Kommentar steht, **womit** du es belegt hast (Adresse + Testart), und die Einladung, die Aufgabe wieder aufzumachen, wenn es im Feld anders aussieht.
+
+  **Bei Tarek bleibt** (nie selbst schließen): alles, was er entscheiden muss (Fachentscheidungen, Namen, Codes, Reihenfolgen) · alles, was Zugänge, Schlüssel, Import in FSM, SQL oder Käufe braucht · alles, was nur gegen den echten Mandanten oder mit einem echten Monteur prüfbar ist · alles, wo dein Beleg eine Nachstellung ist und kein echter Durchlauf.
+
+  Lässt du eine Aufgabe bei ihm, schreib **in einem Satz, was genau er tun muss** — er soll nicht suchen müssen.
+
+  Warum die Ausnahme mit dieser harten Grenze kommt: am 17.08. war zweimal „fertig gemeldet" nicht „fertig" (TOF-0424 lag nur auf einem Zweig; die Serienzeilen aus TOF-0453 kamen in SAP gar nicht an). Die vier Punkte sind genau die Lücken, durch die das gerutscht ist.
+
   Als Spalten: `in-progress` (1) → `self-test` (2) → `to-verify` (3) → `release` (4) → `status: "Done"`. Bewegen mit `update_task` und `scrumColumn`. **Die Zuständigkeit wechselt automatisch mit** (Automatik-Regeln im Mandanten): Schritt 1, 2 und 4 auf `claude`, Schritt 3 auf `tarekfatal`. Du musst sie nicht mitgeben.
 
   Vor jedem Übergang an Tarek (Schritt 2→3) und nach dem Release: ZUERST ein `add_comment`, der mit `@tarekfatal` beginnt — was gemacht wurde, was zu prüfen ist, wo man es sieht (Test-Adresse oder Build-Kennung). Die Erwähnung benachrichtigt ihn wirklich; die Antwort von `add_comment` nennt unter `mentions.notified`, wen sie erreicht hat, und unter `mentions.unknown` jeden `@namen`, den es nicht gibt. Ganzer Ablauf: `docs/ABLAUF.md`.
