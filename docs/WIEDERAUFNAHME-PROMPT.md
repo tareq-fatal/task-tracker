@@ -30,9 +30,9 @@ Regeln beim Arbeiten:
 
   Das ersetzt die alte Regel „Claude schließt nie". **Du schließt erst NACH Schritt 3** — also nachdem Tarek getestet und die Aufgabe wieder dir zugewiesen hat. Vorher nicht.
 
-  **Ausnahme, seit 17.08.2026 (Tarek, wörtlich: „wenn du einfach da selber was schon getestet hast und erfolgreich gemeldet hast, dann kannst du's auch selber schließen. Ich vertrau dir erst mal."):**
+  **Ausnahme, seit 17.08.2026, am 18.08.2026 bestätigt und verbindlich (Tarek, wörtlich: „wenn du einfach da selber was schon getestet hast und erfolgreich gemeldet hast, dann kannst du's auch selber schließen. Ich vertrau dir erst mal."):**
 
-  Du darfst Schritt 3 überspringen und **selbst schließen**, wenn **alle vier** Punkte erfüllt sind:
+  Du darfst Schritt 3 überspringen und **selbst schließen**, wenn **alle vier** Punkte erfüllt sind. Das ersetzt Schritt 3 **nur für diese Fälle** — für alles andere gilt der Weg oben unverändert.
   1. Der Stand liegt auf `main` **und** auf Produktion, und du kannst eine **Adresse nennen, die antwortet** — nicht nur einen Build-Buchstaben.
   2. Es gibt einen **Test, der genau das abdeckt, was die Aufgabe behauptet**, und er ist grün. „Alle Tests grün" allein ist kein Beleg.
   3. Die Aufgabe brauchte **keine** Entscheidung, keinen Zugang, keinen Schlüssel und keine Prüfung gegen echte SAP-Daten von Tarek.
@@ -57,10 +57,22 @@ Regeln beim Arbeiten:
 - **Nie Zugangsdaten in Aufgabentexte.** Kein Passwort, kein Token, kein Schlüssel — schreib stattdessen „Zugangsdaten liegen bei Tarek".
 - **Beschreibungen kurz und ohne Jargon.** Tarek will keine Fachwortwände.
 - **Umlaute:** Nutzlast über Node oder eine Datei senden, nie Sonderzeichen direkt in die Kommandozeile eines Windows-Programms — dort werden sie zerstört.
+- **Ein Build-Buchstabe ist kein Beleg.** Es gab „Build EY" zweimal — der Buchstabe sagt nichts darüber, was wirklich draußen läuft. Beleg ist eine **Adresse, die antwortet**. In jeden Übergabe-Kommentar gehört eine, die Tarek anklicken kann.
+- **Mehrere Sessions gleichzeitig:** vor **jedem** Deploy `git pull --rebase`. Wer zuletzt ausliefert, überschreibt den anderen — am 18.08.2026 zweimal passiert. Kleine Commits, sofort pushen, fremde Commits nie verwerfen: rebasen und bei angehängten Testblöcken **beide** behalten.
+
+Beim FSM-Container gilt zusätzlich:
+
+- **Regel 1 (Tarek, verbindlich):** Alles, was in die Container-Checkliste kommt, muss auch in der **SAP-FSM-Smartform** stehen — aus der Smartform entstehen die Equipments. Ein Feld nur in der App bedeutet: der Monteur füllt es aus, und in SAP kommt nichts an. Der Test prüft **beide Richtungen** — jedes App-Feld hat eine Entsprechung in der Vorlage und umgekehrt.
+- **Die Quellen lesen, bevor du baust.** `docs/quellen/*.vsdx` ist maschinell lesbar: 928 Formen, 385 mit Text, 692 Verbindungen, 320 vollständige Kanten. Den Ablauf liest man an den **Kanten**, nicht an den Kästen — was am Tätigkeits-Dropdown hängt, *ist* eine Tätigkeit. **Wortdeckung ist keine Ablaufdeckung:** dass ein Begriff irgendwo im Code vorkommt, sagt über den Ablauf nichts.
+- Die verbindlichen Ableitungen daraus: `docs/ABLAUF-VERSTANDEN.md` und `docs/MATRIX-JE-AUFTRAGSART.md`.
+- **Wo die Quellen schweigen: nicht ändern, sondern fragen.** Geratene Codes, Nummern und Feldnamen sind stille Fehler — die Bedingung greift nicht, das Feld erscheint nicht, niemand sieht es.
 
 Die wichtigsten Orte:
 
 - `tareq-fatal/SAP_FSM_API_Web_Container` — FSM-Container für Objektus. Klon: `C:\Users\sapb1\source\Sy\SAP_FSM_API_Web_Container`, live: `https://objektus-iot.delmar-tareq.workers.dev`. Achtung: jeder Push auf `main` geht sofort auf Produktion.
+- `C:\dev\mawaddah` — zweites aktives Projekt (Expo / React Native / Supabase), steht vor dem Live-Gang. Startklar-Liste: `docs/LIVE-CHECKLISTE.md`.
+- **Supabase-CLI ist angemeldet**, Projekt `cpmumiwuqeryywmzvfjt` (Mawaddah). Migrationen kannst du selbst einspielen — **nur geprüfte Migrationsdateien**, nichts von Hand löschen, und vorher ansagen, was läuft.
+- **Ergebnisdateien** sollen in Tareks Google-Drive-Ordner. Solange es dafür keinen Zugang gibt, liegen sie in `C:\Users\sapb1\Downloads` und werden bei Bedarf über einen GitHub-Zweig geteilt (Beispiel: `deliverables/2026-08-18`).
 - `tareq-fatal/task-tracker` — der Tracker selbst. Klon: `C:\dev\task-tracker`, live: `https://tasks.coastshield.net`. Deploy über `gh workflow run deploy.yml --ref main`, Rollback ist im Deploy-Skript eingebaut.
 - `tareq-fatal/mission-control` — Projekt-Übersicht. Bei Widerspruch zu Notizen gilt dieses Repo.
 - Gedächtnis der Sessions: `C:\Users\sapb1\.claude\projects\C--dev\memory\`.
