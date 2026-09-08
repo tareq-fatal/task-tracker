@@ -510,7 +510,8 @@ export const OPS: Record<string, McpOp> = {
 
   create_task: {
     scope: "write",
-    describe: "Create a task. Optionally with checklist steps and a project.",
+    describe:
+      "Create a task. Optionally with checklist steps and a project. Title starting with a placeholder (TOF-XXXX, TOF-####) gets the next free number assigned by the server — use that instead of reading the highest number yourself.",
     schema: z
       .object({
         title: z.string().trim().min(1).max(200),
@@ -546,7 +547,53 @@ export const OPS: Record<string, McpOp> = {
         assignedToUserId: wanted,
       });
 
-      const task = await prisma.task.create({
+      // ===== NUMMER VOM SERVER, NICHT VOM SKRIPT =====
+      // Bisher las jedes Skript die hoechste TOF-Nummer und zaehlte hoch. Laufen
+      // zwei Sitzungen parallel, greifen beide dieselbe: am 19.08.2026 lagen bei
+      // TOF-0513 zwei Zugriffe 38 Sekunden auseinander, und am 17./18.08. traf
+      // es TOF-0500. Lesen und Schreiben sind zwei Schritte, und dazwischen
+      // passt der andere.
+      //
+      // Deshalb: Titel mit einem Platzhalter (TOF-XXXX, TOF-####, TOF-????)
+      // bekommt die Nummer HIER. Vergabe und Anlage laufen in EINER Transaktion,
+      // und ein Advisory Lock je Mandant serialisiert sie — zwei gleichzeitige
+      // Aufrufe warten aufeinander, statt dieselbe Zahl zu ziehen.
+      const platzhalter = /^TOF-(?:X{3,}|#{3,}|\?{3,})\s*/i;
+      const braucht = platzhalter.test(params.title);
+      const task = braucht
+        ? await prisma.$transaction(async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${"tof-nummer:" + ctx.tenant.id}))`;
+            // Auch geloeschte und archivierte zaehlen mit: eine Nummer wird nie
+            // wiederverwendet, sonst zeigen alte Kommentare auf etwas anderes.
+            const vorhanden = await tx.task.findMany({
+              where: { tenantId: ctx.tenant.id, title: { startsWith: "TOF-" } },
+              select: { title: true },
+            });
+            let hoechste = 0;
+            for (const v of vorhanden) {
+              const m = /^TOF-(\d+)/.exec(v.title);
+              if (m) hoechste = Math.max(hoechste, Number(m[1]));
+            }
+            const nummer = "TOF-" + String(hoechste + 1).padStart(4, "0");
+            return tx.task.create({
+              data: {
+                title: params.title.replace(platzhalter, nummer + " "),
+                description: params.description || null,
+                status: params.status,
+                priority: params.priority,
+                type: params.type,
+                projectId: rel.projectId,
+                assignedToUserId: rel.assignedToUserId,
+                dueDate: params.dueDate ? new Date(params.dueDate) : null,
+                progress: params.status === "Done" ? 100 : 0,
+                completedAt: params.status === "Done" ? new Date() : null,
+                createdByUserId: ctx.user.id,
+                tenantId: ctx.tenant.id,
+              },
+              select: TASK_SELECT,
+            });
+          })
+        : await prisma.task.create({
         data: {
           title: params.title,
           description: params.description || null,
