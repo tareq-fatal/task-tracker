@@ -165,6 +165,14 @@ const Task: Json = {
     description: { type: "string", maxLength: 5000, default: "", example: "Generate the 3.1 spec and serve Swagger-UI." },
     status: { $ref: "#/components/schemas/TaskStatus", default: "Todo" },
     priority: { $ref: "#/components/schemas/TaskPriority", default: "Medium" },
+    tags: {
+      type: "array",
+      items: { type: "string", maxLength: 24 },
+      maxItems: 12,
+      description:
+        "Free tags, lowercase and without spaces. A comma-separated string is accepted too.",
+      example: ["live-feedback", "qs"],
+    },
     assignedToUserId: { type: "string", nullable: true, example: "clv0userid" },
     projectId: { type: "string", nullable: true, example: "clv0projid" },
     teamId: { type: "string", nullable: true, example: null },

@@ -59,6 +59,7 @@ export default async function AdminTasksPage({
         projects={options.projects}
         teams={options.teams}
         users={options.users}
+        tags={options.tags}
         current={filters}
         resultCount={resultCount}
         totalCount={total}

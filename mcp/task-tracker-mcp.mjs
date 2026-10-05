@@ -114,7 +114,19 @@ const bool = (description, extra = {}) => ({ type: "boolean", description, ...ex
 const int = (description, extra = {}) => ({ type: "integer", description, ...extra });
 
 const STATUSES = ["Todo", "InProgress", "Done", "Archived"];
-const PRIORITIES = ["Low", "Medium", "High", "Critical"];
+// Dieselben vier Stufen, auch unter ihren Hausnamen: Tarek sagt "P1", nicht
+// "Critical". Der Server rechnet das um (lib/enums.ts, resolvePriority).
+const PRIORITIES = [
+  "Low", "Medium", "High", "Critical",
+  "P1", "P2", "P3", "P4",
+  "kritisch", "hoch", "mittel", "gering", "niedrig",
+];
+const SORTS = ["updated", "created", "priority", "due", "title"];
+const tagList = (description) => ({
+  type: "array",
+  items: { type: "string" },
+  description,
+});
 const TYPES = ["Epic", "Story", "Task", "Subtask", "Bug"];
 
 /**
@@ -132,16 +144,18 @@ const TOOLS = [
   {
     name: "list_tasks",
     description:
-      "List or search tasks. Filter by status, priority, project, or `mine: true` for tasks assigned to me. Use `openOnly: true` to hide Done/Archived.",
+      "List or search tasks. Filter by status, priority (P1-P4 works), tags, project, or `mine: true` for tasks assigned to me. Use `openOnly: true` to hide Done/Archived and `sort` to order the result.",
     inputSchema: {
       type: "object",
       properties: {
         query: str("Free-text search across title and description"),
         status: str("Exact status filter", { enum: STATUSES }),
         priority: str("Exact priority filter", { enum: PRIORITIES }),
+        tags: tagList("Match tasks carrying ANY of these tags"),
         projectId: str("Restrict to one project"),
         mine: bool("Only tasks assigned to me"),
         openOnly: bool("Hide Done and Archived tasks"),
+        sort: str("Order: updated (default), created, priority (P1 first), due, title", { enum: SORTS }),
         limit: int("Max rows (1-100, default 25)", { minimum: 1, maximum: 100 }),
       },
       additionalProperties: false,
@@ -171,6 +185,7 @@ const TOOLS = [
         description: str("Longer description / context"),
         status: str("Initial status (default Todo)", { enum: STATUSES }),
         priority: str("Priority (default Medium)", { enum: PRIORITIES }),
+        tags: tagList("Free tags, e.g. [\"live-feedback\", \"qs\"]"),
         type: str("Issue type (default Task)", { enum: TYPES }),
         projectId: str("Project to file it under"),
         assignedToUserId: str("Assignee user id (admins only; others get themselves)"),
@@ -199,6 +214,9 @@ const TOOLS = [
         descriptionAppend: str("Appends a paragraph, keeping existing text"),
         status: str("New status", { enum: STATUSES }),
         priority: str("New priority", { enum: PRIORITIES }),
+        tags: tagList("REPLACES the whole tag set"),
+        addTags: tagList("Adds these tags, keeps the rest"),
+        removeTags: tagList("Removes these tags, keeps the rest"),
         projectId: str("Move to this project (null to detach)"),
         dueDate: str("New due date, ISO-8601 with offset (null to clear)"),
       },

@@ -9,7 +9,7 @@ import { sortKeyFor, displayValue, type FieldType } from "@/lib/custom-fields";
 import { dueBucket } from "@/lib/due";
 import { formatDate } from "@/lib/format";
 import { TASK_STATUSES } from "@/lib/enums";
-import { StatusBadge, PriorityBadge } from "@/components/task-badges";
+import { StatusBadge, PriorityBadge, TagBadges } from "@/components/task-badges";
 import { bulkSetStatusAction, bulkDeleteAction } from "@/actions/bulk";
 import { useT } from "@/components/i18n-provider";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export type CustomCol = { id: string; name: string; type: FieldType; options: st
 type Row = {
   id: string; title: string; status: string; priority: string;
   dueDate: string | Date | null; storyPoints?: number | null; assignedTo: { name: string } | null;
+  tags?: string[];
   custom?: Record<string, string>;
   project?: { name: string; color: string } | null;
   /** Bildanhänge für die Miniaturspalte (max 3, siehe /list). */
@@ -125,6 +126,7 @@ export function TaskTable({
     { key: "assignee", label: t("task.assignee") },
     { key: "dueDate", label: t("task.dueDate") },
     { key: "priority", label: t("task.priority") },
+    { key: "tags", label: t("task.tags") },
     { key: "storyPoints", label: t("task.storyPoints") },
   ];
   const pad = dense ? "py-1.5" : "py-3";
@@ -163,6 +165,9 @@ export function TaskTable({
         <td className={cn("px-3", pad)}>{r.assignedTo?.name ?? <span className="text-muted-foreground">—</span>}</td>
         <td className={cn("px-3 tabular-nums", pad, bucket && DUE_COLOR[bucket])}>{r.dueDate ? formatDate(r.dueDate, locale) : "—"}</td>
         <td className={cn("px-3", pad)}><PriorityBadge priority={r.priority} /></td>
+        <td className={cn("px-3", pad)}>
+          {r.tags && r.tags.length > 0 ? <TagBadges tags={r.tags} max={3} /> : <span className="text-muted-foreground">—</span>}
+        </td>
         <td className={cn("px-3 tabular-nums", pad)}>{r.storyPoints ?? "—"}</td>
         {customFields.map((f) => (
           <td key={f.id} className={cn("whitespace-nowrap px-3", pad, (f.type === "number" || f.type === "date") && "tabular-nums")}>

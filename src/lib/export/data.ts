@@ -57,6 +57,7 @@ export type TaskRow = {
   title: string;
   status: string;
   priority: string;
+  tags: string[];
   type: string;
   projectName: string | null;
   assigneeName: string | null;
@@ -81,6 +82,7 @@ export async function loadTaskRows(tenantId: string, f: TaskExportFilters = {}):
       title: true,
       status: true,
       priority: true,
+      tags: true,
       type: true,
       dueDate: true,
       createdAt: true,
@@ -100,6 +102,7 @@ export async function loadTaskRows(tenantId: string, f: TaskExportFilters = {}):
     title: r.title,
     status: r.status,
     priority: r.priority,
+    tags: r.tags,
     type: r.type,
     projectName: r.project?.name ?? null,
     assigneeName: r.assignedTo?.name ?? null,

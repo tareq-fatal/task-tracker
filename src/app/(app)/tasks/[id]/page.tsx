@@ -33,7 +33,7 @@ import { taskVisibility, canEditTaskContent } from "@/lib/task-access";
 import { StatusControl } from "@/components/status-control";
 import { Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StatusBadge, PriorityBadge, TypeBadge } from "@/components/task-badges";
+import { StatusBadge, PriorityBadge, TypeBadge, TagBadges } from "@/components/task-badges";
 import { rollup } from "@/lib/hierarchy";
 import { CommentForm } from "@/components/comment-form";
 import { AttachmentUpload } from "@/components/attachment-upload";
@@ -437,6 +437,7 @@ export default async function TaskDetailPage({
         <TypeBadge type={task.type} />
         <StatusBadge status={task.status} />
         <PriorityBadge priority={task.priority} />
+        <TagBadges tags={task.tags} />
         {tenant.storyPointsEnabled && task.storyPoints != null && (
           <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
             {task.storyPoints} SP

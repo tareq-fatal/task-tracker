@@ -57,6 +57,7 @@ export default async function ListPage({
       },
       select: {
         id: true, title: true, status: true, priority: true, dueDate: true, storyPoints: true,
+        tags: true,
         assignedTo: { select: { name: true } },
         project: { select: { name: true, color: true } },
         // Miniaturen in der Liste — bis zu drei Bilder je Zeile.
@@ -94,6 +95,7 @@ export default async function ListPage({
         rows={rows.map((r) => ({
           id: r.id, title: r.title, status: r.status, priority: r.priority,
           dueDate: r.dueDate ? r.dueDate.toISOString() : null, storyPoints: r.storyPoints,
+          tags: r.tags,
           assignedTo: r.assignedTo,
           project: r.project,
           // SVG bleibt außen vor (wird nirgends inline gerendert).

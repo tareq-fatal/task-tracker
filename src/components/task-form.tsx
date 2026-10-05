@@ -23,6 +23,7 @@ export type TaskDefaults = {
   assigneeIds?: string[]; // co-assignees (excluding the primary), #13
   projectId?: string | null;
   teamId?: string | null;
+  tags?: string[]; // freie Schlagworte
   dueDate?: string | null; // yyyy-MM-dd
   estimatedHours?: string; // shorthand e.g. "4h" / "1d"
   spentHours?: string;
@@ -146,6 +147,17 @@ export function TaskForm({
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="tags">{t("task.tags")}</Label>
+          <Input
+            id="tags"
+            name="tags"
+            defaultValue={(d.tags ?? []).join(", ")}
+            placeholder={t("task.tagsPlaceholder")}
+          />
+          <p className="text-xs text-muted-foreground">{t("task.tagsHint")}</p>
         </div>
 
         <div className="space-y-2">

@@ -6,6 +6,7 @@ export const taskCardSelect = {
   title: true,
   status: true,
   priority: true,
+  tags: true,
   dueDate: true,
   storyPoints: true,
   progress: true,

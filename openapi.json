@@ -1267,6 +1267,19 @@
             "$ref": "#/components/schemas/TaskPriority",
             "default": "Medium"
           },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 24
+            },
+            "maxItems": 12,
+            "description": "Free tags, lowercase and without spaces. A comma-separated string is accepted too.",
+            "example": [
+              "live-feedback",
+              "qs"
+            ]
+          },
           "assignedToUserId": {
             "type": "string",
             "nullable": true,
