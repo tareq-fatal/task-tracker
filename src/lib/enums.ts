@@ -34,6 +34,35 @@ export const BOARD_STATUSES = ["Todo", "InProgress", "Done"] as const;
 export const TASK_PRIORITIES = ["Low", "Medium", "High", "Critical"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
+/**
+ * Dieselben vier Stufen, wie sie im Gespräch heißen: P1–P4 und die deutschen
+ * Wörter. Gespeichert wird weiter der englische Wert — es gibt also keinen
+ * zweiten Satz Prioritäten, nur einen zweiten Satz Namen dafür. Ohne das
+ * stolpert jede Schnittstelle über ein „P1", das fachlich eindeutig ist.
+ */
+const PRIORITY_ALIASES: Record<string, TaskPriority> = {
+  p1: "Critical", p2: "High", p3: "Medium", p4: "Low",
+  kritisch: "Critical", hoch: "High", mittel: "Medium", gering: "Low", niedrig: "Low",
+};
+
+/** Eingabe → gespeicherter Prioritätswert, oder null, wenn es keine Stufe ist. */
+export function resolvePriority(v: string): TaskPriority | null {
+  const raw = String(v ?? "").trim();
+  const exact = (TASK_PRIORITIES as readonly string[]).find(
+    (p) => p.toLowerCase() === raw.toLowerCase()
+  );
+  if (exact) return exact as TaskPriority;
+  return PRIORITY_ALIASES[raw.toLowerCase()] ?? null;
+}
+
+/** P1–P4 als Kurzform, für Berichte und Schnittstellen-Antworten. */
+export const PRIORITY_SHORT: Record<TaskPriority, string> = {
+  Critical: "P1",
+  High: "P2",
+  Medium: "P3",
+  Low: "P4",
+};
+
 // Issue hierarchy types (Epic > Story > Task > Subtask; Bug sits with Task).
 export const TASK_TYPES = ["Epic", "Story", "Task", "Subtask", "Bug"] as const;
 export type TaskType = (typeof TASK_TYPES)[number];

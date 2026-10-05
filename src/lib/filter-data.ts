@@ -25,7 +25,7 @@ export async function loadFilterOptions(
   user: { id: string; role: string },
   tenantId: string
 ) {
-  const [projects, teams, users] = await Promise.all([
+  const [projects, teams, users, tags] = await Promise.all([
     scopedProjectOptions(user, tenantId),
     prisma.team.findMany({
       where: { tenantId },
@@ -37,6 +37,29 @@ export async function loadFilterOptions(
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
+    tenantTags(tenantId),
   ]);
-  return { projects, teams, users };
+  return { projects, teams, users, tags };
+}
+
+/**
+ * Die im Mandanten tatsaechlich vergebenen Schlagworte, alphabetisch.
+ *
+ * Bewusst aus den Aufgaben erhoben und nicht aus einer Verwaltungstabelle: es
+ * gibt keine Pflege von Schlagworten, also auch keine Liste, die veralten
+ * koennte. Nur nicht geloeschte Aufgaben zaehlen -- ein Schlagwort, das es nur
+ * im Papierkorb gibt, soll den Filter nicht fuellen.
+ *
+ * `distinct` auf ein Array-Feld gibt es in Prisma nicht, darum die Mengenbildung
+ * hier. Bei dieser Groessenordnung (Tausende Aufgaben) ist das eine Abfrage auf
+ * eine Spalte, kein Problem.
+ */
+export async function tenantTags(tenantId: string): Promise<string[]> {
+  const rows = await prisma.task.findMany({
+    where: { tenantId, deletedAt: null },
+    select: { tags: true },
+  });
+  const set = new Set<string>();
+  for (const r of rows) for (const t of r.tags) set.add(t);
+  return [...set].sort((a, b) => a.localeCompare(b, "de"));
 }

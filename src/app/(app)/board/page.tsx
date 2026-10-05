@@ -43,6 +43,7 @@ export default async function BoardPage({
         projects={options.projects}
         teams={options.teams}
         users={options.users}
+        tags={options.tags}
         current={filters}
         hide={["status"]}
         resultCount={tasks.length}

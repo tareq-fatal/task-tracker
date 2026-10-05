@@ -8,7 +8,7 @@ import type { TaskPriority } from "@/lib/enums";
 import { dueBucket, type DueBucket } from "@/lib/due";
 import { isImageMime } from "@/lib/attachment-view";
 import { formatDate } from "@/lib/format";
-import { StatusBadge, PriorityBadge } from "@/components/task-badges";
+import { StatusBadge, PriorityBadge, TagBadges } from "@/components/task-badges";
 import { ProgressBar } from "@/components/progress-bar";
 import { TimeBadge } from "@/components/time-badge";
 import { useT } from "@/components/i18n-provider";
@@ -19,6 +19,7 @@ export type TaskCardData = {
   title: string;
   status: string;
   priority: string;
+  tags?: string[];
   dueDate: string | Date | null;
   storyPoints?: number | null;
   progress: number;
@@ -118,6 +119,7 @@ export function TaskCard({
 
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           <PriorityBadge priority={task.priority} />
+          <TagBadges tags={task.tags} max={3} />
           {showStatus && <StatusBadge status={task.status} />}
           {bucket && (
             <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", DUE_STYLE[bucket])}>

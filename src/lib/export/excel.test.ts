@@ -10,6 +10,7 @@ function row(over: Partial<TaskRow> = {}): TaskRow {
     title: "Task",
     status: "Todo",
     priority: "Medium",
+    tags: [],
     type: "Task",
     projectName: "Alpha",
     assigneeName: "Sam",

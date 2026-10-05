@@ -138,6 +138,7 @@ export default async function TeamDetailPage({
             projects={options.projects}
             teams={options.teams}
             users={options.users}
+            tags={options.tags}
             current={filters}
             hide={["team"]}
             resultCount={tasks.length}

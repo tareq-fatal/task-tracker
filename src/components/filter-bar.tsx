@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Filter, X, Search, ChevronDown, Check, Users } from "lucide-react";
+import { Filter, X, Search, ChevronDown, Check, Users, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,7 @@ type FacetKey =
   | "assignee"
   | "status"
   | "priority"
+  | "tags"
   | "date"
   | "search";
 
@@ -49,6 +50,7 @@ export function FilterBar({
   projects,
   teams,
   users,
+  tags = [],
   current,
   hide = [],
   resultCount,
@@ -58,6 +60,8 @@ export function FilterBar({
   projects: Option[];
   teams: Option[];
   users: Option[];
+  /** Die im Mandanten vergebenen Schlagworte (loadFilterOptions). Leer = Facette aus. */
+  tags?: string[];
   current: TaskFilters;
   hide?: FacetKey[];
   resultCount: number;
@@ -95,6 +99,12 @@ export function FilterBar({
     const set = new Set(current.assignees);
     set.has(id) ? set.delete(id) : set.add(id);
     apply({ assignees: Array.from(set) });
+  }
+
+  function toggleTag(tag: string) {
+    const set = new Set(current.tags);
+    set.has(tag) ? set.delete(tag) : set.add(tag);
+    apply({ tags: Array.from(set) });
   }
 
   const activeCount = activeFilterCount(current);
@@ -207,6 +217,50 @@ export function FilterBar({
           </select>
         )}
 
+        {show("tags") && tags.length > 0 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 gap-1.5">
+                <Tag className="h-4 w-4" />
+                {t("task.tags")}
+                {current.tags.length > 0 && (
+                  <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+                    {current.tags.length}
+                  </span>
+                )}
+                <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="max-h-72 overflow-y-auto">
+              {tags.map((tag) => {
+                const checked = current.tags.includes(tag);
+                return (
+                  <DropdownMenuItem
+                    key={tag}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      toggleTag(tag);
+                    }}
+                    className="gap-2"
+                  >
+                    <span
+                      className={cn(
+                        "flex h-4 w-4 items-center justify-center rounded border",
+                        checked
+                          ? "border-indigo-500 bg-indigo-500 text-white"
+                          : "border-input"
+                      )}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    {tag}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         {show("date") && (
           <select aria-label={t("task.dueDate")}
             className={selectClass}
@@ -283,6 +337,13 @@ export function FilterBar({
         label: t(`priority.${current.priority}` as TKey),
         onRemove: () => apply({ priority: undefined }),
       });
+    current.tags.forEach((tag) =>
+      list.push({
+        key: `tag-${tag}`,
+        label: `#${tag}`,
+        onRemove: () => toggleTag(tag),
+      })
+    );
     if (current.date)
       list.push({
         key: "date",

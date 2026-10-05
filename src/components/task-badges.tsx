@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { STATUS_STYLES, PRIORITY_STYLES } from "@/lib/tasks";
+import { sortTags } from "@/lib/tags";
 import { useT } from "@/components/i18n-provider";
 import type { TaskPriority, TaskStatus } from "@/lib/enums";
 import type { TKey } from "@/lib/i18n";
@@ -48,6 +49,31 @@ export function TypeBadge({ type }: { type: string }) {
     >
       <span aria-hidden>{TYPE_ICON[type] ?? "✓"}</span>
       {t(`type.${type}` as TKey)}
+    </span>
+  );
+}
+
+/**
+ * Schlagworte einer Aufgabe. Ruhige, einheitliche Plaketten - die Farbe ist
+ * schon fuer Status und Prioritaet belegt; ein dritter Farbkreis wuerde die
+ * Karte unlesbar machen. `max` schneidet ab und zeigt den Rest als Zahl.
+ */
+export function TagBadges({ tags, max = 0 }: { tags?: string[] | null; max?: number }) {
+  const all = sortTags(tags ?? []);
+  if (all.length === 0) return null;
+  const shown = max > 0 ? all.slice(0, max) : all;
+  const rest = all.length - shown.length;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {shown.map((tag) => (
+        <span
+          key={tag}
+          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600"
+        >
+          #{tag}
+        </span>
+      ))}
+      {rest > 0 && <span className="text-xs text-muted-foreground">+{rest}</span>}
     </span>
   );
 }

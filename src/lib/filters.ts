@@ -1,5 +1,6 @@
 // Pure, testable task-filter logic shared by the FilterBar and every page.
 import { TASK_PRIORITIES, type TaskStatus } from "./enums";
+import { parseTags } from "./tags";
 
 export type StatusGroup = "backlog" | "open" | "done" | "archived";
 export type DateRangeKey = "today" | "week" | "month" | "custom";
@@ -20,6 +21,10 @@ export type TaskFilters = {
   assignees: string[]; // multi-select
   status?: StatusGroup;
   priority?: string;
+  /** Schlagworte, mehrfach wählbar. Treffer = mindestens eines davon (wie die
+   *  Personen-Auswahl), damit ein zweites Schlagwort die Liste erweitert und
+   *  nicht leert. */
+  tags: string[];
   date?: DateRangeKey;
   from?: string; // yyyy-mm-dd (custom)
   to?: string; // yyyy-mm-dd (custom)
@@ -43,6 +48,9 @@ export function parseTaskFilters(sp: RawParams): TaskFilters {
     project: str(sp.project),
     team: str(sp.team),
     assignees: assigneeRaw ? assigneeRaw.split(",").filter(Boolean) : [],
+    // Schlagworte laufen durch dieselbe Normalform wie beim Speichern, sonst
+    // trifft ein handgetipptes "?tag=Live-Feedback" nichts.
+    tags: parseTags(str(sp.tag)),
     status: STATUS_GROUP_KEYS.includes(status as StatusGroup)
       ? (status as StatusGroup)
       : undefined,
@@ -152,6 +160,7 @@ export function buildTaskWhere(
   }
   if (filters.status) where.status = { in: STATUS_GROUPS[filters.status] };
   if (filters.priority) where.priority = filters.priority;
+  if (filters.tags.length) where.tags = { hasSome: filters.tags };
 
   const range = dateRangeFor(filters, now);
   if (range) where.dueDate = range;
@@ -173,6 +182,7 @@ export function activeFilterCount(filters: TaskFilters): number {
   if (filters.assignees.length) n++;
   if (filters.status) n++;
   if (filters.priority) n++;
+  if (filters.tags.length) n++;
   if (filters.date) n++;
   if (filters.q) n++;
   return n;
@@ -186,6 +196,7 @@ export function filtersToParams(filters: TaskFilters): URLSearchParams {
   if (filters.assignees.length) sp.set("assignee", filters.assignees.join(","));
   if (filters.status) sp.set("status", filters.status);
   if (filters.priority) sp.set("priority", filters.priority);
+  if (filters.tags.length) sp.set("tag", filters.tags.join(","));
   if (filters.date) sp.set("date", filters.date);
   if (filters.date === "custom") {
     if (filters.from) sp.set("from", filters.from);

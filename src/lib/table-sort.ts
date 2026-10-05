@@ -1,5 +1,5 @@
 // Pure client-side sorting for the List view. Unit-tested.
-export type SortKey = "title" | "status" | "priority" | "dueDate" | "storyPoints" | "assignee";
+export type SortKey = "title" | "status" | "priority" | "dueDate" | "storyPoints" | "assignee" | "tags";
 export type SortDir = "asc" | "desc";
 
 const STATUS_ORDER: Record<string, number> = { Todo: 0, InProgress: 1, Done: 2, Archived: 3 };
@@ -12,6 +12,7 @@ export type SortableRow = {
   dueDate: string | Date | null;
   storyPoints?: number | null;
   assignedTo?: { name: string } | null;
+  tags?: string[];
 };
 
 function value(r: SortableRow, key: SortKey): number | string {
@@ -21,6 +22,9 @@ function value(r: SortableRow, key: SortKey): number | string {
     case "priority": return PRIORITY_ORDER[r.priority] ?? 99;
     case "storyPoints": return r.storyPoints ?? -1;
     case "assignee": return (r.assignedTo?.name ?? "￿").toLowerCase(); // unassigned last
+    // Nach dem ersten Schlagwort (alphabetisch) - so stehen gleiche Themen
+    // beieinander; Aufgaben ohne Schlagwort zuletzt.
+    case "tags": return [...(r.tags ?? [])].sort()[0] ?? "￿";
     case "dueDate": return r.dueDate ? new Date(r.dueDate).getTime() : Number.POSITIVE_INFINITY; // no-date last
   }
 }

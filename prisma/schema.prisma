@@ -463,6 +463,12 @@ model Task {
   // "Fertig" erst, wenn Zeit erfasst wurde (Timer oder manuell, Non-Admins).
   requireTimeTracking Boolean @default(false)
   priority    String    @default("Medium") // Low | Medium | High | Critical
+  // Freie Schlagworte (mehrere je Aufgabe), normalisiert in src/lib/tags.ts:
+  // klein geschrieben, ohne Leerzeichen. Bewusst ein Textfeld-Array und keine
+  // eigene Tabelle: Schlagworte werden nur gefiltert und angezeigt, nie
+  // verwaltet — eine Join-Tabelle waere Pflege ohne Gegenwert. Der GIN-Index
+  // in der Migration traegt die `hasSome`-Filter.
+  tags        String[]  @default([])
   position    Int       @default(0) // ordering within a status column
   startDate   DateTime? // Gantt schedule start (planned). Null → derived from createdAt.
   dueDate     DateTime?
@@ -580,6 +586,7 @@ model Task {
   @@index([workflowColumnId])
   @@index([deletedAt])
   @@index([recurringNextAt])
+  @@index([tags(ops: ArrayOps)], type: Gin)
 }
 
 // #13 — every user assigned to a task (co-workers). The "Hauptkopf" (primary) is

@@ -86,6 +86,7 @@ export default async function EditTaskPage({
           description: task.description ?? "",
           status: task.status,
           priority: task.priority,
+          tags: task.tags,
           type: task.type,
           storyPoints: task.storyPoints != null ? String(task.storyPoints) : "",
           parentId: task.parentId,

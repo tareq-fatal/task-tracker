@@ -429,6 +429,7 @@ function parseForm(formData: FormData) {
     description: formData.get("description") ?? "",
     status: formData.get("status") ?? "Todo",
     priority: formData.get("priority") ?? "Medium",
+    tags: formData.get("tags") ?? "",
     assignedToUserId: formData.get("assignedToUserId") ?? "",
     projectId: formData.get("projectId") ?? "",
     teamId: formData.get("teamId") ?? "",
@@ -493,6 +494,7 @@ export async function createTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
+      tags: d.tags,
       type: hier.type,
       parentId: hier.parentId,
       storyPoints: hier.storyPoints,
@@ -606,6 +608,7 @@ export async function updateTaskAction(
       description: d.description || null,
       status: d.status,
       priority: d.priority,
+      tags: d.tags,
       type: hier.type,
       parentId: hier.parentId,
       storyPoints: hier.storyPoints,
@@ -632,6 +635,7 @@ export async function updateTaskAction(
   if ((existing.description ?? "") !== (d.description ?? "")) changes.push({ type: "description", detail: "Beschreibung geändert" });
   if (existing.status !== d.status) changes.push({ type: leftDone ? "reopened" : "status", detail: `Status: ${existing.status} → ${d.status}` });
   if (existing.priority !== d.priority) changes.push({ type: "priority", detail: `Priorität: ${existing.priority} → ${d.priority}` });
+  if (existing.tags.join(",") !== d.tags.join(",")) changes.push({ type: "tags", detail: `Schlagworte: ${existing.tags.join(", ") || "—"} → ${d.tags.join(", ") || "—"}` });
   if ((existing.storyPoints ?? null) !== (hier.storyPoints ?? null)) changes.push({ type: "storyPoints", detail: `Story Points: ${existing.storyPoints ?? "—"} → ${hier.storyPoints ?? "—"}` });
   if ((existing.dueDate?.getTime() ?? 0) !== (d.dueDate?.getTime() ?? 0)) changes.push({ type: "due", detail: `Fälligkeit: ${existing.dueDate ? existing.dueDate.toISOString().slice(0, 10) : "—"} → ${d.dueDate ? d.dueDate.toISOString().slice(0, 10) : "—"}` });
   if ((existing.assignedToUserId ?? null) !== (assignee ?? null)) changes.push({ type: "assigned", detail: assignee ? "Hauptkopf geändert" : "Nicht mehr zugewiesen" });

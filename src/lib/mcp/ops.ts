@@ -4,7 +4,8 @@ import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole, isStaffRole, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from "@/lib/enums";
+import { isAdminRole, isStaffRole, PRIORITY_SHORT, resolvePriority, TASK_PRIORITIES, TASK_STATUSES, TASK_TYPES } from "@/lib/enums";
+import { mergeTags, parseTags, removeTags as withoutTags, MAX_TAGS } from "@/lib/tags";
 import { taskVisibility, visibleProjectIds } from "@/lib/task-access";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { progressFromSubtasks } from "@/lib/tasks";
@@ -32,6 +33,46 @@ const MAX_DESCRIPTION_CHARS = 20000;
 
 /** Scrum column keys as a zod-friendly tuple. */
 const SCRUM_COLUMN_KEYS = SCRUM_COLUMNS.map((c) => c.key) as unknown as [string, ...string[]];
+
+/**
+ * Prioritaet, aber nachsichtig: "P1", "kritisch" und "Critical" sind dasselbe.
+ * Gespeichert wird immer der englische Wert; der Aufrufer muss sich die
+ * Hausschreibweise nicht merken. Was keine Stufe ist, faellt in die enum-Pruefung
+ * und bekommt die uebliche Fehlermeldung.
+ */
+const prioritySchema = z.preprocess(
+  (v) => (typeof v === "string" ? resolvePriority(v) ?? v : v),
+  z.enum(TASK_PRIORITIES)
+);
+
+/** Schlagworte: Liste oder eine Zeile mit Trennzeichen, beides normalisiert. */
+const tagsSchema = z
+  .union([z.string().max(400), z.array(z.string().max(50)).max(MAX_TAGS * 2)])
+  .transform((v) => parseTags(v));
+
+/** Sortierung der Liste. "priority" meint P1 zuerst, nicht alphabetisch. */
+const LIST_SORTS = ["updated", "created", "priority", "due", "title"] as const;
+
+const ORDER_BY: Record<(typeof LIST_SORTS)[number], Record<string, unknown>[]> = {
+  updated: [{ updatedAt: "desc" }],
+  created: [{ createdAt: "desc" }],
+  // Ohne Datum nach hinten, sonst stehen die Undatierten vor den Faelligen.
+  due: [{ dueDate: { sort: "asc", nulls: "last" } }, { updatedAt: "desc" }],
+  title: [{ title: "asc" }],
+  // Vorsortierung fuer den Fall "priority": die Reihenfolge entsteht danach
+  // im Speicher, der Zugriff bleibt aber deterministisch.
+  priority: [{ updatedAt: "desc" }],
+};
+
+const PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+
+/**
+ * Wie viele Aufgaben fuer die Prioritaets-Sortierung geholt werden. Bei mehr als
+ * dem waere die Liste fuer einen Menschen ohnehin keine Liste mehr; der Deckel
+ * verhindert, dass eine Sortierung im Speicher unbemerkt den ganzen Mandanten
+ * laedt.
+ */
+const PRIORITY_SORT_CAP = 1000;
 
 /* ------------------------------------------------------------------ */
 /* Errors                                                              */
@@ -149,6 +190,7 @@ type TaskRow = {
   description: string | null;
   status: string;
   priority: string;
+  tags: string[];
   type: string;
   progress: number;
   dueDate: Date | null;
@@ -168,6 +210,9 @@ function serializeTask(t: TaskRow, extra: Record<string, unknown> = {}) {
     description: t.description,
     status: t.status,
     priority: t.priority,
+    // P1-P4 mitgeliefert, damit ein Bericht nicht selbst uebersetzen muss.
+    priorityShort: PRIORITY_SHORT[t.priority as keyof typeof PRIORITY_SHORT] ?? null,
+    tags: t.tags ?? [],
     type: t.type,
     progress: t.progress,
     dueDate: t.dueDate?.toISOString() ?? null,
@@ -195,6 +240,7 @@ const TASK_SELECT = {
   description: true,
   status: true,
   priority: true,
+  tags: true,
   type: true,
   progress: true,
   dueDate: true,
@@ -342,16 +388,19 @@ export const OPS: Record<string, McpOp> = {
   list_tasks: {
     scope: "read",
     describe:
-      "List/search tasks I may see. Filter by status, priority, project, assignee (\"me\"), scrum column (\"to-verify\" = Zur Prüfung) or a text query.",
+      "List/search tasks I may see. Filter by status, priority (P1-P4 or Critical/High/Medium/Low), tags (any of them), project, assignee (\"me\"), scrum column (\"to-verify\" = Zur Prüfung) or a text query. `sort` takes updated|created|priority|due|title (priority = P1 first).",
     schema: z
       .object({
         query: z.string().trim().max(200).optional(),
         status: z.enum(TASK_STATUSES).optional(),
-        priority: z.enum(TASK_PRIORITIES).optional(),
+        priority: prioritySchema.optional(),
+        // Treffer = mindestens eines der Schlagworte, wie in der Filterleiste.
+        tags: tagsSchema.optional(),
         projectId: idSchema.optional(),
         mine: z.boolean().default(false),
         openOnly: z.boolean().default(false),
         scrumColumn: z.enum(SCRUM_COLUMN_KEYS).optional(),
+        sort: z.enum(LIST_SORTS).default("updated"),
         limit: z.number().int().min(1).max(100).default(25),
       })
       .strict(),
@@ -361,10 +410,12 @@ export const OPS: Record<string, McpOp> = {
         query?: string;
         status?: string;
         priority?: string;
+        tags?: string[];
         projectId?: string;
         mine: boolean;
         openOnly: boolean;
         scrumColumn?: string;
+        sort: (typeof LIST_SORTS)[number];
         limit: number;
       }
     ) => {
@@ -375,6 +426,7 @@ export const OPS: Record<string, McpOp> = {
       if (params.status) filters.status = params.status;
       else if (params.openOnly) filters.status = { notIn: ["Done", "Archived"] };
       if (params.priority) filters.priority = params.priority;
+      if (params.tags?.length) filters.tags = { hasSome: params.tags };
       if (params.projectId) filters.projectId = params.projectId;
       if (params.scrumColumn) {
         // „to-do" und „in-progress" sind auch für Aufgaben gültig, die gar
@@ -407,6 +459,11 @@ export const OPS: Record<string, McpOp> = {
         });
       }
 
+      // Nach Prioritaet kann die Datenbank nicht sortieren: gespeichert ist ein
+      // Wort ("Critical" < "High" < "Low" alphabetisch), gemeint ist eine
+      // Rangfolge. Darum in diesem einen Fall erst holen, dann hier ordnen und
+      // auf das Limit schneiden. Der Deckel haelt das berechenbar.
+      const byPriority = params.sort === "priority";
       const tasks = await prisma.task.findMany({
         // taskVisibility spread FIRST and inline, so every read of this list is
         // visibly tenant- and permission-scoped at the query itself.
@@ -416,9 +473,17 @@ export const OPS: Record<string, McpOp> = {
           ...(and.length ? { AND: and } : {}),
         },
         select: TASK_SELECT,
-        orderBy: [{ updatedAt: "desc" }],
-        take: params.limit,
+        orderBy: ORDER_BY[params.sort],
+        take: byPriority ? PRIORITY_SORT_CAP : params.limit,
       });
+      if (byPriority) {
+        tasks.sort(
+          (a, b) =>
+            (PRIORITY_RANK[a.priority] ?? 99) - (PRIORITY_RANK[b.priority] ?? 99) ||
+            b.updatedAt.getTime() - a.updatedAt.getTime()
+        );
+        return tasks.slice(0, params.limit).map((t) => serializeTask(t));
+      }
       return tasks.map((t) => serializeTask(t));
     },
   },
@@ -510,13 +575,15 @@ export const OPS: Record<string, McpOp> = {
 
   create_task: {
     scope: "write",
-    describe: "Create a task. Optionally with checklist steps and a project.",
+    describe:
+      "Create a task. Optionally with checklist steps, tags and a project. `priority` also takes P1-P4.",
     schema: z
       .object({
         title: z.string().trim().min(1).max(200),
         description: z.string().trim().max(MAX_DESCRIPTION_CHARS).optional(),
         status: z.enum(TASK_STATUSES).default("Todo"),
-        priority: z.enum(TASK_PRIORITIES).default("Medium"),
+        priority: prioritySchema.default("Medium"),
+        tags: tagsSchema.default([]),
         type: z.enum(TASK_TYPES).default("Task"),
         projectId: idSchema.optional(),
         assignedToUserId: idSchema.optional(),
@@ -531,6 +598,7 @@ export const OPS: Record<string, McpOp> = {
         description?: string;
         status: string;
         priority: string;
+        tags: string[];
         type: string;
         projectId?: string;
         assignedToUserId?: string;
@@ -552,6 +620,7 @@ export const OPS: Record<string, McpOp> = {
           description: params.description || null,
           status: params.status,
           priority: params.priority,
+          tags: params.tags,
           type: params.type,
           projectId: rel.projectId,
           assignedToUserId: rel.assignedToUserId,
@@ -608,7 +677,7 @@ export const OPS: Record<string, McpOp> = {
   update_task: {
     scope: "write",
     describe:
-      "Update a task. `descriptionAppend` adds a paragraph without overwriting what is already there. `assignee` takes a username, `scrumColumn` moves the card (use \"to-verify\" for Zur Prüfung).",
+      "Update a task. `descriptionAppend` adds a paragraph without overwriting what is already there. `assignee` takes a username, `scrumColumn` moves the card (use \"to-verify\" for Zur Prüfung). `priority` also takes P1-P4. Tags: `tags` replaces the whole set, `addTags`/`removeTags` change only what they name.",
     schema: z
       .object({
         taskId: idSchema,
@@ -616,7 +685,12 @@ export const OPS: Record<string, McpOp> = {
         description: z.string().trim().max(MAX_DESCRIPTION_CHARS).optional(),
         descriptionAppend: z.string().trim().min(1).max(2000).optional(),
         status: z.enum(TASK_STATUSES).optional(),
-        priority: z.enum(TASK_PRIORITIES).optional(),
+        priority: prioritySchema.optional(),
+        // Drei Wege, bewusst getrennt: ersetzen, dazulegen, wegnehmen. Ohne
+        // addTags muesste jeder Aufrufer erst lesen, um nichts zu verlieren.
+        tags: tagsSchema.optional(),
+        addTags: tagsSchema.optional(),
+        removeTags: tagsSchema.optional(),
         projectId: idSchema.nullable().optional(),
         dueDate: z.string().trim().datetime({ offset: true }).nullable().optional(),
         // "Wer ist als Nächstes dran?" — username or user id, null clears it.
@@ -635,6 +709,9 @@ export const OPS: Record<string, McpOp> = {
           v.descriptionAppend !== undefined ||
           v.status !== undefined ||
           v.priority !== undefined ||
+          v.tags !== undefined ||
+          v.addTags !== undefined ||
+          v.removeTags !== undefined ||
           v.projectId !== undefined ||
           v.dueDate !== undefined ||
           v.assignee !== undefined ||
@@ -651,6 +728,9 @@ export const OPS: Record<string, McpOp> = {
         descriptionAppend?: string;
         status?: string;
         priority?: string;
+        tags?: string[];
+        addTags?: string[];
+        removeTags?: string[];
         projectId?: string | null;
         dueDate?: string | null;
         assignee?: string | null;
@@ -663,6 +743,9 @@ export const OPS: Record<string, McpOp> = {
         params.description !== undefined ||
         params.descriptionAppend !== undefined ||
         params.priority !== undefined ||
+        params.tags !== undefined ||
+        params.addTags !== undefined ||
+        params.removeTags !== undefined ||
         params.projectId !== undefined ||
         params.dueDate !== undefined ||
         params.progress !== undefined;
@@ -681,6 +764,14 @@ export const OPS: Record<string, McpOp> = {
           : params.descriptionAppend;
       }
       if (params.priority !== undefined) data.priority = params.priority;
+      // Erst ersetzen, dann dazulegen, dann wegnehmen - so ergibt auch ein
+      // Aufruf mit mehreren der drei Felder ein eindeutiges Ergebnis.
+      if (params.tags !== undefined || params.addTags !== undefined || params.removeTags !== undefined) {
+        let next = params.tags !== undefined ? params.tags : task.tags;
+        if (params.addTags !== undefined) next = mergeTags(next, params.addTags);
+        if (params.removeTags !== undefined) next = withoutTags(next, params.removeTags);
+        data.tags = next;
+      }
       if (params.progress !== undefined) data.progress = params.progress;
       if (params.dueDate !== undefined) data.dueDate = params.dueDate ? new Date(params.dueDate) : null;
       if (params.projectId !== undefined) {

@@ -126,3 +126,34 @@ describe("activeFilterCount / filtersToParams", () => {
     expect(sp.get("q")).toBe("x");
   });
 });
+
+describe("Schlagwort-Filter", () => {
+  it("normalisiert die Adresszeile, damit ein getipptes ?tag= trifft", () => {
+    const f = parseTaskFilters({ tag: "Live-Feedback,QS" });
+    expect(f.tags).toEqual(["live-feedback", "qs"]);
+  });
+
+  it("ohne Schlagwort bleibt die Liste leer, nicht undefined", () => {
+    expect(parseTaskFilters({}).tags).toEqual([]);
+  });
+
+  // Mehrere Schlagworte erweitern die Treffermenge (eines davon genuegt) --
+  // sonst wuerde die zweite Auswahl die Liste leeren statt zu ergaenzen.
+  it("sucht nach mindestens einem der Schlagworte", () => {
+    const where = buildTaskWhere(parseTaskFilters({ tag: "demo,webseite" }));
+    expect(where.tags).toEqual({ hasSome: ["demo", "webseite"] });
+  });
+
+  it("steht neben dem Personen-Filter, ohne dessen AND zu verdraengen", () => {
+    const where = buildTaskWhere(parseTaskFilters({ tag: "qs", assignee: "u1" }));
+    expect(where.tags).toEqual({ hasSome: ["qs"] });
+    expect(where.AND).toEqual([personInvolvedWhere("u1")]);
+  });
+
+  it("zaehlt als eine Facette und laeuft durch die Adresszeile zurueck", () => {
+    const f = parseTaskFilters({ tag: "qs,demo", project: "p1" });
+    expect(activeFilterCount(f)).toBe(2);
+    expect(filtersToParams(f).get("tag")).toBe("qs,demo");
+    expect(parseTaskFilters({ tag: filtersToParams(f).get("tag")! }).tags).toEqual(f.tags);
+  });
+});

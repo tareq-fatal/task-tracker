@@ -30,3 +30,22 @@ describe("sortTasks", () => {
     expect(sortTasks(rows, "title", "desc").map((r) => r.title)).toEqual(["Gamma", "Beta", "alpha"]);
   });
 });
+
+describe("sortTasks: Schlagworte", () => {
+  const rows = [
+    { title: "ohne", status: "Todo", priority: "Low", dueDate: null, tags: [] },
+    { title: "zwei", status: "Todo", priority: "Low", dueDate: null, tags: ["webseite", "demo"] },
+    { title: "eins", status: "Todo", priority: "Low", dueDate: null, tags: ["builder"] },
+  ];
+
+  // Sortiert wird nach dem alphabetisch ersten Schlagwort, nicht nach der
+  // Reihenfolge der Eingabe -- sonst haengt die Liste davon ab, wie jemand
+  // getippt hat.
+  it("nach dem ersten Schlagwort, Aufgaben ohne Schlagwort zuletzt", () => {
+    expect(sortTasks(rows, "tags", "asc").map((r) => r.title)).toEqual(["eins", "zwei", "ohne"]);
+  });
+
+  it("absteigend kehrt um", () => {
+    expect(sortTasks(rows, "tags", "desc").map((r) => r.title)).toEqual(["ohne", "zwei", "eins"]);
+  });
+});

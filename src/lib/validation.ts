@@ -6,6 +6,7 @@ import {
   LOCALES,
 } from "./enums";
 import { parseDuration } from "./tasks";
+import { parseTags } from "./tags";
 
 const optionalId = z
   .string()
@@ -23,6 +24,12 @@ export const taskSchema = z.object({
   description: z.string().trim().max(5000).optional().default(""),
   status: z.enum(TASK_STATUSES).default("Todo"),
   priority: z.enum(TASK_PRIORITIES).default("Medium"),
+  // Schlagworte: eine Formularzeile ("live-feedback, qs") oder eine Liste.
+  // Beides landet in derselben Normalform, siehe lib/tags.ts.
+  tags: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((v) => parseTags(v ?? [])),
   assignedToUserId: optionalId,
   projectId: optionalId,
   teamId: optionalId,
