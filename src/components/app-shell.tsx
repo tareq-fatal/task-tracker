@@ -38,6 +38,7 @@ import {
   Plus,
   Menu,
   X,
+  Gauge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/tasks";
@@ -85,6 +86,7 @@ const MAIN: NavItem[] = [
   { href: "/gantt", label: "nav.timeline", icon: GanttChartSquare, match: ["/roadmap"] },
   { href: "/time", label: "nav.time", icon: Clock },
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
+  { href: "/projektstand", label: "nav.projektstand", icon: Gauge, tip: "tooltip.projektstand" },
 ];
 
 // Mobile bottom nav = the 4 everyday views; everything else lives in "More".
