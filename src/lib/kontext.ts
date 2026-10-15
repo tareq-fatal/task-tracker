@@ -115,7 +115,8 @@ export function alleKontexteMd(
   for (const { p, aufgaben } of projekte) {
     const offen = aufgaben.filter((a) => a.status === "Todo" || a.status === "InProgress");
     const erledigt = aufgaben.filter((a) => a.status === "Done").length;
-    const kontextZeilen = (p.kontext ?? "").trim().split("\n").filter((z) => z.trim() !== "");
+    // Überschriften aus dem Kontext eine Ebene unter den Projektnamen, sonst verschwimmen die Projektgrenzen.
+    const kontextZeilen = (p.kontext ?? "").trim().split("\n").filter((z) => z.trim() !== "").map((z) => (/^#{1,5} /.test(z) ? "#" + z : z));
     teile.push(`## ${p.name}`, "", `${offen.length} offen · ${erledigt} erledigt · voll: ${basis}/api/projekte/${p.id}/kontext.md`, "");
     if (kontextZeilen.length) {
       teile.push(...kontextZeilen.slice(0, zeilenMax));
