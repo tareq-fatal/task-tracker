@@ -13,7 +13,10 @@ const TOKEN_BYTES = 32;
 /** Characters of the raw token kept in the DB for display ("tt_mcp_1a2b3c4d"). */
 const DISPLAY_CHARS = TOKEN_PREFIX.length + 8;
 
-export const API_SCOPES = ["read", "write"] as const;
+// "kontext" und "kommentar" (Tarek 15.10.2026) sind bewusst ENG: ein Kontext-Token liest nur
+// /api/kontext.md und /api/projekte/<id>/kontext.md (Kontext + Aufgabenliste), ein Kommentar-Token
+// schreibt nur Kommentare an Aufgaben. Keiner von beiden öffnet das MCP (dort zählt nur read/write).
+export const API_SCOPES = ["read", "write", "kontext", "kommentar"] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
 export function isApiScope(v: string): v is ApiScope {
@@ -73,6 +76,11 @@ export function serializeScopes(scopes: readonly string[]): string {
  * "write" implies "read" — a token that may change tasks may obviously see
  * them, and requiring both in the CSV would be a footgun at mint time.
  */
+/** Darf ein Token eine MCP-Operation mit diesem Scope sehen? Kontext-/Kommentar-Tokens sehen keine. */
+export function opSichtbar(scopes: Set<ApiScope>, opScope: ApiScope): boolean {
+  return opScope === "write" ? scopes.has("write") : hasScope(scopes, "read");
+}
+
 export function hasScope(scopes: Set<ApiScope>, needed: ApiScope): boolean {
   if (scopes.has(needed)) return true;
   return needed === "read" && scopes.has("write");

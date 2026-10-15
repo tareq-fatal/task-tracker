@@ -39,6 +39,7 @@ import {
   Menu,
   X,
   Gauge,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initials } from "@/lib/tasks";
@@ -111,6 +112,7 @@ const ADMIN: NavItem[] = [
   { href: "/admin/recurring", label: "nav.admin.recurring", icon: Repeat },
   { href: "/settings/branding", label: "nav.branding", icon: Palette },
   { href: "/settings/integrations", label: "nav.integrations", icon: Plug },
+  { href: "/settings/kontext-token", label: "kontext.tokens", icon: KeyRound },
   { href: "/admin/import", label: "nav.admin.import", icon: FileUp },
   { href: "/admin/bulk-import", label: "nav.admin.bulkImport", icon: FileSpreadsheet },
 ];

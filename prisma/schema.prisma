@@ -180,6 +180,7 @@ model User {
   voiceNotes        VoiceNote[]
   timeEntries       TaskTimeEntry[]
   apiTokens         ApiToken[]
+  projectContexts   ProjectContext[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -332,6 +333,7 @@ model Project {
   customFields CustomFieldDef[]
   automations  AutomationRule[]
   members      ProjectMember[]
+  contexts     ProjectContext[] // „Kontext für Claude“, eine Zeile je Fassung
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
@@ -341,6 +343,21 @@ model Project {
 // Explicit project access grant. When a project has ≥1 member, non-admin
 // members see ALL of that project's tasks (not just the ones assigned to them).
 // A project with no members behaves exactly as before (assigned-only visibility).
+// „Kontext für Claude“ (Tarek 15.10.2026): Ziel, Stand, Entscheidungen, Systeme,
+// Ansprechpartner, Regeln, offene Fragen — als Markdown je Projekt. Jede Speicherung
+// ist eine neue Zeile (versioniert, wer/wann); die jüngste ist die aktuelle Fassung.
+model ProjectContext {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
 model ProjectMember {
   id        String   @id @default(cuid())
   projectId String
