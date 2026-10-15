@@ -20,7 +20,7 @@ import { notifyReviewRequested } from "@/lib/review-notify";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
 import { formatPromptComment } from "./prompt-format";
-import type { ApiScope } from "@/lib/api-token";
+import { opSichtbar, type ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
 
 /**
@@ -1210,7 +1210,8 @@ export function opNames(): string[] {
  */
 export function availableOps(scopes: Set<ApiScope>): string[] {
   return Object.entries(OPS)
-    .filter(([, op]) => (op.scope === "write" ? scopes.has("write") : true))
+    // Ein reiner Kontext-/Kommentar-Token (15.10.2026) bekommt hier gar nichts angeboten.
+    .filter(([, op]) => opSichtbar(scopes, op.scope))
     .map(([name]) => name);
 }
 

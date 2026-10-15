@@ -48,7 +48,7 @@ async function mint() {
   if (!name) usage('--name "<label>" is required (so the token is identifiable later)');
 
   const scopes = serializeScopes((arg("scopes", "read") ?? "").split(","));
-  if (!scopes) usage("--scopes must contain at least one of: read, write");
+  if (!scopes) usage("--scopes must contain at least one of: read, write, kontext, kommentar");
 
   const days = arg("days");
   let expiresAt = null;
