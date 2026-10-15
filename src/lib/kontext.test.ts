@@ -83,6 +83,13 @@ describe("Kontext: Markdown", () => {
     expect(md).toContain("Wichtigste offene Aufgaben:");
   });
 
+  it("alle Projekte: Kontext-Überschriften liegen unter dem Projektnamen", () => {
+    const md = alleKontexteMd([{ p: P, aufgaben: [] }], B, jetzt);
+    expect(md).toContain("## MoT Syrien");
+    expect(md).toContain("### Ziel");
+    expect(md).not.toMatch(/^## Ziel/m);
+  });
+
   it("Vorlage enthält alle verlangten Abschnitte", () => {
     for (const h of ["Ziel", "Stand", "Wichtige Entscheidungen", "Systeme, Links, Repos", "Ansprechpartner", "Regeln / No-Gos", "Offene Fragen", "Letzte Änderungen"]) {
       expect(KONTEXT_VORLAGE).toContain(`## ${h}`);
