@@ -1,14 +1,14 @@
 // Single source of truth for the role/capability model. Unit-tested.
 //
-//   SuperAdmin  — Tarek. Spans ALL tenants, DB console, onboarding, god-mode.
+//   Superuser   — Tarek (stored as "BackendAdmin", legacy "SuperAdmin"). Spans ALL tenants, DB console, onboarding.
 //   Admin       — TenantAdmin (customer). Full control of their OWN tenant only.
 //   User        — member. Works on their tasks; no admin surfaces.
 import type { Role } from "./enums";
 
 export type Capability =
-  | "manageTenants" // create tenants + onboarding wizard (SuperAdmin only)
-  | "switchTenant" // /t/{slug} (SuperAdmin only)
-  | "useDbConsole" // /admin/db (SuperAdmin only)
+  | "manageTenants" // create tenants + onboarding wizard (Superuser only)
+  | "switchTenant" // /t/{slug} (Superuser only)
+  | "useDbConsole" // /admin/db (Superuser only)
   | "manageUsers" // invite/DELETE users, assign roles within the tenant
   | "manageUsersBasic" // edit regular users (name/email/phone/locale), deactivate, pw-reset
   | "manageTeams"
@@ -35,7 +35,7 @@ const TENANT_ADMIN: Capability[] = [
 ];
 
 const MATRIX: Record<Role, Capability[]> = {
-  // BackendAdmin gets everything (tenant-admin caps + the god-mode ones)
+  // BackendAdmin (shown as "Superuser") gets everything (tenant-admin caps + the Superuser-only ones)
   BackendAdmin: [...TENANT_ADMIN, "manageTenants", "switchTenant", "useDbConsole"],
   Admin: TENANT_ADMIN,
   // SubAdmin: helps run the tenant — edits REGULAR users + reads reports, but
