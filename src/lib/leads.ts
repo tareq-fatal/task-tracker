@@ -14,6 +14,7 @@ export const LEAD_LIMITS = {
   company: 160,
   contact: 160,
   channel: 80,
+  referredBy: 160,
   nextAction: 200,
   notes: 4000,
 } as const;
@@ -31,13 +32,28 @@ export type LeadInput = {
   company: string;
   contact: string | null;
   channel: string | null;
+  referredBy: string | null;
+  commissionPct: number | null;
   status: LeadStatus;
   nextAction: string | null;
   nextActionAt: Date | null;
   notes: string | null;
 };
 
-export type LeadInputError = "COMPANY_REQUIRED" | "BAD_STATUS" | "BAD_DATE" | "TOO_LONG";
+export type LeadInputError = "COMPANY_REQUIRED" | "BAD_STATUS" | "BAD_DATE" | "TOO_LONG" | "BAD_PERCENT";
+
+/**
+ * Provision in Prozent (TOF-0786): leer = keine; „20“, „12,5“, „12.5 %“ → Zahl
+ * mit höchstens 2 Nachkommastellen, nur 0–100. Sonst null + Fehler.
+ */
+export function parseCommissionPct(v: unknown): { ok: true; value: number | null } | { ok: false } {
+  const s = typeof v === "string" ? v.trim().replace(/\s*%$/, "").replace(",", ".") : "";
+  if (!s) return { ok: true, value: null };
+  if (!/^\d{1,3}(\.\d{1,2})?$/.test(s)) return { ok: false };
+  const n = Number(s);
+  if (!(n >= 0 && n <= 100)) return { ok: false };
+  return { ok: true, value: n };
+}
 
 const opt = (v: unknown) => {
   const s = typeof v === "string" ? v.trim() : "";
@@ -52,6 +68,8 @@ export function parseLeadInput(raw: {
   company?: unknown;
   contact?: unknown;
   channel?: unknown;
+  referredBy?: unknown;
+  commissionPct?: unknown;
   status?: unknown;
   nextAction?: unknown;
   nextActionAt?: unknown;
@@ -61,11 +79,15 @@ export function parseLeadInput(raw: {
   if (!company) return { ok: false, error: "COMPANY_REQUIRED" };
   const statusRaw = opt(raw.status) ?? "New";
   if (!isLeadStatus(statusRaw)) return { ok: false, error: "BAD_STATUS" };
+  const pct = parseCommissionPct(raw.commissionPct);
+  if (!pct.ok) return { ok: false, error: "BAD_PERCENT" };
 
   const value: LeadInput = {
     company,
     contact: opt(raw.contact),
     channel: opt(raw.channel),
+    referredBy: opt(raw.referredBy),
+    commissionPct: pct.value,
     status: statusRaw,
     nextAction: opt(raw.nextAction),
     nextActionAt: null,

@@ -21,6 +21,8 @@ export type LeadFormValues = {
   company: string;
   contact: string;
   channel: string;
+  referredBy: string;
+  commissionPct: string;
   status: string;
   nextAction: string;
   nextActionAt: string; // yyyy-MM-dd
@@ -59,7 +61,7 @@ export function LeadForm({
   }, [state, lead, router, cancelHref]);
 
   const errKey = state.error
-    ? ((["COMPANY_REQUIRED", "BAD_STATUS", "BAD_DATE", "TOO_LONG", "NOT_FOUND"].includes(state.error)
+    ? ((["COMPANY_REQUIRED", "BAD_STATUS", "BAD_DATE", "TOO_LONG", "BAD_PERCENT", "NOT_FOUND"].includes(state.error)
         ? `leads.err.${state.error}`
         : "leads.err.NOT_FOUND") as TKey)
     : null;
@@ -80,6 +82,14 @@ export function LeadForm({
         <div className="space-y-2">
           <Label htmlFor="lead-channel">{t("leads.channel")}</Label>
           <Input id="lead-channel" name="channel" maxLength={LEAD_LIMITS.channel} defaultValue={lead?.channel} dir="auto" placeholder={t("leads.channelPlaceholder")} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lead-referredBy">{t("leads.referredBy")}</Label>
+          <Input id="lead-referredBy" name="referredBy" maxLength={LEAD_LIMITS.referredBy} defaultValue={lead?.referredBy} dir="auto" placeholder={t("leads.referredByPlaceholder")} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lead-commissionPct">{t("leads.commissionPct")}</Label>
+          <Input id="lead-commissionPct" name="commissionPct" inputMode="decimal" maxLength={8} defaultValue={lead?.commissionPct} dir="ltr" placeholder="20" />
         </div>
         <div className="space-y-2">
           <Label htmlFor="lead-status">{t("leads.status")}</Label>
