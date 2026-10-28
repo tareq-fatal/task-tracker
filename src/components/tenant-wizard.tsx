@@ -34,7 +34,10 @@ export function TenantWizard() {
     });
   }
 
-  const canSubmit = f.name.trim() && f.slug.trim() && f.ownerName.trim() && f.ownerUsername.trim() && f.ownerEmail.trim() && f.ownerPassword.length >= 6;
+  // TOF-0783 (Tarek 28.10.2026): owner optional — all four empty = tenant only.
+  const ownerEmpty = !f.ownerName.trim() && !f.ownerUsername.trim() && !f.ownerEmail.trim() && !f.ownerPassword;
+  const ownerComplete = f.ownerName.trim() && f.ownerUsername.trim() && f.ownerEmail.trim() && f.ownerPassword.length >= 6;
+  const canSubmit = f.name.trim() && f.slug.trim() && (ownerEmpty || ownerComplete);
 
   return (
     <div className="rounded-xl border-2 border-indigo-100 bg-indigo-50/40 p-4">
@@ -57,7 +60,8 @@ export function TenantWizard() {
         </div>
       </div>
 
-      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-700/70">{t("tenants.owner")}</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-700/70">{t("tenants.owner")} · {t("admin.users.optional")}</p>
+      <p className="mb-2 text-xs text-muted-foreground">{t("tenants.ownerHint")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1"><Label htmlFor="tw-oname">{t("tenants.ownerName")}</Label><Input id="tw-oname" value={f.ownerName} onChange={(e) => setF((s) => ({ ...s, ownerName: e.target.value, ownerUsername: s.ownerUsername || slugify(e.target.value) }))} /></div>
         <div className="space-y-1"><Label htmlFor="tw-ouser">{t("tenants.ownerUsername")}</Label><Input id="tw-ouser" value={f.ownerUsername} onChange={set("ownerUsername")} /></div>

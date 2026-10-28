@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban, Bot } from "lucide-react";
+import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban, Bot, Contact } from "lucide-react";
 import { DeleteProjectButton } from "@/components/delete-project-button";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
 import { AddTasksToProjectDialog } from "@/components/add-tasks-to-project-dialog";
@@ -180,6 +180,13 @@ export default async function ProjectDetailPage({
             <Link href={`/projects/${project.id}/kontext`}>
               <Bot className="me-1 h-4 w-4" />
               {t["kontext.title"]}
+            </Link>
+          </Button>
+          {/* TOF-0782 (Tarek 28.10.2026): Leads je Projekt — gleiche Zugriffsregel wie diese Seite */}
+          <Button asChild variant="outline">
+            <Link href={`/projects/${project.id}/leads`}>
+              <Contact className="me-1 h-4 w-4" />
+              {t["leads.title"]}
             </Link>
           </Button>
           <Button asChild variant="outline">

@@ -8,8 +8,11 @@ import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { can, canEditUserTarget, assignableRoles } from "@/lib/roles";
 import { userSchema } from "@/lib/validation";
+import { issueInvite } from "@/lib/invite-server";
+import { unusablePasswordSecret } from "@/lib/invite";
 
-export type UserFormState = { error?: string; tempPassword?: string; createdUsername?: string };
+// inviteLink: TOF-0783 (Tarek 28.10.2026) — shown once, like tempPassword.
+export type UserFormState = { error?: string; tempPassword?: string; inviteLink?: string; createdUsername?: string };
 
 /** A readable temporary password, e.g. "Task-7f3a9c". */
 function generateTempPassword(): string {
@@ -23,11 +26,13 @@ export async function createUserAction(
   const { user, tenant } = await requireTenant();
   if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
 
+  // TOF-0783: „Einladungslink statt Passwort“ — a typed password is ignored.
+  const viaInvite = formData.get("invite") === "on";
   const parsed = userSchema.safeParse({
     name: formData.get("name"),
     username: formData.get("username"),
     email: formData.get("email"),
-    password: formData.get("password"),
+    password: viaInvite ? "" : formData.get("password"),
     role: formData.get("role") ?? "User",
   });
   if (!parsed.success) {
@@ -50,6 +55,25 @@ export async function createUserAction(
   // Assignable roles depend on the actor: BackendAdmin may create Admins,
   // tenant admins only SubAdmin/User. Anything else collapses to User.
   const role = (assignableRoles(user.role) as string[]).includes(d.role) ? d.role : "User";
+
+  if (viaInvite) {
+    // TOF-0783: random password hash nobody ever sees (login impossible until
+    // the user sets a password via the link); no forced change afterwards.
+    const created = await prisma.user.create({
+      data: {
+        name: d.name,
+        username: d.username.toLowerCase(),
+        email,
+        passwordHash: await hashPassword(unusablePasswordSecret()),
+        mustChangePassword: false,
+        role,
+        tenantId: tenant.id,
+      },
+    });
+    const inviteLink = await issueInvite({ tenantId: tenant.id, userId: created.id, createdById: user.id });
+    revalidatePath("/admin/users");
+    return { inviteLink, createdUsername: created.username };
+  }
 
   // #31 — no password given → generate a temporary one the admin hands over;
   // the account is flagged to force a change on next login.

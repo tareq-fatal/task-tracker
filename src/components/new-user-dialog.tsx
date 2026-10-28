@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/components/i18n-provider";
 import { ROLES } from "@/lib/enums";
+import { InviteLinkBox } from "@/components/invite-link-box";
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -35,11 +36,14 @@ export function NewUserDialog({ roleOptions = ["SubAdmin", "User"] }: { roleOpti
   const [open, setOpen] = useState(false);
   const [state, formAction] = useFormState(createUserAction, {});
   const formRef = useRef<HTMLFormElement>(null);
+  // TOF-0783 (Tarek 28.10.2026): „Einladungslink statt Passwort“.
+  const [viaInvite, setViaInvite] = useState(false);
 
-  // Close & reset on success — BUT keep open to show a generated temp password.
+  // Close & reset on success — BUT keep open to show a generated temp password
+  // or invite link.
   const submitted = useRef(false);
   useEffect(() => {
-    if (submitted.current && !state.error && !state.tempPassword) {
+    if (submitted.current && !state.error && !state.tempPassword && !state.inviteLink) {
       setOpen(false);
       formRef.current?.reset();
     }
@@ -92,15 +96,50 @@ export function NewUserDialog({ roleOptions = ["SubAdmin", "User"] }: { roleOpti
             <Label htmlFor="email">{t("admin.users.email")}</Label>
             <Input id="email" name="email" type="email" placeholder={t("admin.users.optional")} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">{t("login.password")}</Label>
-            <Input id="password" name="password" type="text" minLength={6} placeholder={t("admin.users.passwordOptional")} />
-            <p className="text-xs text-muted-foreground">{t("admin.users.passwordHint")}</p>
-          </div>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="invite"
+              checked={viaInvite}
+              onChange={(e) => setViaInvite(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-indigo-600"
+            />
+            <span>
+              <span className="font-medium">{t("admin.users.inviteInstead")}</span>
+              <span className="block text-xs text-muted-foreground">{t("admin.users.inviteInsteadHint")}</span>
+            </span>
+          </label>
+          {!viaInvite && (
+            <div className="space-y-2">
+              <Label htmlFor="password">{t("login.password")}</Label>
+              <Input id="password" name="password" type="text" minLength={6} placeholder={t("admin.users.passwordOptional")} />
+              <p className="text-xs text-muted-foreground">{t("admin.users.passwordHint")}</p>
+            </div>
+          )}
           {state.error && (
             <p className="text-sm font-medium text-destructive">{state.error}</p>
           )}
-          {state.tempPassword ? (
+          {state.inviteLink ? (
+            <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm dark:border-emerald-500/40 dark:bg-emerald-500/10">
+              <p className="mb-2 font-semibold text-emerald-800 dark:text-emerald-300">
+                {t("admin.users.inviteCreated")} <span dir="ltr">@{state.createdUsername}</span>
+              </p>
+              <InviteLinkBox link={state.inviteLink} />
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setOpen(false);
+                    setViaInvite(false);
+                    formRef.current?.reset();
+                  }}
+                >
+                  {t("common.done")}
+                </Button>
+              </div>
+            </div>
+          ) : state.tempPassword ? (
             <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm dark:border-emerald-500/40 dark:bg-emerald-500/10">
               <p className="mb-1 font-semibold text-emerald-800 dark:text-emerald-300">
                 {t("admin.users.tempCreated")}

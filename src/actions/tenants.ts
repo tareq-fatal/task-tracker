@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth";
 import { requireTenant, setTenantCookie } from "@/lib/tenant";
 import { can } from "@/lib/roles";
 import { isTenantFeature } from "@/lib/tenant-features";
+import { parseTenantInput } from "@/lib/tenant-input";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
 export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
@@ -15,8 +16,6 @@ async function requireSuper() {
   if (!can(user.role, "manageTenants")) throw new Error("FORBIDDEN");
   return user;
 }
-
-const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
 export async function getTenants(): Promise<TenantRow[]> {
   await requireSuper();
@@ -111,39 +110,37 @@ export async function renameTenantAction(
   return { ok: true, slug: tenant.slug };
 }
 
-/** Onboard a new customer: create an empty tenant + its first TenantAdmin. */
+/** Onboard a new customer: create an empty tenant + (optionally) its first TenantAdmin.
+ *  TOF-0783 (Tarek 28.10.2026): owner is OPTIONAL — all owner fields empty →
+ *  only the tenant is created; the Superuser switches into it and invites the
+ *  users by link. With an owner, behaviour is unchanged. Validation lives in
+ *  lib/tenant-input.ts (unit-tested). */
 export async function createTenantAction(input: {
   name: string; slug: string; primaryColor?: string;
-  ownerName: string; ownerUsername: string; ownerEmail: string; ownerPassword: string;
+  ownerName?: string; ownerUsername?: string; ownerEmail?: string; ownerPassword?: string;
 }): Promise<TenantState> {
   await requireSuper();
 
-  const name = input.name.trim();
-  const slug = input.slug.trim().toLowerCase();
-  const ownerName = input.ownerName.trim();
-  const ownerUsername = input.ownerUsername.trim().toLowerCase();
-  const ownerEmail = input.ownerEmail.trim().toLowerCase();
-
-  if (!name || !ownerName) return { error: "EMPTY" };
-  if (!SLUG_RE.test(slug)) return { error: "BAD_SLUG" };
-  if (!/^[a-z0-9._-]{3,}$/.test(ownerUsername)) return { error: "BAD_USERNAME" };
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)) return { error: "BAD_EMAIL" };
-  if ((input.ownerPassword ?? "").length < 6) return { error: "WEAK_PASSWORD" };
+  const parsed = parseTenantInput(input);
+  if (!parsed.ok) return { error: parsed.error };
+  const { name, slug, primaryColor, owner } = parsed;
 
   if (await prisma.tenant.findUnique({ where: { slug } })) return { error: "SLUG_TAKEN" };
-  if (await prisma.user.findUnique({ where: { username: ownerUsername } })) return { error: "USERNAME_TAKEN" };
+  if (owner && (await prisma.user.findUnique({ where: { username: owner.username } }))) return { error: "USERNAME_TAKEN" };
 
-  const passwordHash = await hashPassword(input.ownerPassword);
+  const passwordHash = owner ? await hashPassword(owner.password) : null;
   await prisma.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({
-      data: { slug, name, primaryColor: input.primaryColor || "#4f46e5" },
+      data: { slug, name, primaryColor },
     });
-    await tx.user.create({
-      data: {
-        name: ownerName, username: ownerUsername, email: ownerEmail, passwordHash,
-        role: "Admin", tenantId: tenant.id, locale: "de", hasSeenTour: false,
-      },
-    });
+    if (owner && passwordHash) {
+      await tx.user.create({
+        data: {
+          name: owner.name, username: owner.username, email: owner.email, passwordHash,
+          role: "Admin", tenantId: tenant.id, locale: "de", hasSeenTour: false,
+        },
+      });
+    }
   });
 
   // auto-switch the SuperAdmin into the freshly created tenant so they can set

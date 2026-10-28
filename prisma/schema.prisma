@@ -54,6 +54,8 @@ model Tenant {
   sprints       Sprint[]
   webhooks      Webhook[]
   apiTokens     ApiToken[]
+  invites       Invite[] // TOF-0783 Einladungslinks
+  leads         Lead[] // TOF-0782 Leads je Projekt
 }
 
 model Sprint {
@@ -181,6 +183,7 @@ model User {
   timeEntries       TaskTimeEntry[]
   apiTokens         ApiToken[]
   projectContexts   ProjectContext[]
+  invites           Invite[] // TOF-0783
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -306,6 +309,56 @@ model ApiToken {
   @@index([tenantId])
 }
 
+// TOF-0783 (Tarek 28.10.2026): Einladungslink zum Passwort-Setzen.
+// Wie ApiToken liegt nur der SHA-256-Hash (hex) des Klartext-Tokens in der DB;
+// der Link wird genau einmal angezeigt. Gültig 72 h, einmalig (usedAt). Eine
+// neue Einladung entwertet ältere offene desselben Benutzers (usedAt gesetzt,
+// nichts gelöscht). tenantId ist denormalisiert und wird beim Einlösen gegen
+// user.tenantId geprüft — eine Einladung reicht nie über den Mandanten hinaus.
+model Invite {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique // sha256(raw), hex
+  expiresAt   DateTime
+  usedAt      DateTime? // eingelöst ODER durch eine neuere Einladung entwertet
+  createdById String // wer den Link erzeugt hat (Admin/Superuser), nur Audit
+  createdAt   DateTime  @default(now())
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+// TOF-0782 (Tarek 28.10.2026): Leads je Projekt (z. B. „الحملات الإعلانية“ im
+// Mandanten TOF Solution). Status: New | Contacted | Offer | Won | Lost
+// (src/lib/leads.ts). Archivieren statt Löschen; jede Abfrage filtert nach
+// tenantId UND projectId (Wächter: src/lib/tenant-isolation.test.ts).
+model Lead {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  company      String
+  contact      String? // Ansprechpartner
+  channel      String? // Kanal / Quelle
+  status       String    @default("New") // New | Contacted | Offer | Won | Lost
+  nextAction   String?
+  nextActionAt DateTime?
+  notes        String?
+  archivedAt   DateTime? // archiviert statt gelöscht
+  createdById  String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tasks Task[]
+
+  @@index([tenantId])
+  @@index([projectId])
+}
+
 model Project {
   id            String   @id @default(cuid())
   name          String
@@ -334,6 +387,7 @@ model Project {
   automations  AutomationRule[]
   members      ProjectMember[]
   contexts     ProjectContext[] // „Kontext für Claude“, eine Zeile je Fassung
+  leads        Lead[] // TOF-0782
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
@@ -579,6 +633,12 @@ model Task {
   workflowColumnId String?
   workflowColumn   WorkflowColumn? @relation(fields: [workflowColumnId], references: [id], onDelete: SetNull)
 
+  // TOF-0782 (Tarek 28.10.2026): optionaler Bezug auf einen Lead DESSELBEN
+  // Projekts. Wird in actions/tasks.ts gegen Mandant + Projekt geprüft;
+  // Lead weg → Bezug fällt weg, die Aufgabe bleibt.
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
   tenantId String
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -603,6 +663,7 @@ model Task {
   @@index([workflowColumnId])
   @@index([deletedAt])
   @@index([recurringNextAt])
+  @@index([leadId])
   @@index([tags(ops: ArrayOps)], type: Gin)
 }
 

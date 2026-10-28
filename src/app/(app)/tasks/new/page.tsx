@@ -13,7 +13,7 @@ import { scopedProjectOptions } from "@/lib/filter-data";
 export default async function NewTaskPage({
   searchParams,
 }: {
-  searchParams: { project?: string; team?: string; due?: string };
+  searchParams: { project?: string; team?: string; due?: string; lead?: string };
 }) {
   const { user, tenant } = await requireTenant();
   const t = getDictionary(getActiveLocale());
@@ -25,6 +25,15 @@ export default async function NewTaskPage({
     // Parent picker: only tasks the user participates in (admins: all).
     prisma.task.findMany({ where: { ...(await taskParticipation(user, tenant.id)), type: { not: "Subtask" } }, select: { id: true, title: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
+  // TOF-0782 (Tarek 28.10.2026): offene Leads der wählbaren Projekte; das
+  // Formular filtert nach Projekt, actions/tasks.ts prüft Mandant + Projekt.
+  const leads = projects.length
+    ? await prisma.lead.findMany({
+        where: { tenantId: tenant.id, projectId: { in: projects.map((p) => p.id) }, archivedAt: null },
+        select: { id: true, company: true, projectId: true },
+        orderBy: { company: "asc" },
+      })
+    : [];
 
   return (
     <div className="container max-w-2xl py-6">
@@ -42,6 +51,7 @@ export default async function NewTaskPage({
         projects={projects}
         teams={teams}
         parents={parents}
+        leads={leads}
         canAssign={isAdminRole(user.role)}
         isAdmin={isAdminRole(user.role)}
         showStoryPoints={tenant.storyPointsEnabled}
@@ -51,6 +61,7 @@ export default async function NewTaskPage({
           projectId: searchParams.project ?? null,
           teamId: searchParams.team ?? null,
           dueDate: searchParams.due ?? null,
+          leadId: searchParams.lead ?? null,
         }}
         submitLabel={t["task.create"]}
       />

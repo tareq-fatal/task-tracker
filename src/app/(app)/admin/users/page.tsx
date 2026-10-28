@@ -12,6 +12,7 @@ import { can, canEditUserTarget, assignableRoles } from "@/lib/roles";
 import { NewUserDialog } from "@/components/new-user-dialog";
 import { UserAdminControls } from "@/components/user-admin-controls";
 import { DeleteUserButton } from "@/components/delete-user-button";
+import { InviteLinkButton } from "@/components/invite-link-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -96,6 +97,10 @@ export default async function AdminUsersPage() {
                 canReactivate={isAdmin}
                 roleOptions={roleOptions}
               />
+            )}
+            {/* TOF-0783 (Tarek 28.10.2026): Einladungslink — admin-level, like createInviteAction */}
+            {can(me.role, "manageUsers") && u.id !== me.id && !u.deactivatedAt && canEditUserTarget(me.role, u.role) && (
+              <InviteLinkButton userId={u.id} userName={u.name} />
             )}
             {isAdmin && u.id !== me.id && canEditUserTarget(me.role, u.role) && (
               <DeleteUserButton userId={u.id} />
