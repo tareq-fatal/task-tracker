@@ -107,6 +107,8 @@ export default async function LeadsPage({ params, searchParams }: { params: { id
                   company: editLead.company,
                   contact: editLead.contact ?? "",
                   channel: editLead.channel ?? "",
+                  referredBy: editLead.referredBy ?? "",
+                  commissionPct: editLead.commissionPct != null ? String(editLead.commissionPct) : "",
                   status: editLead.status,
                   nextAction: editLead.nextAction ?? "",
                   nextActionAt: editLead.nextActionAt ? editLead.nextActionAt.toISOString().slice(0, 10) : "",
@@ -153,6 +155,7 @@ export default async function LeadsPage({ params, searchParams }: { params: { id
                 <th className="px-3 py-2 text-start font-medium">{t["leads.company"]}</th>
                 <th className="px-3 py-2 text-start font-medium">{t["leads.contact"]}</th>
                 <th className="px-3 py-2 text-start font-medium">{t["leads.channel"]}</th>
+                <th className="px-3 py-2 text-start font-medium">{t["leads.referredBy"]}</th>
                 <th className="px-3 py-2 text-start font-medium">{t["leads.status"]}</th>
                 <th className="px-3 py-2 text-start font-medium">{t["leads.nextAction"]}</th>
                 <th className="px-3 py-2 text-start font-medium">{t["leads.tasks"]}</th>
@@ -173,6 +176,12 @@ export default async function LeadsPage({ params, searchParams }: { params: { id
                     </td>
                     <td className="px-3 py-2" dir="auto">{lead.contact ?? "—"}</td>
                     <td className="px-3 py-2" dir="auto">{lead.channel ?? "—"}</td>
+                    <td className="px-3 py-2">
+                      <span dir="auto">{lead.referredBy ?? "—"}</span>
+                      {lead.commissionPct != null && (
+                        <span className="ms-1 text-xs text-muted-foreground" dir="ltr">· {lead.commissionPct} %</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">
                       <span className={cn("inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold", LEAD_STATUS_CHIP[status])}>
                         {t[`leads.status.${status}` as TKey]}

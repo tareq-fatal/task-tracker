@@ -37,6 +37,8 @@ export async function saveLeadAction(
     company: formData.get("company"),
     contact: formData.get("contact"),
     channel: formData.get("channel"),
+    referredBy: formData.get("referredBy"),
+    commissionPct: formData.get("commissionPct"),
     status: formData.get("status"),
     nextAction: formData.get("nextAction"),
     nextActionAt: formData.get("nextActionAt"),

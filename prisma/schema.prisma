@@ -345,6 +345,8 @@ model Lead {
   contact      String? // Ansprechpartner
   channel      String? // Kanal / Quelle
   status       String    @default("New") // New | Contacted | Offer | Won | Lost
+  referredBy   String? // TOF-0786: „vermittelt von“ (z. B. Partnerin), freier Text
+  commissionPct Float? // TOF-0786: Provision in % (0–100) je Lead, z. B. 20
   nextAction   String?
   nextActionAt DateTime?
   notes        String?

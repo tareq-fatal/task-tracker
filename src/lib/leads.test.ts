@@ -5,6 +5,7 @@ import {
   acceptLeadLink,
   compareLeadsByNextAction,
   isLeadStatus,
+  parseCommissionPct,
   parseLeadFilter,
   parseLeadInput,
   sortLeads,
@@ -27,7 +28,7 @@ describe("parseLeadInput", () => {
     const r = parseLeadInput({ company: " ACME ", contact: "", channel: " Instagram ", status: "", nextAction: "", nextActionAt: "", notes: "" });
     expect(r).toEqual({
       ok: true,
-      value: { company: "ACME", contact: null, channel: "Instagram", status: "New", nextAction: null, nextActionAt: null, notes: null },
+      value: { company: "ACME", contact: null, channel: "Instagram", referredBy: null, commissionPct: null, status: "New", nextAction: null, nextActionAt: null, notes: null },
     });
   });
 
@@ -79,5 +80,26 @@ describe("acceptLeadLink", () => {
     expect(acceptLeadLink(archived, { tenantId: "tA", projectId: "p1" }, null)).toBe(false);
     expect(acceptLeadLink(archived, { tenantId: "tA", projectId: "p1" }, "l1")).toBe(true);
     expect(acceptLeadLink(lead, { tenantId: "tA", projectId: "p1" })).toBe(true);
+  });
+});
+
+// TOF-0786 (Tarek 28.10.2026): „vermittelt von“ + „Provision %“ je Lead.
+describe("TOF-0786: Vermittlung und Provision", () => {
+  it("liest Provision tolerant (Komma, Prozentzeichen), leer = keine", () => {
+    expect(parseCommissionPct("20")).toEqual({ ok: true, value: 20 });
+    expect(parseCommissionPct("12,5")).toEqual({ ok: true, value: 12.5 });
+    expect(parseCommissionPct(" 7.25 % ")).toEqual({ ok: true, value: 7.25 });
+    expect(parseCommissionPct("")).toEqual({ ok: true, value: null });
+    expect(parseCommissionPct(null)).toEqual({ ok: true, value: null });
+  });
+  it("lehnt Unsinn und Werte außerhalb 0–100 ab", () => {
+    for (const v of ["101", "-5", "abc", "1.234", "20%%", "1e2"]) expect(parseCommissionPct(v).ok, v).toBe(false);
+  });
+  it("parseLeadInput übernimmt Partnerin und Provision, meldet BAD_PERCENT", () => {
+    const ok = parseLeadInput({ company: "Al Noor", referredBy: " خانم خليل ", commissionPct: "20" });
+    expect(ok.ok && ok.value.referredBy).toBe("خانم خليل");
+    expect(ok.ok && ok.value.commissionPct).toBe(20);
+    expect(parseLeadInput({ company: "X", commissionPct: "150" })).toEqual({ ok: false, error: "BAD_PERCENT" });
+    expect(parseLeadInput({ company: "X", referredBy: "a".repeat(161) })).toEqual({ ok: false, error: "TOO_LONG" });
   });
 });
