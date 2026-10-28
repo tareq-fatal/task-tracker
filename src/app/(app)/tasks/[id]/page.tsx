@@ -89,6 +89,7 @@ export default async function TaskDetailPage({
       assignees: { include: { user: { select: { id: true, name: true } } } },
       createdBy: { select: { name: true } },
       project: { select: { id: true, name: true, color: true } },
+      lead: { select: { id: true, company: true, tenantId: true, projectId: true } }, // TOF-0782
       parent: { select: { id: true, title: true, type: true } },
       children: {
         select: { id: true, title: true, status: true, type: true, storyPoints: true, progress: true },
@@ -453,6 +454,17 @@ export default async function TaskDetailPage({
               style={{ backgroundColor: task.project.color }}
             />
             {task.project.name}
+          </Link>
+        )}
+        {/* TOF-0782 (Tarek 28.10.2026): Lead nur, wenn Mandant + Projekt passen */}
+        {task.lead && task.lead.tenantId === tenant.id && task.lead.projectId === task.projectId && (
+          <Link
+            href={`/projects/${task.lead.projectId}/leads#lead-${task.lead.id}`}
+            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+            data-testid="task-lead"
+          >
+            <span className="text-muted-foreground">{t["task.lead"]}:</span>
+            <span dir="auto">{task.lead.company}</span>
           </Link>
         )}
       </div>

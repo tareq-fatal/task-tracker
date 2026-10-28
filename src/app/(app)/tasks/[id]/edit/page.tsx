@@ -52,6 +52,19 @@ export default async function EditTaskPage({
     }),
     prisma.taskAssignee.findMany({ where: { taskId: task.id }, select: { userId: true } }),
   ]);
+  // TOF-0782 (Tarek 28.10.2026): offene Leads der wählbaren Projekte + der
+  // aktuell verknüpfte (auch archiviert), damit der Bezug im Formular bleibt.
+  const leads = projects.length
+    ? await prisma.lead.findMany({
+        where: {
+          tenantId: tenant.id,
+          projectId: { in: projects.map((p) => p.id) },
+          OR: [{ archivedAt: null }, ...(task.leadId ? [{ id: task.leadId }] : [])],
+        },
+        select: { id: true, company: true, projectId: true },
+        orderBy: { company: "asc" },
+      })
+    : [];
   // #13 — co-assignees = everyone assigned except the primary (Hauptkopf)
   const coAssigneeIds = assigneeRows.map((a) => a.userId).filter((id) => id !== task.assignedToUserId);
 
@@ -73,6 +86,7 @@ export default async function EditTaskPage({
         projects={projects}
         teams={teams}
         parents={parents}
+        leads={leads}
         canAssign={isAdminRole(user.role)}
         isAdmin={isAdminRole(user.role)}
         isEdit
@@ -93,6 +107,7 @@ export default async function EditTaskPage({
           assignedToUserId: task.assignedToUserId,
           assigneeIds: coAssigneeIds,
           projectId: task.projectId,
+          leadId: task.leadId,
           teamId: task.teamId,
           dueDate: task.dueDate ? format(task.dueDate, "yyyy-MM-dd") : null,
           estimatedHours:

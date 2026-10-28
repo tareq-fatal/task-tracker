@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { prisma } from "./prisma";
 import { getCurrentUser, type SessionUser } from "./auth";
-import { isSuperAdmin } from "./enums";
+import { tenantSlugToTry } from "./tenant-decision";
 
 export const TENANT_COOKIE = "tt_tenant";
 
@@ -45,12 +45,12 @@ export async function getActiveTenant(): Promise<{
   const user = await getCurrentUser();
   if (!user) return null;
 
-  if (isSuperAdmin(user.role)) {
-    const slug = cookies().get(TENANT_COOKIE)?.value;
-    if (slug) {
-      const t = await prisma.tenant.findUnique({ where: { slug } });
-      if (t) return { user, tenant: t };
-    }
+  // Decision extracted into a pure function (tenant-decision.ts, tested in
+  // tenant-isolation.test.ts) — non-superusers always get null here.
+  const slug = tenantSlugToTry(user, cookies().get(TENANT_COOKIE)?.value);
+  if (slug) {
+    const t = await prisma.tenant.findUnique({ where: { slug } });
+    if (t) return { user, tenant: t };
   }
 
   const own = await prisma.tenant.findUnique({ where: { id: user.tenantId } });

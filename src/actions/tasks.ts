@@ -58,6 +58,7 @@ import {
 } from "@/lib/recurrence";
 import { isValidCron, nextCronOccurrence } from "@/lib/cron";
 import { DEFAULT_RECUR_TZ } from "@/lib/recurring-config";
+import { acceptLeadLink } from "@/lib/leads";
 import type { TKey } from "@/lib/i18n";
 
 /** Notify a task's watchers (assignee + creator), skipping the actor. */
@@ -348,6 +349,26 @@ async function scopedRelations(
   };
 }
 
+/**
+ * TOF-0782 (Tarek 28.10.2026): optional lead link. The lead must belong to the
+ * SAME tenant AND the task's (already tenant-scoped) project — anything else,
+ * or no project at all, resolves to null. An archived lead is only kept when
+ * the task was already linked to it (lib/leads.ts acceptLeadLink).
+ */
+async function scopedLeadId(
+  tenantId: string,
+  projectId: string | null,
+  leadId: string | null,
+  currentLeadId: string | null = null
+): Promise<string | null> {
+  if (!leadId || !projectId) return null;
+  const lead = await prisma.lead.findFirst({
+    where: { id: leadId, tenantId, projectId },
+    select: { id: true, tenantId: true, projectId: true, archivedAt: true },
+  });
+  return acceptLeadLink(lead, { tenantId, projectId }, currentLeadId) ? lead!.id : null;
+}
+
 /** Keep only those assignee ids that belong to the active tenant (see above). */
 async function scopedAssigneeIds(tenantId: string, ids: string[]): Promise<string[]> {
   const wanted = [...new Set(ids.filter(Boolean))];
@@ -487,6 +508,7 @@ export async function createTaskAction(
   const recur = recurrenceFromForm(formData, d.dueDate);
   const hier = await hierarchyFromForm(formData, tenant.id);
   const rel = await scopedRelations(tenant.id, { ...d, assignedToUserId: assignee });
+  const leadId = await scopedLeadId(tenant.id, rel.projectId, formData.get("leadId")?.toString() || null);
 
   const task = await prisma.task.create({
     data: {
@@ -500,6 +522,7 @@ export async function createTaskAction(
       storyPoints: hier.storyPoints,
       assignedToUserId: rel.assignedToUserId,
       projectId: rel.projectId,
+      leadId,
       teamId: rel.teamId,
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,
@@ -592,6 +615,14 @@ export async function updateTaskAction(
     assignedToUserId: d.assignedToUserId || null,
   });
   const assignee = rel.assignedToUserId;
+  // TOF-0782: form without a lead field keeps the stored link — re-checked
+  // against the (possibly changed) project, so a moved task drops a stale lead.
+  const leadId = await scopedLeadId(
+    tenant.id,
+    rel.projectId,
+    formData.has("leadId") ? formData.get("leadId")?.toString() || null : existing.leadId,
+    existing.leadId
+  );
   const recur = recurrenceFromForm(formData, d.dueDate);
   // Reset the spawn counter + pause flag when the schedule itself changes (a new
   // series starts fresh); keep them when the schedule is unchanged so an edit to
@@ -614,6 +645,7 @@ export async function updateTaskAction(
       storyPoints: hier.storyPoints,
       assignedToUserId: rel.assignedToUserId,
       projectId: rel.projectId,
+      leadId,
       teamId: rel.teamId,
       dueDate: d.dueDate,
       estimatedHours: d.estimatedHours,

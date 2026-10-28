@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,9 +43,12 @@ export type TaskDefaults = {
   allowedTargetColumn?: string | null;
   requireAllTodosDone?: boolean;
   requireTimeTracking?: boolean;
+  leadId?: string | null; // TOF-0782
 };
 
 type ParentOption = { id: string; title: string };
+/** TOF-0782: Leads aller sichtbaren Projekte; das Formular filtert nach projectId. */
+export type LeadOption = { id: string; company: string; projectId: string };
 
 const selectClass =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
@@ -64,6 +68,7 @@ export function TaskForm({
   projects,
   teams,
   parents = [],
+  leads = [],
   defaults,
   submitLabel,
   canAssign = true,
@@ -77,6 +82,7 @@ export function TaskForm({
   projects: Option[];
   teams: Option[];
   parents?: ParentOption[];
+  leads?: LeadOption[];
   defaults?: TaskDefaults;
   submitLabel: string;
   canAssign?: boolean;
@@ -91,6 +97,10 @@ export function TaskForm({
   const { t } = useT();
   const [state, formAction] = useFormState(action, {});
   const d = defaults ?? {};
+  // TOF-0782 (Tarek 28.10.2026): Lead-Auswahl folgt dem gewählten Projekt.
+  const [projectId, setProjectId] = useState(d.projectId ?? "");
+  const [leadId, setLeadId] = useState(d.leadId ?? "");
+  const projectLeads = leads.filter((l) => l.projectId === projectId);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -254,6 +264,10 @@ export function TaskForm({
             id="projectId"
             name="projectId"
             defaultValue={d.projectId ?? ""}
+            onChange={(e) => {
+              setProjectId(e.target.value);
+              if (!leads.some((l) => l.id === leadId && l.projectId === e.target.value)) setLeadId("");
+            }}
             className={selectClass}
           >
             <option value="">{t("task.noProject")}</option>
@@ -264,6 +278,30 @@ export function TaskForm({
             ))}
           </select>
         </div>
+
+        {/* Nur wenn es überhaupt Leads gibt; der Server prüft Mandant + Projekt. */}
+        {leads.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="leadId">{t("task.lead")}</Label>
+            <select
+              id="leadId"
+              name="leadId"
+              value={leadId}
+              onChange={(e) => setLeadId(e.target.value)}
+              className={selectClass}
+              disabled={projectLeads.length === 0}
+            >
+              <option value="">{t("task.noLead")}</option>
+              {projectLeads.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.company}
+                </option>
+              ))}
+            </select>
+            {/* disabled selects don't submit — send the explicit "no lead" */}
+            {projectLeads.length === 0 && <input type="hidden" name="leadId" value="" />}
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="teamId">{t("task.team")}</Label>
