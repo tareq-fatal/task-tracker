@@ -9,7 +9,7 @@ import { isTenantFeature } from "@/lib/tenant-features";
 import { parseTenantInput } from "@/lib/tenant-input";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
-export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
+export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; openTasks: number; leads: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
 
 async function requireSuper() {
   const { user } = await requireTenant();
@@ -21,11 +21,19 @@ export async function getTenants(): Promise<TenantRow[]> {
   await requireSuper();
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { users: true, tasks: { where: { deletedAt: null } }, projects: { where: { deletedAt: null } } } } },
+    include: { _count: { select: { users: true, tasks: { where: { deletedAt: null } }, projects: { where: { deletedAt: null } }, leads: { where: { archivedAt: null } } } } },
   });
+  // TOF-0788: offene Aufgaben je Mandant (Todo + InProgress, nicht gelöscht) für die Übersicht.
+  const open = await prisma.task.groupBy({
+    by: ["tenantId"],
+    where: { deletedAt: null, status: { in: ["Todo", "InProgress"] } },
+    _count: { _all: true },
+  });
+  const openBy = new Map(open.map((o) => [o.tenantId, o._count._all]));
   return tenants.map((t) => ({
     id: t.id, slug: t.slug, name: t.name, primaryColor: t.primaryColor,
     users: t._count.users, tasks: t._count.tasks, projects: t._count.projects,
+    openTasks: openBy.get(t.id) ?? 0, leads: t._count.leads,
     billingEnabled: t.billingEnabled,
     parentTasksEnabled: t.parentTasksEnabled,
     storyPointsEnabled: t.storyPointsEnabled,
