@@ -1,7 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { Building2, Check, ChevronsUpDown } from "lucide-react";
+import Link from "next/link";
+import { Building2, Check, ChevronsUpDown, LayoutGrid } from "lucide-react";
 import { switchTenantAction } from "@/actions/tenant";
 import { useT } from "@/components/i18n-provider";
 import {
@@ -13,19 +14,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { tenantSwitcherMode, TENANT_OVERVIEW_HREF } from "@/lib/tenant-switcher";
 
 type T = { slug: string; name: string; primaryColor: string | null };
 
 export function TenantSwitcher({
   current,
   tenants,
+  role,
 }: {
   current: T;
   tenants: T[];
+  /** TOF-0788: Auswahl nur für den Superuser (lib/tenant-switcher.ts). */
+  role: string;
 }) {
   const { t } = useT();
   const [pending, startTransition] = useTransition();
-  const canSwitch = tenants.length > 1;
+  const canSwitch = tenantSwitcherMode(role, tenants.length) === "dropdown";
 
   const dot = (color: string | null) => (
     <span
@@ -65,7 +70,8 @@ export function TenantSwitcher({
         {tenants.map((t) => (
           <DropdownMenuItem
             key={t.slug}
-            className="gap-2"
+            className={cn("gap-2", t.slug === current.slug && "bg-secondary font-semibold")}
+            aria-current={t.slug === current.slug ? "true" : undefined}
             onClick={() =>
               startTransition(() => {
                 switchTenantAction(t.slug);
@@ -79,6 +85,13 @@ export function TenantSwitcher({
             )}
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild className="gap-2">
+          <Link href={TENANT_OVERVIEW_HREF}>
+            <LayoutGrid className="h-3.5 w-3.5" />
+            {t("tenant.overview")}
+          </Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

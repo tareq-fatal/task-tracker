@@ -246,7 +246,7 @@ export function AppShell({
         </Link>
 
         <div className="px-3 pb-2">
-          <TenantSwitcher current={tenant} tenants={tenants} />
+          <TenantSwitcher current={tenant} tenants={tenants} role={user.role} />
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
@@ -417,7 +417,7 @@ export function AppShell({
           >
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-muted-foreground/30" />
             <div className="mb-2 flex items-center justify-between px-1">
-              <TenantSwitcher current={tenant} tenants={tenants} />
+              <TenantSwitcher current={tenant} tenants={tenants} role={user.role} />
               <button
                 onClick={() => setMoreOpen(false)}
                 aria-label={t("nav.close")}

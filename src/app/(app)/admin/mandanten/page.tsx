@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/tenant";
 import { can } from "@/lib/roles";
@@ -11,7 +12,7 @@ import { TenantFeatureToggles } from "@/components/tenant-feature-toggles";
 import { translationConfigured } from "@/lib/translate";
 
 export default async function TenantsPage() {
-  const { user } = await requireTenant();
+  const { user, tenant: active } = await requireTenant();
   if (!can(user.role, "manageTenants")) redirect("/");
   const t = getDictionary(getActiveLocale());
   const tenants = await getTenants();
@@ -23,13 +24,30 @@ export default async function TenantsPage() {
 
       <ul className="mb-6 space-y-2">
         {tenants.map((tn) => (
-          <li key={tn.id} className="flex items-center gap-3 rounded-lg border bg-card p-3" data-testid="tenant-row">
+          <li
+            key={tn.id}
+            className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${tn.id === active.id ? "border-primary ring-1 ring-primary" : ""}`}
+            data-testid="tenant-row"
+            aria-current={tn.id === active.id ? "true" : undefined}
+          >
             <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: tn.primaryColor ?? "#4f46e5" }} />
             <span className="font-medium">{tn.name}</span>
             <code className="text-xs text-muted-foreground">/{tn.slug}</code>
-            <span className="ms-auto text-xs text-muted-foreground">
-              {tn.users} {t["tenants.users"]} · {tn.projects} {t["tenants.projects"]} · {tn.tasks} {t["tenants.tasks"]}
+            {tn.id === active.id && (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{t["tenants.current"]}</span>
+            )}
+            {/* TOF-0788: Kennzahlen je Mandant */}
+            <span className="ms-auto flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" data-testid="tenant-kpis">
+              <span><b className="text-foreground">{tn.projects}</b> {t["tenants.projects"]}</span>
+              <span><b className="text-foreground">{tn.openTasks}</b> {t["tenants.openTasks"]}</span>
+              <span><b className="text-foreground">{tn.users}</b> {t["tenants.users"]}</span>
+              <span><b className="text-foreground">{tn.leads}</b> {t["tenants.leads"]}</span>
             </span>
+            {tn.id !== active.id && (
+              <Link href={`/t/${tn.slug}`} prefetch={false} className="rounded-md border px-2 py-1 text-xs font-medium hover:bg-secondary">
+                {t["tenants.open"]}
+              </Link>
+            )}
             <TenantFeatureToggles
               tenantId={tn.id}
               flags={{
