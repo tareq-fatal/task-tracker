@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
+import { SkeletonScreen, SkeletonRows } from "@/components/skeleton";
 import { globalSearchAction } from "@/actions/search";
 import {
   SEARCH_MIN_CHARS,
@@ -363,6 +364,14 @@ export function GlobalSearch({
                 <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                   {t("search.typeToSearch")}
                 </p>
+              )}
+
+              {/* TOF-0789 (Tarek 29.10.2026): erste Suche läuft → Ergebnis-Skeleton
+                  statt leerer Fläche (der kleine Spinner im Eingabefeld bleibt). */}
+              {searching && loading && flat.length === 0 && (
+                <SkeletonScreen label={t("common.loading")}>
+                  <SkeletonRows rows={4} avatar={false} rowClassName="flex items-center gap-3 rounded-lg px-3 py-2.5" />
+                </SkeletonScreen>
               )}
 
               {searching && !loading && flat.length === 0 && (

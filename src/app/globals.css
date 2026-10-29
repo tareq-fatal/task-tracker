@@ -187,6 +187,34 @@ a[data-kbd-selected] {
   }
 }
 
+/* TOF-0789 (Tarek 29.10.2026): Skeleton-Shimmer — base tone like the old
+   bg-secondary/70 (light AND dark tokens), a soft light band sweeping across
+   via background-position. RTL sweeps right→left; reduced motion = static. */
+@keyframes tt-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+.tt-skeleton {
+  --tt-shine: hsl(0 0% 100% / 0.6);
+  background-color: hsl(var(--secondary) / 0.7);
+  background-image: linear-gradient(90deg, transparent 0%, var(--tt-shine) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: tt-shimmer 1.5s ease-in-out infinite;
+}
+.dark .tt-skeleton {
+  --tt-shine: hsl(0 0% 100% / 0.06);
+}
+[dir="rtl"] .tt-skeleton {
+  animation-direction: reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt-skeleton {
+    animation: none;
+    background-image: none;
+  }
+}
+
 /* Horizontal Kanban: thin scrollbar + mobile swipe snapping */
 .board-scroll {
   scrollbar-width: thin;
