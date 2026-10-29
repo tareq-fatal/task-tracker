@@ -1,25 +1,21 @@
-import { Skeleton } from "@/components/skeleton";
+import { getDictionary } from "@/lib/i18n";
+import { getActiveLocale } from "@/lib/locale";
+import {
+  SkeletonScreen,
+  PageTitleSkeleton,
+  FilterBarSkeleton,
+  KanbanBoardSkeleton,
+} from "@/components/skeleton";
 
+// TOF-0789 (Tarek 29.10.2026): Kanban-Skeleton wie board/page.tsx —
+// Titel, FilterBar, Spalten (Breite/Snap/min-h wie kanban-board.tsx).
 export default function BoardLoading() {
+  const t = getDictionary(getActiveLocale());
   return (
-    <div className="container py-6">
-      <Skeleton className="mb-4 h-8 w-40" />
-      <Skeleton className="mb-5 h-10 w-full max-w-xl" />
-      <div className="flex gap-4 overflow-hidden">
-        {Array.from({ length: 3 }).map((_, c) => (
-          <div key={c} className="w-[82vw] shrink-0 sm:w-80">
-            <Skeleton className="mb-2 h-5 w-24" />
-            <div className="space-y-2.5 rounded-2xl border border-dashed bg-muted/30 p-2.5">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="rounded-xl border bg-card p-4">
-                  <Skeleton className="mb-3 h-4 w-3/4" />
-                  <Skeleton className="h-2 w-full" />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <SkeletonScreen label={t["common.loading"]} className="container py-6">
+      <PageTitleSkeleton className="mb-4 w-40" />
+      <FilterBarSkeleton />
+      <KanbanBoardSkeleton />
+    </SkeletonScreen>
   );
 }

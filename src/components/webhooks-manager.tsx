@@ -25,6 +25,7 @@ import {
 } from "@/actions/webhooks";
 import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from "@/lib/webhooks";
 import { useT } from "@/components/i18n-provider";
+import { SkeletonScreen, TableRowsSkeleton } from "@/components/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -64,7 +65,20 @@ function DeliveryLog({ webhookId }: { webhookId: string }) {
   }, [webhookId]);
 
   if (loading && rows === null) {
-    return <p className="px-3 py-2 text-xs text-muted-foreground">…</p>;
+    // TOF-0789 (Tarek 29.10.2026): Zustellprotokoll lädt → Tabellen-Skeleton statt "…"
+    return (
+      <SkeletonScreen label={t("common.loading")}>
+        <TableRowsSkeleton
+          className="max-h-64 overflow-auto"
+          tableClassName="w-full text-xs"
+          headClassName="bg-muted/60"
+          headCellClassName="px-2 py-1 text-start"
+          cellClassName="px-2 py-1"
+          columns={["w-20", "w-12", "w-8", "w-6", "w-24"]}
+          rows={3}
+        />
+      </SkeletonScreen>
+    );
   }
   if (!rows || rows.length === 0) {
     return <p className="px-3 py-2 text-xs text-muted-foreground">{t("webhook.noDeliveries")}</p>;

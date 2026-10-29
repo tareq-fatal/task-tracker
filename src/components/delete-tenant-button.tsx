@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/components/i18n-provider";
+import { SkeletonScreen, Skeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import { formatNumber } from "@/lib/format";
 import type { TenantDeletionPreview } from "@/lib/tenant-deletion";
@@ -134,10 +135,15 @@ export function DeleteTenantButton({ tenantId, tenantName, ownTenantId }: Props)
               {t("mandant.delete.willRemove")}
             </p>
             {loadingPreview || !preview ? (
-              <p className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {t("common.loading")}
-              </p>
+              // TOF-0789 (Tarek 29.10.2026): Vorschau lädt → 6 Kennzahl-Zeilen als Skeleton
+              <SkeletonScreen label={t("common.loading")} className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} aria-hidden="true" className="flex h-5 items-center justify-between gap-2">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-8" />
+                  </div>
+                ))}
+              </SkeletonScreen>
             ) : (
               <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-rose-900 dark:text-rose-100">
                 <Stat label={t("tenants.users")} value={formatNumber(preview.users, locale, 0)} />

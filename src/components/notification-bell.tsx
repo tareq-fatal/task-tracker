@@ -25,6 +25,7 @@ import { notifVisual } from "@/lib/notif-visual";
 import { useT } from "@/components/i18n-provider";
 import type { Locale } from "@/lib/enums";
 import { TooltipHelp } from "@/components/ui/tooltip";
+import { SkeletonScreen, SkeletonRows } from "@/components/skeleton";
 import {
   getNotifications,
   markAllReadAction,
@@ -56,6 +57,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
+  // TOF-0789 (Tarek 29.10.2026): until the first fetch lands, show skeleton
+  // rows instead of the misleading "no notifications" text.
+  const [loaded, setLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const dateLocale = DATE_LOCALES[locale];
 
@@ -63,6 +67,7 @@ export function NotificationBell() {
     const data = await getNotifications();
     setItems(data.items);
     setUnread(data.unread);
+    setLoaded(true);
   }
 
   // #10 — near-realtime: 30s poll + instant catch-up on tab focus / re-visibility
@@ -159,7 +164,11 @@ export function NotificationBell() {
             )}
           </div>
           <div className="max-h-[26rem] overflow-y-auto overscroll-contain py-1">
-            {items.length === 0 ? (
+            {!loaded ? (
+              <SkeletonScreen label={t("common.loading")}>
+                <SkeletonRows rows={3} />
+              </SkeletonScreen>
+            ) : items.length === 0 ? (
               <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                 {t("notif.empty")}
               </p>

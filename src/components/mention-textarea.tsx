@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { SkeletonScreen, SkeletonRows } from "@/components/skeleton";
 import { mentionCandidatesAction } from "@/actions/mentions";
 import { activeMentionQuery, applyMention } from "@/lib/mentions-core";
 import type { MentionCandidate } from "@/lib/mentions";
@@ -121,9 +122,10 @@ export function MentionTextarea({
           data-testid="mention-picker"
         >
           {people === null ? (
-            <li className="px-2 py-1.5 text-sm text-muted-foreground">
-              {t("common.loading")}
-            </li>
+            // TOF-0789 (Tarek 29.10.2026): Personen laden → Skeleton-Zeilen statt Text
+            <SkeletonScreen as="li" label={t("common.loading")}>
+              <SkeletonRows rows={3} lines={1} avatarClassName="h-6 w-6" rowClassName="flex items-center gap-2 px-2 py-1.5" />
+            </SkeletonScreen>
           ) : (
             matches.map((p, i) => (
               <li key={p.id}>
