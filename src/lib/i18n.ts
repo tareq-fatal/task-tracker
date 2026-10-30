@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from "./enums";
+import { applyBrandToDictionaries, BRAND_NAME } from "./brand";
 
 export const dictionaries = {
   ar: {
@@ -5121,6 +5122,9 @@ export const dictionaries = {
     "task.noLead": "Potansiyel müşteri yok",
   },
 };
+
+// TOF-0791: Instanz-Name (z. B. „Objektus“) aus NEXT_PUBLIC_APP_NAME — leer = unverändert.
+applyBrandToDictionaries(dictionaries, BRAND_NAME);
 
 export type TKey = keyof (typeof dictionaries)["de"];
 export type Dict = Record<TKey, string>;
