@@ -1,4 +1,5 @@
 import type { Locale } from "./enums";
+import { applyBrandToSeo, BRAND_NAME } from "./brand";
 
 /** Public base URL — used for canonical links, sitemap, OG/JSON-LD absolute URLs.
  *
@@ -17,7 +18,7 @@ type SeoCopy = {
 };
 
 /** Trilingual metadata copy, independent from the UI dictionary in `i18n.ts`. */
-export const SEO_COPY: Record<Locale, SeoCopy> = {
+export const SEO_COPY: Record<Locale, SeoCopy> = applyBrandToSeo({
   ar: {
     appName: "متعقب المهام",
     title: "متعقب المهام — إدارة المهام والمشاريع للفرق",
@@ -42,7 +43,7 @@ export const SEO_COPY: Record<Locale, SeoCopy> = {
     description:
       "Görev Takibi; Kanban panoları, sprintler, yol haritaları ve ekip çalışmasıyla hafif, çok kiracılı bir görev ve proje yönetimi uygulamasıdır.",
   },
-};
+}, BRAND_NAME); // TOF-0791: Instanz-Name, leer = unverändert
 
 /** Open Graph locale codes (BCP-47-ish `og:locale` format). */
 export const OG_LOCALE: Record<Locale, string> = {

@@ -44,8 +44,11 @@ COPY . .
 # build gets its own VAPID key and its own domain in canonical/OG links.
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=""
 ARG NEXT_PUBLIC_APP_URL=""
+# TOF-0791: Instanz-Name in der Oberfläche (z. B. „Objektus“); leer = Standardname je Sprache.
+ARG NEXT_PUBLIC_APP_NAME=""
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
-    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+    NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
+    NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 # `npm run build` = `prisma generate && next build`; standalone output is
 # configured in next.config.mjs (output: "standalone").
 RUN npm run build
