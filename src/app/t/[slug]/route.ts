@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { isSuperAdmin } from "@/lib/enums";
 import { TENANT_COOKIE } from "@/lib/tenant";
+import { publicOrigin } from "@/lib/public-origin";
 
 /**
  * Path-based tenant entry: GET /t/{slug} sets the active-tenant cookie
@@ -15,10 +16,10 @@ export async function GET(
 ) {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/login", publicOrigin(req)));
   }
 
-  const res = NextResponse.redirect(new URL("/", req.url));
+  const res = NextResponse.redirect(new URL("/", publicOrigin(req)));
   if (isSuperAdmin(user.role)) {
     const tenant = await prisma.tenant.findUnique({
       where: { slug: params.slug },

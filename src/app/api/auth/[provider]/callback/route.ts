@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { hash } from "@node-rs/argon2";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, createSessionToken } from "@/lib/auth";
+import { cookieSecure } from "@/lib/cookie-security";
 import {
   exchangeCode,
   fetchUserInfo,
@@ -11,11 +12,12 @@ import {
   isSsoProvider,
   type SsoProvider,
 } from "@/lib/sso";
+import { publicOrigin } from "@/lib/public-origin";
 
 const STATE_COOKIE = "tt_sso_state";
 
 function fail(req: NextRequest, reason: string) {
-  return NextResponse.redirect(new URL(`/login?sso=${reason}`, req.url));
+  return NextResponse.redirect(new URL(`/login?sso=${reason}`, publicOrigin(req)));
 }
 
 async function readParams(req: NextRequest) {
@@ -48,7 +50,7 @@ async function handle(
 
   const redirectUri = new URL(
     `/api/auth/${provider}/callback`,
-    req.url
+    publicOrigin(req)
   ).toString();
 
   let sso;
@@ -123,10 +125,10 @@ async function handle(
 
   // Issue our own session and clear the state cookie.
   const { token, expiresAt } = await createSessionToken(user.id);
-  const res = NextResponse.redirect(new URL("/", req.url));
+  const res = NextResponse.redirect(new URL("/", publicOrigin(req)));
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(), // TOF-0794: COOKIE_SECURE, sonst wie bisher
     sameSite: "lax",
     path: "/",
     expires: expiresAt,

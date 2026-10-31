@@ -5,6 +5,7 @@ import { hash, verify } from "@node-rs/argon2";
 import { prisma } from "./prisma";
 import type { Role } from "./enums";
 import { isAdminRole } from "./enums";
+import { cookieSecure } from "./cookie-security";
 
 export const SESSION_COOKIE = "tt_session";
 export const SESSION_DAYS = 30;
@@ -44,7 +45,7 @@ export async function createSession(userId: string): Promise<void> {
   const { token, expiresAt } = await createSessionToken(userId);
   cookies().set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(), // TOF-0794: COOKIE_SECURE, sonst wie bisher
     sameSite: "lax",
     path: "/",
     expires: expiresAt,

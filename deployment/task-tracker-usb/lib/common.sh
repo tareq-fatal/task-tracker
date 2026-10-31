@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Task Tracker USB bundle — shared shell helpers.
-# Sourced by install.sh / update.sh / backup.sh / restore.sh / uninstall.sh.
+# Sourced by install.sh / update.sh / backup.sh / restore.sh / uninstall.sh /
+# invite.sh / make-bundle.sh.
 # Not meant to be executed directly.
 # =============================================================================
+# Every caller already runs with these; repeated here so the helpers behave the
+# same even if sourced from somewhere new (TOF-0794).
+set -euo pipefail
 
 # --- Where a finished installation lives -------------------------------------
 # The USB stick is not a good home for a running service (it gets unplugged), so
@@ -182,3 +186,71 @@ render_template() {
 }
 
 timestamp() { date -u +%Y%m%d-%H%M%S; }
+
+# --- TLS "internal": Caddy's own local CA (TOF-0794, Tarek 31.10.2026) -------
+# With `tls internal` Caddy creates a private root CA inside its data volume
+# (docker volume task-tracker_caddy_data, mounted at /data in the container) and
+# issues the site certificates from it — no ACME, no internet. Devices trust the
+# site once this ROOT certificate is imported; install.sh copies it out to
+# $TT_CA_DIR so it can be handed out (USB, mail, http://<server>/ca.crt).
+TT_CA_IN_CONTAINER="/data/caddy/pki/authorities/local/root.crt"
+TT_CA_DIR="${TT_CA_DIR:-$TT_INSTALL_DIR/ca}"
+TT_CA_FILE_NAME="task-tracker-root-ca.crt"
+
+# export_internal_ca [tries] — copy the root certificate out of the running caddy
+# container. Caddy writes it on first start; wait for it. Prints nothing; returns
+# 1 if it never appeared.
+export_internal_ca() {
+  local tries="${1:-30}" pem="" dest="$TT_CA_DIR/$TT_CA_FILE_NAME"
+  mkdir -p "$TT_CA_DIR"
+  chmod 755 "$TT_CA_DIR"
+  for _ in $(seq 1 "$tries"); do
+    pem="$(dc exec -T caddy cat "$TT_CA_IN_CONTAINER" 2>/dev/null || true)"
+    case "$pem" in
+      *"BEGIN CERTIFICATE"*) printf '%s\n' "$pem" >"$dest.tmp"; mv -f "$dest.tmp" "$dest"; chmod 644 "$dest"; return 0 ;;
+    esac
+    sleep 2
+  done
+  return 1
+}
+
+# SHA-256 fingerprint of the exported root (to compare on the device before trusting it).
+ca_fingerprint() {
+  openssl x509 -noout -fingerprint -sha256 -in "$TT_CA_DIR/$TT_CA_FILE_NAME" 2>/dev/null \
+    | sed -n 's/^.*Fingerprint=//p'
+}
+
+# --- LAN address (TOF-0794) ---------------------------------------------------
+# The primary IPv4 of this host. `ip route get` only consults the routing table
+# (nothing is sent); an air-gapped host without a default route falls back to the
+# first address `hostname -I` reports that is not loopback / the docker bridge.
+detect_lan_ip() {
+  local out="" ip=""
+  if command -v ip >/dev/null 2>&1; then
+    out="$(ip -4 route get 1.1.1.1 2>/dev/null || true)"
+    ip="$(printf '%s\n' "$out" | sed -n 's/.* src \([0-9.]*\).*/\1/p' | sed -n '1p')"
+  fi
+  # TOF-0794 (Test 31.10.): air-gapped LANs often have NO default route, so the
+  # lookup above finds nothing. Then pick the first global IPv4 by INTERFACE and
+  # skip Docker's/virtual bridges (docker0, br-*, veth*, virbr*, …) — an address
+  # range like 172.17.* is no criterion (it can be the server's real LAN).
+  if [ -z "$ip" ] && command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 -o addr show scope global 2>/dev/null \
+      | awk '$2 !~ /^(docker[0-9]*|br-|veth|virbr|lxcbr|cni|flannel|tun|tap|wg)/ { split($4, a, "/"); print a[1]; exit }')"
+  fi
+  if [ -z "$ip" ]; then
+    for ip in $(hostname -I 2>/dev/null || true); do
+      case "$ip" in 127.*|*:*) ip=""; continue ;; *) break ;; esac
+    done
+  fi
+  printf '%s' "$ip"
+}
+
+is_ipv4() { [[ "$1" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; }
+
+# Read one KEY=value out of an images/build-info.env (no sourcing).
+build_info_get() {
+  local key="$1" file="$2"
+  [ -f "$file" ] || return 0
+  sed -n "s/^${key}=//p" "$file" | sed -n '1p'
+}

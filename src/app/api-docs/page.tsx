@@ -1,82 +1,33 @@
-"use client";
+import type { Metadata } from "next";
+import { OPENAPI_SPEC_PATH, isOfflineMode } from "@/lib/offline";
+import { SwaggerUi } from "./swagger-ui";
 
-import { useEffect, useRef, useState } from "react";
+// TOF-0794 (Tarek 31.10.2026): Swagger-UI kommt von unpkg.com. Im Offline-Betrieb
+// (TT_OFFLINE=1) gibt es das nicht — dann nur ein Hinweis + Link auf die lokale
+// Spezifikation, KEIN Abruf nach außen. Zur Laufzeit gelesen → force-dynamic
+// (sonst würde der Build-Zeitpunkt entscheiden).
+export const dynamic = "force-dynamic";
 
-// Swagger-UI rendered from the pinned CDN bundle (swagger-ui-dist). Loading the
-// assets at runtime keeps them out of the app bundle and the service-worker
-// precache. The spec itself is served locally from /api/openapi.json.
-const SWAGGER_VERSION = "5.17.14";
-const CSS_HREF = `https://unpkg.com/swagger-ui-dist@${SWAGGER_VERSION}/swagger-ui.css`;
-const JS_SRC = `https://unpkg.com/swagger-ui-dist@${SWAGGER_VERSION}/swagger-ui-bundle.js`;
-
-declare global {
-  interface Window {
-    SwaggerUIBundle?: (opts: Record<string, unknown>) => unknown;
-  }
-}
-
-function loadCss(href: string) {
-  if (document.querySelector(`link[href="${href}"]`)) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = href;
-  document.head.appendChild(link);
-}
-
-function loadScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(`script[src="${src}"]`);
-    if (existing) {
-      if (window.SwaggerUIBundle) resolve();
-      else existing.addEventListener("load", () => resolve());
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.crossOrigin = "anonymous";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`Failed to load ${src}`));
-    document.body.appendChild(script);
-  });
-}
+export const metadata: Metadata = { title: "API Docs" };
 
 export default function ApiDocsPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    document.title = "API Docs · Task Tracker";
-    loadCss(CSS_HREF);
-    loadScript(JS_SRC)
-      .then(() => {
-        if (cancelled || !window.SwaggerUIBundle) return;
-        window.SwaggerUIBundle({
-          url: "/api/openapi.json",
-          domNode: containerRef.current,
-          deepLinking: true,
-          docExpansion: "list",
-          defaultModelsExpandDepth: 1,
-          tryItOutEnabled: true,
-          persistAuthorization: true,
-        });
-      })
-      .catch((e) => !cancelled && setError(e.message));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <main dir="ltr" style={{ background: "#fafafa", minHeight: "100vh" }}>
-      <noscript>Enable JavaScript to view the interactive API documentation.</noscript>
-      {error && (
-        <p style={{ padding: "1rem", color: "#b91c1c", fontFamily: "system-ui, sans-serif" }}>
-          Could not load Swagger-UI ({error}). The raw specification is available at{" "}
-          <a href="/api/openapi.json">/api/openapi.json</a>.
+  if (isOfflineMode()) {
+    return (
+      <main dir="ltr" style={{ padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: 720 }}>
+        <h1 style={{ fontSize: "1.4rem", marginBottom: "0.75rem" }}>API documentation (offline mode)</h1>
+        <p style={{ marginBottom: "0.75rem" }}>
+          This installation runs without internet access, so the interactive Swagger-UI (loaded from a
+          public CDN) is switched off.
         </p>
-      )}
-      <div ref={containerRef} id="swagger-ui" />
-    </main>
-  );
+        <p>
+          The complete OpenAPI specification is served locally:{" "}
+          <a href={OPENAPI_SPEC_PATH} style={{ color: "#0369a1", textDecoration: "underline" }}>
+            {OPENAPI_SPEC_PATH}
+          </a>
+          . Open it with any OpenAPI tool (Postman, Insomnia, a local Swagger-UI, …).
+        </p>
+      </main>
+    );
+  }
+  return <SwaggerUi />;
 }
