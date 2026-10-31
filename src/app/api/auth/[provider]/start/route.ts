@@ -5,6 +5,7 @@ import {
   isProviderConfigured,
   isSsoProvider,
 } from "@/lib/sso";
+import { cookieSecure } from "@/lib/cookie-security";
 
 const STATE_COOKIE = "tt_sso_state";
 
@@ -27,7 +28,7 @@ export async function GET(
   // provider we started so the callback can read it.
   res.cookies.set(STATE_COOKIE, `${provider}:${state}`, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(), // TOF-0794: COOKIE_SECURE, sonst wie bisher
     sameSite: "lax",
     path: "/",
     maxAge: 600, // 10 min

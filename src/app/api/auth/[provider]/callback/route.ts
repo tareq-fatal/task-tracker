@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { hash } from "@node-rs/argon2";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, createSessionToken } from "@/lib/auth";
+import { cookieSecure } from "@/lib/cookie-security";
 import {
   exchangeCode,
   fetchUserInfo,
@@ -126,7 +127,7 @@ async function handle(
   const res = NextResponse.redirect(new URL("/", req.url));
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSecure(), // TOF-0794: COOKIE_SECURE, sonst wie bisher
     sameSite: "lax",
     path: "/",
     expires: expiresAt,

@@ -175,6 +175,16 @@ for i in $(seq 1 90); do
 done
 ok "Application running again"
 
+# TOF-0794: --tls internal — the restored caddy_data volume carries the local CA;
+# refresh the exported copy so /ca.crt and ca/ hand out the matching root.
+if [ "$DO_CERTS" = "1" ] && [ "$(env_get TT_TLS_MODE || true)" = "internal" ]; then
+  if export_internal_ca 15; then
+    ok "Root certificate refreshed: $TT_CA_DIR/$TT_CA_FILE_NAME"
+  else
+    warn "Could not export the root certificate — see README (TLS modes)."
+  fi
+fi
+
 echo
 ok "Restore complete — the data is from $(basename "$SOURCE")."
 # Written as if/fi, not `[ … ] && info`: as the LAST statement of the script a

@@ -2,7 +2,7 @@
 # =============================================================================
 # Task Tracker — update / restart.
 #
-#   sudo ./update.sh --from /media/usb/task-tracker-usb   # new version from USB
+#   sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.1.0  # new version from USB
 #   sudo ./update.sh --rebuild        # rebuild from the source already installed
 #   sudo ./update.sh --restart        # just restart (e.g. after editing .env)
 #   sudo ./update.sh --rollback       # undo the last update
@@ -13,6 +13,10 @@
 #
 # Database migrations are applied by the app container itself on boot; they are
 # forward-only, which is why the pre-update backup matters.
+#
+# TOF-0794 (Tarek 31.10.2026): an installation made with install.sh --offline
+# (TT_OFFLINE=1 in .env) updates offline automatically — the images come from
+# the new bundle's images/ folder, nothing is built or downloaded.
 # =============================================================================
 set -euo pipefail
 
@@ -30,7 +34,8 @@ Usage: sudo ./update.sh [options]
 
   --from <path>   Folder of a newer USB bundle to update from.
   --offline       With --from: load the images from that bundle's images/
-                  folder instead of building.
+                  folder instead of building. Automatic for installations
+                  made with install.sh --offline.
   --rebuild       Rebuild the app image from the installed source (needs
                   an internet connection).
   --restart       Only restart the containers. Use after editing .env.
@@ -55,6 +60,12 @@ done
 
 require_root ${ORIG_ARGS[@]+"${ORIG_ARGS[@]}"}
 require_installed
+
+# TOF-0794: offline installations stay offline.
+if [ "$OFFLINE" = "0" ] && [ "$(env_get TT_OFFLINE || true)" = "1" ] && [ "$MODE" = "update" ]; then
+  OFFLINE=1
+  info "Offline installation (TT_OFFLINE=1) — the images are loaded from the bundle."
+fi
 
 CURRENT_VERSION="$(env_get TT_VERSION || echo unknown)"
 CURRENT_IMAGE="task-tracker:$CURRENT_VERSION"
@@ -116,6 +127,15 @@ if [ -n "$FROM_BUNDLE" ]; then
     warn "That is the version already installed."
     confirm "Re-install it anyway?" n || die "Nothing to do."
   fi
+  # TOF-0794: the instance name is compiled into a pre-built image.
+  if [ "$OFFLINE" = "1" ]; then
+    NEW_APP_NAME="$(build_info_get APP_NAME "$FROM_BUNDLE/images/build-info.env")"
+    CUR_APP_NAME="$(env_get NEXT_PUBLIC_APP_NAME || true)"
+    if [ "$NEW_APP_NAME" != "$CUR_APP_NAME" ]; then
+      warn "The new bundle shows the name \"${NEW_APP_NAME:-<default>}\" (installed: \"${CUR_APP_NAME:-<default>}\")."
+      confirm "Continue anyway?" y || die "Aborted — build a bundle with make-bundle.sh --offline --app-name \"$CUR_APP_NAME\"."
+    fi
+  fi
 fi
 
 # --- 1. Pre-update backup -------------------------------------------------------
@@ -135,9 +155,22 @@ ROLLBACK_IMAGE_ID="$(docker image inspect -f '{{.Id}}' "$CURRENT_IMAGE" 2>/dev/n
 if [ -n "$FROM_BUNDLE" ]; then
   step "Copying the new version into place"
   cp -f "$FROM_BUNDLE/docker-compose.yml" "$TT_INSTALL_DIR/"
-  cp -f "$FROM_BUNDLE"/{update.sh,backup.sh,restore.sh,uninstall.sh} "$TT_INSTALL_DIR/"
+  # --remove-destination: replace the files by NEW inodes. This very script is
+  # one of them and bash reads it while running — overwriting it in place
+  # would make bash continue in the middle of the new file (TOF-0794).
+  cp -f --remove-destination "$FROM_BUNDLE"/{update.sh,backup.sh,restore.sh,uninstall.sh} "$TT_INSTALL_DIR/"
+  # TOF-0794: invite.sh exists from bundle 1.1.0 on.
+  if [ -f "$FROM_BUNDLE/invite.sh" ]; then
+    cp -f --remove-destination "$FROM_BUNDLE/invite.sh" "$TT_INSTALL_DIR/"
+  fi
   cp -rf "$FROM_BUNDLE/lib" "$TT_INSTALL_DIR/"
   cp -rf "$FROM_BUNDLE/templates" "$TT_INSTALL_DIR/"
+  if [ -d "$FROM_BUNDLE/docs" ]; then
+    mkdir -p "$TT_INSTALL_DIR/docs"
+    find "$FROM_BUNDLE/docs" -maxdepth 1 -type f \( -name '*.pdf' -o -name '*.md' \) -exec cp -f {} "$TT_INSTALL_DIR/docs/" \;
+  fi
+  # docker-compose.yml (1.1.0+) mounts ./ca into caddy.
+  mkdir -p "$TT_INSTALL_DIR/ca"
   chmod +x "$TT_INSTALL_DIR"/*.sh
   if [ "$OFFLINE" = "0" ] && [ -d "$FROM_BUNDLE/app" ]; then
     rm -rf "$TT_INSTALL_DIR/app"
@@ -145,6 +178,15 @@ if [ -n "$FROM_BUNDLE" ]; then
   fi
   # Bump the version in .env so compose picks the new image tag.
   sed -i "s/^TT_VERSION=.*/TT_VERSION=$NEW_VERSION/" "$TT_INSTALL_DIR/.env"
+  # TOF-0794: an offline image carries its own instance name — keep .env honest.
+  if [ "$OFFLINE" = "1" ] && [ -f "$FROM_BUNDLE/images/build-info.env" ]; then
+    NEW_APP_NAME="$(build_info_get APP_NAME "$FROM_BUNDLE/images/build-info.env")"
+    if grep -q '^NEXT_PUBLIC_APP_NAME=' "$TT_INSTALL_DIR/.env"; then
+      sed -i "s|^NEXT_PUBLIC_APP_NAME=.*|NEXT_PUBLIC_APP_NAME=$(sed_escape "$NEW_APP_NAME")|" "$TT_INSTALL_DIR/.env"
+    else
+      printf 'NEXT_PUBLIC_APP_NAME=%s\n' "$NEW_APP_NAME" >>"$TT_INSTALL_DIR/.env"
+    fi
+  fi
   ok "Files updated"
 fi
 

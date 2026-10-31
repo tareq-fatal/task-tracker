@@ -4,7 +4,13 @@
 # Three services, one network, no external dependencies:
 #   postgres  — the database (internal only, never exposed to the host)
 #   app       — Next.js standalone; applies Prisma migrations on every boot
-#   caddy     — TLS termination + reverse proxy (automatic Let's Encrypt certs)
+#   caddy     — TLS termination + reverse proxy (Let's Encrypt with --tls domain,
+#               its own local CA with --tls internal, plain HTTP with --tls http)
+#
+# TOF-0794 (Tarek 31.10.2026): offline installs set TT_PULL_POLICY=never in .env
+# so compose never tries to pull — every image must already be loaded from
+# images/ (install.sh checks that). The app's `build:` section is only used by
+# online installs (`compose build app`); offline runs always use `up --no-build`.
 #
 # This file is NOT meant to be edited by the customer. install.sh writes the
 # accompanying .env and Caddyfile; everything configurable lives there.
@@ -19,6 +25,7 @@ name: task-tracker
 services:
   postgres:
     image: postgres:16-alpine
+    pull_policy: ${TT_PULL_POLICY:-missing}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tasktracker}
@@ -48,7 +55,8 @@ services:
   app:
     # Pre-built and loaded from images/ in offline mode; built from ./app in
     # online mode. Either way the tag is the same, so `up -d` finds it.
-    image: task-tracker:${TT_VERSION:-1.0.0}
+    image: task-tracker:${TT_VERSION:-1.1.0}
+    pull_policy: ${TT_PULL_POLICY:-missing}
     build:
       context: ./app
       dockerfile: Dockerfile
@@ -58,6 +66,8 @@ services:
         # (Compose interpolates it automatically).
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
+        # TOF-0791/TOF-0794: instance name in the UI (install.sh --app-name).
+        NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -92,6 +102,7 @@ services:
 
   caddy:
     image: caddy:2-alpine
+    pull_policy: ${TT_PULL_POLICY:-missing}
     restart: unless-stopped
     depends_on:
       - app
@@ -100,10 +111,15 @@ services:
       - "${TT_HTTPS_PORT:-443}:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      # Certificates + OCSP staples. Losing this volume means re-issuing certs,
-      # which Let's Encrypt rate-limits — backup.sh includes it.
+      # Certificates + OCSP staples — and with --tls internal the local CA
+      # itself. Losing this volume means re-issuing certs (Let's Encrypt
+      # rate-limits) or re-importing a NEW root CA on every device — backup.sh
+      # includes it.
       - caddy_data:/data
       - caddy_config:/config
+      # TOF-0794: exported root certificate of the local CA (--tls internal),
+      # served at http://<server>/ca.crt. Empty/unused in the other modes.
+      - ./ca:/srv/ca:ro
     networks:
       - internal
     deploy:

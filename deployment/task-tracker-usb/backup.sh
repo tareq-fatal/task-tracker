@@ -124,12 +124,14 @@ Created : $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 Host    : $(hostname)
 Version : $(env_get TT_VERSION || echo unknown)
 Domain  : $(env_get TT_DOMAIN || echo '(LAN install)')
+Address : $(env_get TT_PUBLIC_URL || echo '-')
+TLS mode: $(env_get TT_TLS_MODE || echo '-')
 
 Contents
 --------
 db.sql.gz       PostgreSQL dump (database "$PG_DB", user "$PG_USER")
 uploads.tar.gz  /app/public/uploads — attachments and voice notes
-caddy.tar.gz    Caddy /data — HTTPS certificates
+caddy.tar.gz    Caddy /data — HTTPS certificates (with --tls internal: the local CA)
 config.env      .env at the time of the backup — CONTAINS ALL PASSWORDS
 Caddyfile       web-server configuration
 
