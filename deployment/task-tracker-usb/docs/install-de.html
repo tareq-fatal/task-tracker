@@ -52,7 +52,7 @@
 <table class="hw">
   <thead><tr><th></th><th>Mindestens</th><th>Empfohlen</th></tr></thead>
   <tbody>
-    <tr><th>Prozessor</th><td>2 Kerne (x86_64 oder ARM64)</td><td>4 Kerne</td></tr>
+    <tr><th>Prozessor</th><td>2 Kerne (x86_64)</td><td>4 Kerne</td></tr>
 <tr><th>Arbeitsspeicher</th><td>4 GB</td><td>8 GB</td></tr>
 <tr><th>Festplatte</th><td>20 GB frei</td><td>50 GB SSD</td></tr>
 <tr><th>System</th><td>Ubuntu 22.04 oder 24.04, Zugang mit sudo</td><td></td></tr>
@@ -103,11 +103,22 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
       
     </li></ol>
   <p class="note">Ohne Fragen: <code dir="ltr">sudo bash task-tracker-onprem-1.2.0.run -- --app-name "Mein Team" --locale de --yes</code>. Mit Internet und eigener Domain (Online-Paket): <code dir="ltr">sudo ./install.sh --tls domain --domain tasks.firma.de</code>.</p>
+  <h2>3  Firewall / Ports (alle eingehend, TCP)</h2>
+  
+<table class="">
+  
+  <tbody>
+    <tr><th>443 (HTTPS)</th><td>Standard „internal“ und „domain“: aus dem LAN (bei „domain“ aus dem Internet). Bei „http“ nicht nötig.</td></tr>
+<tr><th>80 (HTTP)</th><td>Umleitung auf HTTPS, Zertifikat <code dir="ltr">/ca.crt</code>; bei „http“ der einzige Port; bei „domain“ Pflicht aus dem Internet.</td></tr>
+<tr><th>Nie offen</th><td>PostgreSQL (5432), App (3000) — nur im internen Docker-Netz. Ausgehend nichts nötig (außer „domain“).</td></tr>
+  </tbody>
+</table>
+  <p class="note">Andere Ports: <code dir="ltr">--http-port 8080 --https-port 8443</code>. Docker umgeht UFW — begrenzen per Firewall vor dem Server oder Kette <code dir="ltr">DOCKER-USER</code>.</p>
   <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">1 / 2</span></div>
 </section>
 
 <section class="page">
-  <h2>3  Name, Logo, Sprache</h2>
+  <h2>4  Name, Logo, Sprache</h2>
   
 <table class="">
   
@@ -120,7 +131,7 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 
   <p class="note">Alle Befehle im Ordner <code dir="ltr">/opt/task-tracker</code> ausführen: <code dir="ltr">cd /opt/task-tracker</code></p>
 
-  <h2>4  Sicherung (Backup)</h2>
+  <h2>5  Sicherung (Backup)</h2>
   
 <table class="ops">
   
@@ -130,9 +141,9 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 <tr><th><code dir="ltr">sudo ./backup.sh --to /media/$USER/USB</code></th><td>Sicherung direkt auf einen USB-Stick schreiben</td></tr>
   </tbody>
 </table>
-  <p class="warn">Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Sicherungen sind nicht verschlüsselt und enthalten alle Passwörter: sicher aufbewahren.</p>
+  <p class="warn">Regelmäßig auf USB kopieren (fällt der Server aus, ist die Sicherung dort weg). Unverschlüsselt, enthält alle Passwörter: sicher aufbewahren.</p>
 
-  <h2>5  Wiederherstellen</h2>
+  <h2>6  Wiederherstellen</h2>
   
 <table class="ops">
   
@@ -142,9 +153,9 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 <tr><th><code dir="ltr">sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes</code></th><td>eine Sicherung vom USB-Stick zurückspielen</td></tr>
   </tbody>
 </table>
-  <p class="note">Vorher wird der aktuelle Stand automatisch gesichert (<code dir="ltr">pre-restore-…</code>) — eine falsche Wiederherstellung lässt sich rückgängig machen.</p>
+  <p class="note">Vorher wird der aktuelle Stand gesichert (<code dir="ltr">pre-restore-…</code>) — rückgängig machbar.</p>
 
-  <h2>6  Update und Rollback</h2>
+  <h2>7  Update und Rollback</h2>
   
 <table class="ops">
   
@@ -156,7 +167,7 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 </table>
   <p class="note">Jedes Update sichert zuerst alles. Startet die neue Version nicht sauber, läuft automatisch wieder die alte.</p>
 
-  <h2>7  Wenn etwas nicht klappt</h2>
+  <h2>8  Wenn etwas nicht klappt</h2>
   
 <table class="">
   
