@@ -12,6 +12,7 @@ import { UpdatePrompt } from "@/components/update-prompt";
 import { PushBootstrap } from "@/components/push-bootstrap";
 import { SentryUserContext } from "@/components/sentry-user-context";
 import { resolveBranding, brandStyle } from "@/lib/branding";
+import { brandName } from "@/lib/brand";
 
 export default async function AppLayout({
   children,
@@ -32,7 +33,8 @@ export default async function AppLayout({
   const branding = resolveBranding(tenant);
 
   return (
-    <I18nProvider locale={locale}>
+    // TOF-0795: Instanz-Name zur Laufzeit (APP_NAME) an die Client-Komponenten.
+    <I18nProvider locale={locale} appName={brandName()}>
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>

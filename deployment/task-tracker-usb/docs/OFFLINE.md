@@ -1,8 +1,7 @@
 # Offline-Betrieb — alle möglichen Außenverbindungen
 
-TOF-0794 (Tarek 31.10.2026). Für den On-Premise-Betrieb ohne Internet (z. B.
-Marine, Daten dürfen das Haus nicht verlassen). Geprüft auf Stand `9f871cb`
-(main) + TOF-0794.
+Für den On-Premise-Betrieb ohne Internet (Daten dürfen das Haus nicht
+verlassen). Stand: Paket 1.2.0.
 
 **Ergebnis:** Die App baut im Betrieb **keine** Verbindung nach außen auf,
 solange kein Fremddienst per Umgebungsvariable konfiguriert ist. Einzige
@@ -49,14 +48,16 @@ Alle Stellen sind **serverseitig** (Container `app`), außer wo „Browser“ st
 
 ### Keine Außenverbindung (nur Links/Texte)
 
-- `https://tasks.coastshield.net` in `src/lib/seo.ts`, `src/lib/email-config.ts`,
-  `src/lib/kontext-laden.ts`, `src/app/api/cron/*`: Standardwert für erzeugte
-  **Links**/Doku, kein Abruf. Die Installation setzt `APP_URL`/`TT_PUBLIC_URL`.
+- Adresse der Instanz (`src/lib/instance-url.ts`): Basis für erzeugte
+  **Links** (Einladungen, E-Mails, canonical/OG, API-Beschreibung), kein Abruf.
+  Die Installation setzt `APP_URL`/`TT_PUBLIC_URL` auf die eigene Adresse; das
+  vorgefertigte Image enthält nur den neutralen Platzhalter
+  `https://task-tracker.local`.
 - `https://t.me/...` (`src/actions/telegram.ts`): Link, nur mit Telegram-Bot.
 - Schriften `next/font/google` (`src/app/layout.tsx`, Inter + Cairo): werden
   beim **Build** heruntergeladen und ins Image eingebettet; zur Laufzeit wird
-  nichts von Google geladen. (Der Build für das Offline-Bundle läuft bei uns
-  mit Internet — `make-bundle.sh --offline`.)
+  nichts von Google geladen. (Der Build des Offline-Pakets läuft beim
+  Herausgeber mit Internet — `make-bundle.sh --offline`.)
 - Service Worker (`public/sw.js`, next-pwa/Workbox): cacht nur, was die Seite
   selbst lädt.
 - Doku-Links (`docs.sentry.io`, `nextjs.org`, `github.com/...` in
@@ -71,7 +72,8 @@ Alle Stellen sind **serverseitig** (Container `app`), außer wo „Browser“ st
 | PostgreSQL | keine | ✓ |
 | Docker | `pull` nur online; offline `pull_policy: never` | ✓ |
 | install.sh | `get.docker.com` nur wenn Docker fehlt **und** online; offline aus `packages/<jammy\|noble>/` | ✓ mit `--debs`-Bundle |
-| Backup-Timer | lokal (`/var/backups/task-tracker`) | ✓ |
+| Backup-Timer | lokal (`/var/backups/task-tracker`, Modus 700, unverschlüsselt) | ✓ |
+| `.run`-Installer | keine: Prüfsumme und Entpacken lokal, ruft `install.sh --offline` | ✓ |
 
 ## Nachprüfen auf dem Server
 

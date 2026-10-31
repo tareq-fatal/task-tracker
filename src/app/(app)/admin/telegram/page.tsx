@@ -11,6 +11,8 @@ import {
 } from "@/actions/telegram";
 import { TelegramOnboardingList } from "@/components/telegram-onboarding-list";
 import { TelegramGroupSettings } from "@/components/telegram-group-settings";
+import { telegramBotUsername } from "@/lib/telegram";
+import { LEGACY_TELEGRAM_BOT } from "@/lib/instance-url";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,7 @@ export default async function TelegramAdminPage() {
 
       <TelegramOnboardingList rows={withQr} />
 
-      <TelegramGroupSettings initial={group} events={events} />
+      <TelegramGroupSettings initial={group} events={events} bot={LEGACY_TELEGRAM_BOT ?? telegramBotUsername} />
     </div>
   );
 }

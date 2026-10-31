@@ -4,7 +4,7 @@
 #
 #   sudo ./install.sh                 # normal (online) install
 #   sudo ./install.sh --offline       # no internet: use the images in images/
-#   sudo ./install.sh --offline --tls internal --app-name "Coast Shield" --locale ar
+#   sudo ./install.sh --offline --tls internal --app-name "Harbour Tasks" --locale ar
 #   sudo ./install.sh --help          # all options
 #
 # What it does, in order:
@@ -16,12 +16,17 @@
 #   6. applies the database migrations and creates the superuser account,
 #      which gets a ONE-TIME INVITE LINK to set its own password
 #
-# TOF-0794 (Tarek 31.10.2026): on-prem package "task-tracker-onprem" —
+# TOF-0794: on-prem package "task-tracker-onprem" —
 #   --tls internal (default) HTTPS from Caddy's own local CA, no internet needed
 #   --tls domain             Let's Encrypt (needs internet + public DNS)
 #   --tls http               plain HTTP on the LAN (COOKIE_SECURE=false)
 #   superuser by invite link instead of a generated password; ./invite.sh
 #   mints a fresh link. --admin-password remains as an explicit exception.
+#
+# TOF-0795: the instance name is a RUNTIME setting now
+#   (APP_NAME in .env — no longer compiled into the image), --logo <file> puts a
+#   logo into the uploads volume and onto the tenant, TT_ONPREM=1 is always set
+#   (hides the Android APK download, which is built for another server).
 #
 # Safe to re-run: an existing installation is detected, its data is left alone
 # and the existing administrator password is never reset.
@@ -32,7 +37,7 @@ BUNDLE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$BUNDLE_DIR/lib/common.sh"
 
-TT_VERSION_DEFAULT="1.1.0"
+TT_VERSION_DEFAULT="1.2.0"
 DOCKER_INSTALL_URL="https://get.docker.com"
 
 # --- Options ------------------------------------------------------------------
@@ -44,6 +49,8 @@ ARG_LOCALE=""; ARG_ORG=""
 # TOF-0794
 ARG_TLS=""; ARG_HOST=""; ARG_IPS=""; ARG_APP_NAME=""; ARG_PUSH=0
 ARG_NEW_INVITE=0; INVITE_HOURS="72"
+# TOF-0795
+ARG_LOGO=""
 HTTP_PORT="80"; HTTPS_PORT="443"
 
 # Kept for the sudo re-exec below: the parsing loop shifts them all away.
@@ -79,9 +86,13 @@ Usage: sudo ./install.sh [options]
   --invite-hours <n>     Validity of the invite link in hours.    [default: 72]
   --new-invite           Re-run on an existing installation: mint a fresh
                          invite link for the superuser (same as ./invite.sh).
-  --app-name <name>      Instance name in the UI, e.g. "Coast Shield". Online:
-                         built into the image here. Offline: comes from the
-                         bundle (make-bundle.sh --app-name).
+  --app-name <name>      Instance name in the UI, e.g. "Harbour Tasks". Set at
+                         runtime (APP_NAME in .env) — change it later in .env
+                         and run ./update.sh --restart. Empty or "Task Tracker"
+                         = the default name of each language.
+  --logo <file>          Logo for the workspace (PNG, JPG, WEBP or SVG, max.
+                         2 MB). Can also be uploaded later in the app:
+                         Settings -> Branding.
   --tenant-name <name>   Workspace (tenant) name.        [default: app name]
   --org <name>           Same as --tenant-name (older spelling).
   --locale <ar|de|en>    Default interface language + the superuser's own
@@ -106,6 +117,7 @@ while [ $# -gt 0 ]; do
     --host) ARG_HOST="${2:-}"; shift 2 ;;
     --ip) ARG_IPS="${ARG_IPS:+$ARG_IPS,}${2:-}"; shift 2 ;;
     --app-name) ARG_APP_NAME="${2:-}"; shift 2 ;;
+    --logo) ARG_LOGO="${2:-}"; shift 2 ;;
     --tenant-name) ARG_ORG="${2:-}"; shift 2 ;;
     --invite-hours) INVITE_HOURS="${2:-72}"; shift 2 ;;
     --new-invite) ARG_NEW_INVITE=1; shift ;;
@@ -142,6 +154,16 @@ cat <<'EOF'
   └──────────────────────────────────────────────┘
 EOF
 printf '%s' "$C_RESET"
+# TOF-0795: offline bundles carry no source (app/) any more — without app/ the
+# image cannot be built here, so a bundle with pre-built images installs offline.
+if [ "$OFFLINE" = "0" ] && [ ! -d "$BUNDLE_DIR/app" ]; then
+  if [ -f "$BUNDLE_DIR/images/task-tracker.tar.gz" ]; then
+    warn "This bundle has pre-built images and no source code — installing in offline mode."
+    OFFLINE=1
+  else
+    die "This bundle has neither pre-built images (images/) nor the source (app/) — it is incomplete."
+  fi
+fi
 [ "$OFFLINE" = "1" ] && info "Offline mode — nothing will be downloaded."
 
 # =============================================================================
@@ -454,29 +476,44 @@ ADMIN_USERNAME="${ARG_ADMIN_USER:-}"
 clean_name() { printf '%s' "$1" | tr -d '"\\$#{}`\r\n' | sed 's/^ *//; s/ *$//'; }
 
 BUILD_INFO="$BUNDLE_DIR/images/build-info.env"
-BUNDLE_APP_NAME="$(build_info_get APP_NAME "$BUILD_INFO")"
+# TOF-0795: the name is a RUNTIME setting (APP_NAME in .env,
+# src/lib/brand.ts) — the image no longer carries one. Order: --app-name, then
+# the existing installation (APP_NAME, or NEXT_PUBLIC_APP_NAME of a 1.1.x .env),
+# then a question with the bundle's suggestion (build-info.env APP_NAME_DEFAULT).
+# "Task Tracker" (or empty) = no APP_NAME: every language keeps its own default
+# name (e.g. Arabic "متعقب المهام").
 APP_NAME="$(clean_name "${ARG_APP_NAME:-}")"
-if [ "$OFFLINE" = "1" ]; then
-  # The name is compiled into the pre-built image — the bundle decides.
-  if [ -n "$APP_NAME" ] && [ "$APP_NAME" != "$BUNDLE_APP_NAME" ]; then
-    warn "--app-name \"$APP_NAME\" differs from the name built into this bundle (\"${BUNDLE_APP_NAME:-<default>}\")."
-    warn "The UI will show \"${BUNDLE_APP_NAME:-the default name}\". Build a matching bundle with:"
-    warn "  ./make-bundle.sh --offline --app-name \"$APP_NAME\""
-    confirm "Continue anyway?" y || die "Aborted."
-  fi
-  APP_NAME_UI="$BUNDLE_APP_NAME"
-  [ -z "$APP_NAME" ] && APP_NAME="$BUNDLE_APP_NAME"
-else
-  if [ -z "$APP_NAME" ] && [ "$REINSTALL" = "1" ]; then
-    APP_NAME="$(env_get NEXT_PUBLIC_APP_NAME || true)"
-  fi
-  APP_NAME_UI="$APP_NAME"
+if [ -z "$APP_NAME" ] && [ "$REINSTALL" = "1" ]; then
+  APP_NAME="$(clean_name "$(env_get APP_NAME || true)")"
+  [ -z "$APP_NAME" ] && APP_NAME="$(clean_name "$(env_get NEXT_PUBLIC_APP_NAME || true)")"
+  [ -z "$APP_NAME" ] && APP_NAME="Task Tracker"
 fi
+if [ -z "$APP_NAME" ]; then
+  NAME_SUGGESTION="$(clean_name "$(build_info_get APP_NAME_DEFAULT "$BUILD_INFO")")"
+  ask APP_NAME "Name of the interface" "${NAME_SUGGESTION:-Task Tracker}"
+  APP_NAME="$(clean_name "$APP_NAME")"
+fi
+APP_NAME="${APP_NAME:0:80}"
+APP_NAME_ENV="$APP_NAME"
+[ "$APP_NAME" = "Task Tracker" ] && APP_NAME_ENV=""
 
 ORG_NAME="$(clean_name "${ARG_ORG:-}")"
+# TOF-0795: a re-run keeps the workspace it created (TT_TENANT_NAME in .env) —
+# a changed --app-name must not create a second, empty workspace.
+if [ -z "$ORG_NAME" ] && [ "$REINSTALL" = "1" ]; then
+  ORG_NAME="$(clean_name "$(env_get TT_TENANT_NAME || true)")"
+fi
 [ -z "$ORG_NAME" ] && ask ORG_NAME "Workspace (tenant) name" "${APP_NAME:-Task Tracker}"
 ORG_NAME="$(clean_name "$ORG_NAME")"
 [ -z "$ORG_NAME" ] && ORG_NAME="${APP_NAME:-Task Tracker}"
+
+# --- Logo (TOF-0795) -------------------------------------------------------------
+LOGO_FILE=""
+if [ -n "$ARG_LOGO" ]; then
+  validate_logo "$ARG_LOGO" || die "--logo: unusable file (PNG, JPG, WEBP or SVG, max. 2 MB)."
+  LOGO_FILE="$(cd "$(dirname "$ARG_LOGO")" && pwd)/$(basename "$ARG_LOGO")"
+  ok "Logo: $LOGO_FILE ($LOGO_EXT, $LOGO_BYTES bytes)"
+fi
 
 LOCALE="${ARG_LOCALE:-}"
 [ -z "$LOCALE" ] && [ "$REINSTALL" = "1" ] && LOCALE="$(env_get DEFAULT_LOCALE || true)"
@@ -581,6 +618,10 @@ if [ -d "$BUNDLE_DIR/docs" ]; then
   mkdir -p "$TT_INSTALL_DIR/docs"
   find "$BUNDLE_DIR/docs" -maxdepth 1 -type f \( -name '*.pdf' -o -name '*.md' \) -exec cp -f {} "$TT_INSTALL_DIR/docs/" \;
 fi
+# TOF-0795: usage notice + README travel with the installation.
+for f in NUTZUNGSHINWEISE.md README.md; do
+  if [ -f "$BUNDLE_DIR/$f" ]; then cp -f "$BUNDLE_DIR/$f" "$TT_INSTALL_DIR/"; fi
+done
 chmod +x "$TT_INSTALL_DIR"/*.sh
 # Mounted read-only into caddy (http://<server>/ca.crt) — exists in every mode.
 mkdir -p "$TT_CA_DIR"
@@ -619,7 +660,8 @@ render_template "$BUNDLE_DIR/templates/env.template" "$TT_INSTALL_DIR/.env" \
   "TT_OFFLINE=$TT_OFFLINE_VALUE" \
   "TT_PULL_POLICY=$PULL_POLICY" \
   "COOKIE_SECURE=$COOKIE_SECURE" \
-  "APP_NAME=$APP_NAME_UI" \
+  "APP_NAME=$APP_NAME_ENV" \
+  "TT_TENANT_NAME=$ORG_NAME" \
   "APP_URL=$APP_URL" \
   "DEFAULT_LOCALE=$LOCALE" \
   "ADMIN_USERNAME=$ADMIN_USERNAME" \
@@ -685,7 +727,6 @@ EOF
 else
   step "Building the application image (5–15 minutes on first run)"
   info "This downloads the Node.js base image and the app dependencies."
-  [ -n "$APP_NAME_UI" ] && info "Instance name built in: $APP_NAME_UI"
   ( cd "$TT_INSTALL_DIR" && dc build app ) || die "The image build failed. Scroll up for the reason.
 If this machine has no internet, use: sudo ./install.sh --offline"
   ok "Application image built"
@@ -755,12 +796,35 @@ BOOTSTRAP_ENV=(
 )
 [ -n "$ADMIN_PASSWORD" ] && BOOTSTRAP_ENV+=(-e "ADMIN_PASSWORD=$ADMIN_PASSWORD")
 
+# TOF-0795: the uploads volume (/app/var/uploads = UPLOAD_ROOT of the app) must
+# belong to the app user — a volume created by an older image may be root-owned.
+dc exec -T --user root app sh -c 'mkdir -p /app/var/uploads && chown nextjs:nodejs /app/var/uploads' >/dev/null 2>&1 \
+  || warn "Could not check the owner of the uploads volume."
+
+# TOF-0795: --logo — copied into the container, then bootstrap-admin.cjs (running
+# as the app user) writes it to tenants/<slug>/logo.<ext> in the uploads volume
+# and sets tenant.logo exactly like Settings -> Branding does.
+LOGO_IN_CONTAINER=""
+if [ -n "$LOGO_FILE" ]; then
+  LOGO_IN_CONTAINER="/tmp/tt-install-logo.$LOGO_EXT"
+  if dc cp "$LOGO_FILE" "app:$LOGO_IN_CONTAINER" >/dev/null \
+     && dc exec -T --user root app sh -c "chown nextjs:nodejs '$LOGO_IN_CONTAINER' && chmod 600 '$LOGO_IN_CONTAINER'" >/dev/null; then
+    BOOTSTRAP_ENV+=(-e "TT_LOGO_SRC=$LOGO_IN_CONTAINER" -e "TT_LOGO_EXT=$LOGO_EXT")
+  else
+    warn "Could not copy the logo into the container — upload it later in Settings -> Branding."
+    LOGO_IN_CONTAINER=""
+  fi
+fi
+
 dc cp "$TT_INSTALL_DIR/lib/bootstrap-admin.cjs" app:/app/bootstrap-admin.cjs >/dev/null
 BOOTSTRAP_OUT="$(dc exec -T "${BOOTSTRAP_ENV[@]}" app node /app/bootstrap-admin.cjs 2>&1)" || {
     err "$BOOTSTRAP_OUT"; die "Could not create the superuser account."
   }
 # /app is root-owned inside the image, so the cleanup needs --user root.
 dc exec -T --user root app rm -f /app/bootstrap-admin.cjs >/dev/null 2>&1 || true
+if [ -n "$LOGO_IN_CONTAINER" ]; then
+  dc exec -T --user root app rm -f "$LOGO_IN_CONTAINER" >/dev/null 2>&1 || true
+fi
 
 INVITE_URL="$(printf '%s\n' "$BOOTSTRAP_OUT" | sed -n 's/^invite_url=//p' | sed -n '1p')"
 INVITE_EXPIRES="$(printf '%s\n' "$BOOTSTRAP_OUT" | sed -n 's/^invite_expires=//p' | sed -n '1p')"
@@ -784,6 +848,12 @@ esac
 case "$BOOTSTRAP_OUT" in
   *renamed=empty-default-tenant*) info "Empty placeholder tenant renamed to '$ORG_NAME'." ;;
 esac
+LOGO_URL="$(printf '%s\n' "$BOOTSTRAP_OUT" | sed -n 's/^logo_url=//p' | sed -n '1p')"
+if [ -n "$LOGO_URL" ]; then
+  ok "Logo set for the workspace ($LOGO_URL)"
+elif [ -n "$LOGO_IN_CONTAINER" ]; then
+  warn "The logo was not applied — upload it in the app: Settings -> Branding."
+fi
 
 # =============================================================================
 # 9. Nightly backup
@@ -891,7 +961,9 @@ fi
       ;;
   esac
   echo
-  echo "Name / logo: Settings -> Branding (as superuser) — upload the logo there."
+  echo "Name:          ${APP_NAME:-Task Tracker}   (APP_NAME in .env, then ./update.sh --restart)"
+  echo "Logo, colours: Settings -> Branding (as superuser)$([ -n "$LOGO_URL" ] && printf ' — logo set by the installer')"
+  echo "Usage notice:  $TT_INSTALL_DIR/NUTZUNGSHINWEISE.md"
   echo "Configuration: $TT_INSTALL_DIR/.env"
   echo "Backups:       $TT_BACKUP_DIR (every night at 03:30)"
 } >"$CRED_FILE"

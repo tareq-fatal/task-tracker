@@ -76,11 +76,14 @@ describe("TOF-0794: On-Premise-Paket", () => {
     expect(y.match(/pull_policy: \$\{TT_PULL_POLICY:-missing\}/g)?.length).toBe(3);
     expect(y).toMatch(/NEXT_PUBLIC_APP_NAME: \$\{NEXT_PUBLIC_APP_NAME:-\}/);
     expect(y).toMatch(/\.\/ca:\/srv\/ca:ro/);
+    // TOF-0795: Uploads dort, wo die App sie ablegt (UPLOAD_ROOT = /app/var/uploads).
+    expect(y).toMatch(/- uploads:\/app\/var\/uploads/);
+    expect(y).not.toMatch(/uploads:\/app\/public\/uploads/);
   });
 
   it("env.template kennt alle neuen Schalter", () => {
     const e = read("templates/env.template");
-    for (const k of ["TT_TLS_MODE", "TT_PUBLIC_URL", "TT_OFFLINE", "TT_PULL_POLICY", "COOKIE_SECURE", "NEXT_PUBLIC_APP_NAME", "CHECKPOINT_DISABLE"]) {
+    for (const k of ["TT_TLS_MODE", "TT_PUBLIC_URL", "TT_OFFLINE", "TT_PULL_POLICY", "COOKIE_SECURE", "APP_NAME", "TT_ONPREM", "CHECKPOINT_DISABLE"]) {
       expect(e).toMatch(new RegExp(`^${k}=`, "m"));
     }
   });
@@ -89,10 +92,12 @@ describe("TOF-0794: On-Premise-Paket", () => {
     const m = read("make-bundle.sh");
     expect(m).toMatch(/NAME="task-tracker-onprem-v\$VERSION"/);
     expect(m).toMatch(/--out\) OUT_DIR=/);
-    expect(m).toMatch(/--build-arg "NEXT_PUBLIC_APP_NAME=\$APP_NAME"/);
+    // TOF-0795: kein Name mehr im Image — --app-name ist nur noch ein Vorschlag.
+    expect(m).toMatch(/--app-name\) APP_NAME_DEFAULT=/);
+    expect(m).toMatch(/--build-arg "NEXT_PUBLIC_APP_NAME="/);
     expect(m).toMatch(/"jammy=ubuntu:22\.04" "noble=ubuntu:24\.04"/);
     expect(m).toMatch(/tar -C "\$OUT_DIR" -czf "\$TARGZ"/);
-    expect(read("VERSION").trim()).toBe("1.1.0");
+    expect(read("VERSION").trim()).toBe("1.2.0");
   });
 
   it("alle .sh im deployment-Ordner: LF-Zeilenenden und set -euo pipefail", () => {
@@ -114,5 +119,15 @@ describe("TOF-0794: update.sh --rollback stellt auch die alte Version ein", () =
     expect(s).toMatch(/Version \*: \*/);
     expect(s).toMatch(/ROLLBACK_TO_VERSION/);
     expect(s).toMatch(/s\/\^TT_VERSION=\.\*\/TT_VERSION=\$ROLLBACK_TO_VERSION\//);
+  });
+});
+
+// TOF-0795: Das On-Prem-Image enthält keine Migration mit Namen/Mandanten der Originalinstallation.
+describe("TOF-0795: On-Prem-Image neutralisiert die mandantenspezifische Migration", () => {
+  it("Dockerfile ersetzt 20260816120000_workflow_chain_rules nur bei TT_ONPREM_IMAGE=1", () => {
+    const s = readFileSync("Dockerfile", "utf8");
+    const block = s.slice(s.indexOf('if [ "$TT_ONPREM_IMAGE" = "1" ]'));
+    expect(block).toMatch(/20260816120000_workflow_chain_rules\/migration\.sql/);
+    expect(block).toMatch(/SELECT 1;/);
   });
 });

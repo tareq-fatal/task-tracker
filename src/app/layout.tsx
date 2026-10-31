@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale } from "@/lib/enums";
-import { SITE_URL, SEO_COPY, OG_LOCALE } from "@/lib/seo";
+import { siteUrl, seoCopy, OG_LOCALE } from "@/lib/seo";
 import { AnalyticsScript } from "@/components/analytics-script";
 import "./globals.css";
 
@@ -20,10 +20,12 @@ const cairo = Cairo({
 
 export function generateMetadata(): Metadata {
   const locale = getActiveLocale();
-  const copy = SEO_COPY[locale];
+  // TOF-0795 (Tarek 31.10.2026): Name (APP_NAME) und Adresse (APP_URL) zur Laufzeit.
+  const copy = seoCopy(locale);
+  const base = siteUrl();
 
   return {
-    metadataBase: new URL(SITE_URL),
+    metadataBase: new URL(base),
     title: { default: copy.title, template: `%s · ${copy.appName}` },
     description: copy.description,
     manifest: "/manifest.webmanifest",
@@ -44,7 +46,7 @@ export function generateMetadata(): Metadata {
       siteName: copy.appName,
       title: copy.title,
       description: copy.description,
-      url: SITE_URL,
+      url: base,
       locale: OG_LOCALE[locale],
       // Child routes overriding `openGraph` replace this object wholesale,
       // so each generateMetadata that sets openGraph must repeat `images`.

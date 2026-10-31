@@ -1,37 +1,82 @@
 # Task Tracker — on-premise installation package (`task-tracker-onprem`)
 
-Everything needed to install Task Tracker on a customer's own server — from a
-USB stick, without us being in the room, and if necessary **without any
-internet connection** (e.g. on board / Marine: data never leaves the site).
+Everything needed to install Task Tracker on your own server — from a USB
+stick or a single file, and if necessary **without any internet connection**:
+the data never leaves your server.
+
+**Please read first:** [`NUTZUNGSHINWEISE.md`](NUTZUNGSHINWEISE.md) — terms of
+use (German, English, Arabic) and the support contact.
 
 **Illustrated step-by-step guides (2 pages each):**
 [`docs/INSTALL_DE.pdf`](docs/INSTALL_DE.pdf) (Deutsch) ·
-[`docs/INSTALL_AR.pdf`](docs/INSTALL_AR.pdf) (العربية). Hand those to the
-customer — this README is the technical reference. Every possible outside
-connection of the app is listed in [`docs/OFFLINE.md`](docs/OFFLINE.md).
-
-> **This bundle is "Option 1 — self-hosted".** There is also **"Option 2 —
-> managed hosting"**, where the customer just gets a login on our VPS (own
-> tenant, we run updates/backups/SSL). The two options are described for
-> customers in [`docs/CUSTOMER_OPTIONS.md`](docs/CUSTOMER_OPTIONS.md) — sales
-> material with prices, kept in the repo and **not** shipped on the stick.
+[`docs/INSTALL_EN.pdf`](docs/INSTALL_EN.pdf) (English) ·
+[`docs/INSTALL_AR.pdf`](docs/INSTALL_AR.pdf) (العربية). This README is the
+technical reference. Every possible outside connection of the app is listed in
+[`docs/OFFLINE.md`](docs/OFFLINE.md).
 
 ---
 
 ## Quick start
 
 ```bash
-# Server without internet (offline bundle), HTTPS from the server's own CA:
-sudo ./install.sh --offline --tls internal --app-name "Coast Shield" --locale ar
+# One-file installer (offline package): asks for name, logo, language, address.
+sudo bash task-tracker-onprem-1.2.0.run
 
-# Server with internet and a public domain (Let's Encrypt):
+# The same without questions:
+sudo bash task-tracker-onprem-1.2.0.run -- --app-name "Harbour Tasks" --locale ar --yes
+
+# From the unpacked folder (offline package), HTTPS from the server's own CA:
+sudo ./install.sh --offline --tls internal --app-name "Harbour Tasks" --locale ar
+
+# Server with internet and a public domain (online package, Let's Encrypt):
 sudo ./install.sh --tls domain --domain tasks.example.com
 ```
 
-The installer asks only what it cannot work out itself (TLS mode, address,
-e-mail, language), generates every secret itself, and ends with a **one-time
-invite link** for the superuser — there is no generated password any more.
-Typical run time is 10–20 minutes online, 3–5 minutes offline.
+The installer asks only what it cannot work out itself, generates every secret
+itself, and ends with a **one-time invite link** for the superuser — there is no
+default account and no generated password. Typical run time is 3–5 minutes
+offline, 10–20 minutes online.
+
+## One-file installer (`.run`)
+
+`task-tracker-onprem-<VERSION>.run` is the whole package in one file: a short
+bash header followed by the package as `tar.gz`. No extra tool is needed on the
+server (only bash, tar, gzip, sha256sum — all part of Ubuntu).
+
+```bash
+sha256sum -c task-tracker-onprem-1.2.0.run.sha256      # optional: check the copy
+sudo bash task-tracker-onprem-1.2.0.run                # install
+```
+
+What the header does, in this order:
+
+1. refuses to run without root (`sudo bash …run`), warns on anything other than
+   Ubuntu 22.04 / 24.04, checks for ≥ 2 GB free in `/var/tmp`;
+2. checks the **SHA-256** of the embedded package against the value recorded in
+   the header — a damaged or incomplete copy is rejected before anything is
+   unpacked;
+3. unpacks into a private directory `/var/tmp/task-tracker-onprem-<VERSION>.XXXXXX`
+   (mode 700; removed again if anything fails);
+4. if Task Tracker is **already installed**, offers an **update** instead
+   (`update.sh --from`, with backup and automatic rollback);
+5. otherwise asks four questions, each with a suggestion — **name** of the
+   interface, **logo** (optional), **language** (ar/de/en, default de) and the
+   **address** (host name, optional; IP address, detected automatically) — and
+   runs `install.sh --offline --tls internal … --yes`;
+6. afterwards the unpacked copy is **deleted** (install.sh copied everything it
+   needs to `/opt/task-tracker`, the images are loaded into Docker). Keep the
+   `.run` file — it is the package. `--keep` keeps the unpacked copy in
+   `/opt/task-tracker-installer-<VERSION>` instead.
+
+Options of the `.run` file:
+
+| Option | Effect |
+| --- | --- |
+| `-- <install.sh options>` | no questions; the options are passed to `install.sh` (`--offline` is added for an offline package) |
+| `--check` | only verify the checksum (no root needed) |
+| `--extract-only <dir>` | only unpack (no root needed) |
+| `--keep` | keep the unpacked package in `/opt/task-tracker-installer-<VERSION>` |
+| `--help` | usage |
 
 ## Requirements
 
@@ -45,8 +90,8 @@ Typical run time is 10–20 minutes online, 3–5 minutes offline.
 | Privileges | root, or a user with `sudo`                |                      |
 
 Docker is installed automatically if it is missing (offline: from the `.deb`
-packages of a `--debs` bundle, matching the Ubuntu release). Nothing else is
-required — no Node.js, no PostgreSQL, no web server on the host.
+packages of a package built with `--debs`, matching the Ubuntu release).
+Nothing else is required — no Node.js, no PostgreSQL, no web server on the host.
 
 ## What gets installed
 
@@ -76,10 +121,11 @@ publishes ports.
 | `/opt/task-tracker/`                        | the installed stack                         |
 | `/opt/task-tracker/.env`                    | all configuration + secrets (mode 600)      |
 | `/opt/task-tracker/ACCESS.txt`              | address, login, invite link (mode 600)      |
+| `/opt/task-tracker/NUTZUNGSHINWEISE.md`     | terms of use                                |
 | `/opt/task-tracker/ca/task-tracker-root-ca.crt` | root certificate to import (`--tls internal`) |
-| `/var/backups/task-tracker/`                | backups, one folder per run                 |
+| `/var/backups/task-tracker/`                | backups, one folder per run (mode 700)      |
 | docker volume `task-tracker_pg_data`        | the database                                |
-| docker volume `task-tracker_uploads`        | attachments, voice notes, tenant logos      |
+| docker volume `task-tracker_uploads`        | attachments, voice notes, logos (`/app/var/uploads`) |
 | docker volume `task-tracker_caddy_data`     | certificates — and the local CA itself      |
 
 ## TLS modes
@@ -94,12 +140,12 @@ kept on every re-run.
 | `http` | none (`templates/Caddyfile.local`) | — | `http://<LAN-IP>[:port]` |
 
 **`--tls internal`** — site addresses are `--host` (e.g.
-`tracker.marine.local`, must resolve to the server via your DNS or the devices'
-hosts file) and/or `--ip` (repeatable / comma-separated; detected automatically
-when neither is given):
+`tracker.example.local`, must resolve to the server via your DNS or the
+devices' hosts file) and/or `--ip` (repeatable / comma-separated; detected
+automatically when neither is given):
 
 ```bash
-sudo ./install.sh --offline --tls internal --host tracker.marine.local --ip 192.168.1.10
+sudo ./install.sh --offline --tls internal --host tracker.example.local --ip 192.168.1.10
 ```
 
 No ACME, no OCSP, nothing leaves the server: the Caddyfile sets `local_certs`,
@@ -109,8 +155,7 @@ No ACME, no OCSP, nothing leaves the server: the Caddyfile sets `local_certs`,
 first IP, because clients connecting by IP send no SNI and, behind Docker's
 port mapping, Caddy cannot see the host's IP either.
 
-Caddy creates the CA on its first start inside the `caddy_data` volume
-(`/data/caddy/pki/authorities/local/root.crt` in the container).
+Caddy creates the CA on its first start inside the `caddy_data` volume.
 `install.sh` copies the **root** certificate to
 `/opt/task-tracker/ca/task-tracker-root-ca.crt` and prints its SHA-256
 fingerprint; it can also be downloaded from `http://<server>/ca.crt`. Import it
@@ -136,76 +181,95 @@ has to import the new root.**
 the session cookie over HTTP and login is impossible) and warns loudly: nothing
 is encrypted. Only for a closed, trusted LAN.
 
-`COOKIE_SECURE` is a general app setting (`src/lib/cookie-security.ts`):
-unset = previous behaviour (secure in production), `true`/`false` force it.
-Existing instances do not set it and are unchanged.
-
 ## Invite link instead of a password
 
-The superuser (role `BackendAdmin`, shown as "Superuser") is created by
-`lib/bootstrap-admin.cjs` inside the app container, exactly the way the app's
-own user administration does it (`src/lib/invite.ts`):
+The package and its images contain **no accounts, passwords, keys or tokens**.
+The superuser (role `BackendAdmin`, shown as "Superuser") is created only on
+your server, by `lib/bootstrap-admin.cjs` inside the app container, exactly the
+way the app's own user administration does it:
 
 - password hash of a random secret nobody ever sees (no login possible yet);
-- an `Invite` row: token = `randomBytes(32).toString("base64url")`, only its
-  SHA-256 is stored (`tokenHash`), `expiresAt` = now + `--invite-hours`
-  (default 72), `createdById` = the superuser;
+- an invite: token = `randomBytes(32).toString("base64url")`, only its SHA-256
+  is stored, valid for `--invite-hours` (default 72);
 - the link `TT_PUBLIC_URL/einladung/<token>` is printed **once** and written to
   `ACCESS.txt` (mode 600) together with its expiry. It works **once**: whoever
   opens it chooses the password and is logged in.
 
-Re-running `install.sh` never touches an existing superuser and issues no new
-link (`--new-invite` does). Expired or lost link, or any user locked out:
+The suggested e-mail is `admin@<host>` (`--email` to change it), the login name
+`admin` (`--admin-user`). Re-running `install.sh` never touches an existing
+superuser and issues no new link (`--new-invite` does). Expired or lost link,
+or any user locked out:
 
 ```bash
 sudo /opt/task-tracker/invite.sh                # the superuser
 sudo /opt/task-tracker/invite.sh --user layla   # any existing user
 ```
 
-Older open links of that user stop working (`usedAt` is set, nothing is
-deleted). `--admin-password <pw>` still exists as an explicit exception; the
-password is then never echoed or stored.
+`--admin-password <pw>` still exists as an explicit exception; the password is
+then never echoed or stored.
 
-The workspace: `--tenant-name` (default: the app name). The multi-tenant
-migration seeds an empty placeholder tenant `default`; on a fresh install it is
-**renamed** into the requested tenant, so the instance has exactly one
-workspace. A `default` tenant that holds data is never touched.
+The workspace: `--tenant-name` (default: the interface name). The empty
+placeholder workspace of a fresh database is **renamed** into it, so the
+instance has exactly one workspace. Re-runs keep that workspace
+(`TT_TENANT_NAME` in `.env`).
 
-## Name, logo, language
+## Name at runtime
 
-- **Name:** `--app-name "Coast Shield"` → `NEXT_PUBLIC_APP_NAME` (TOF-0791,
-  `src/lib/brand.ts`) — shown everywhere instead of "Task Tracker". It is
-  compiled in by `next build`: online installs pass it as a build arg; offline
-  bundles get it from `make-bundle.sh --offline --app-name "Coast Shield"`
-  (recorded as `APP_NAME` in `images/build-info.env`). `install.sh --offline
-  --app-name …` warns if it differs from the bundle.
-- **Logo, colours:** in the app, as superuser: **Settings → Branding**
-  (`/settings/branding`) → *Upload logo*. Stored in the `uploads` volume, so it
-  is part of every backup. There is deliberately no installer option for it.
-- **Language:** `--locale ar|de|en` sets `DEFAULT_LOCALE` (login page for
-  visitors without a choice, runtime — `./update.sh --restart` after a change)
-  **and** the superuser's own language (invite page included). Default stays
-  `de`. Every user can switch for themselves.
+The name shown in the interface is a **runtime** setting — the images contain
+no name:
+
+- `install.sh --app-name "Harbour Tasks"` (or the first question of the `.run`
+  file) writes `APP_NAME=Harbour Tasks` to `/opt/task-tracker/.env`;
+- change it any time: edit `APP_NAME` in `.env`, then `sudo ./update.sh --restart`;
+- empty, or exactly `Task Tracker`, = the default name of each language
+  ("Task Tracker", Arabic "متعقب المهام");
+- it is used everywhere: page titles, login page, menus, invite page, e-mails
+  (`EMAIL_FROM` default `"<name>" <noreply@<host>>`).
+
+Likewise the address: `APP_URL` in `.env` (set by the installer) is used at
+runtime for invite links, e-mail links, canonical/OG links and the API
+description.
+
+## Logo
+
+- At installation: `install.sh --logo /path/logo.png` (PNG, JPG, WEBP or SVG,
+  at most 2 MB; the type is checked by extension and content, SVGs with
+  scripts are refused) — or the second question of the `.run` file. The logo
+  is copied into the `uploads` volume (`tenants/<workspace>/logo.<ext>`) and set
+  for the workspace exactly as an upload in the app would; it shows on the
+  login page and in the menu.
+- Later: in the app, as superuser, **Settings → Branding** → *Upload logo*;
+  colours and themes are set there too.
+- The logo lives in the `uploads` volume and is part of every backup.
+
+## Language
+
+`--locale ar|de|en` sets `DEFAULT_LOCALE` (login page for visitors without a
+choice, runtime) **and** the superuser's own language (invite page included).
+Default `de`. Every user can switch for themselves.
 
 ## Offline
 
-`install.sh --offline` (needs an offline bundle):
+`install.sh --offline` (needs an offline package):
 
 - loads `task-tracker:<VERSION>`, `postgres:16-alpine` and `caddy:2-alpine`
   from `images/` and checks all three are present; `.env` gets
-  `TT_PULL_POLICY=never` (→ `pull_policy` in `docker-compose.yml`) and the
-  stack is started with `up --no-build` — nothing is pulled or built;
+  `TT_PULL_POLICY=never` and the stack is started with `up --no-build` —
+  nothing is pulled or built;
 - sets `TT_OFFLINE=1`: `/api-docs` shows a hint and a link to the local
-  `/api/openapi.json` instead of loading Swagger-UI from unpkg.com;
+  `/api/openapi.json` instead of loading Swagger-UI from a CDN;
 - generates **no** Web-Push keys (push goes through the browser vendors' push
   services on the internet) and configures no mail service;
 - `CHECKPOINT_DISABLE=1` (all installs) stops the Prisma CLI's update check.
 
 Every other outside connection of the app only exists when its service is
-configured — full list with code locations in [`docs/OFFLINE.md`](docs/OFFLINE.md).
+configured — full list in [`docs/OFFLINE.md`](docs/OFFLINE.md).
 
-`update.sh` on an offline installation updates offline automatically
-(`TT_OFFLINE=1` → images from the new bundle).
+An **offline package contains no source code** — only the pre-built images.
+`update.sh --rebuild` is therefore not available on such an installation (it
+stops with a hint); updates come from the next package (`update.sh --from …`
+or the next `.run` file). `update.sh` on an offline installation updates offline
+automatically.
 
 ## Day-to-day operation
 
@@ -216,8 +280,8 @@ sudo ./backup.sh                     # back up now
 sudo ./backup.sh --to /media/usb     # back up onto a USB stick
 sudo ./restore.sh                    # list the available backups
 sudo ./restore.sh --from latest --yes
-sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.1.0
-sudo ./update.sh --restart           # after editing .env
+sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.2.0
+sudo ./update.sh --restart           # after editing .env (e.g. APP_NAME)
 sudo ./update.sh --rollback          # undo the last update (data AND previous version)
 sudo ./invite.sh                     # fresh invite link
 sudo ./uninstall.sh                  # remove the app, keep the data
@@ -226,16 +290,18 @@ sudo ./uninstall.sh --purge          # remove everything
 
 A nightly backup at 03:30 is set up by the installer as a systemd timer
 (`task-tracker-backup.timer`); 14 backups are kept. Disable it at install time
-with `--no-backup-timer`.
+with `--no-backup-timer`. Backups are **not encrypted** — the backup folder is
+root-only (mode 700) and contains every password of the installation; keep
+copies (USB) just as safe.
 
 `update.sh` always takes a full backup before it changes anything, and rolls the
 old image back automatically if the new version does not come up healthy.
 
-> **Updating a 1.0.x installation:** the running 1.0 `update.sh` does not know
-> `invite.sh` yet. After `update.sh --from …` copy it once:
-> `sudo cp /media/usb/task-tracker-onprem-v1.1.0/invite.sh /opt/task-tracker/`
-> (or re-run `sudo ./install.sh` from the new bundle — it keeps all data and
-> secrets). 1.0 LAN installs are kept as `--tls http` and get `COOKIE_SECURE=false`.
+> **Updating a 1.1.x installation:** run the update with the NEW package's
+> script — `sudo bash task-tracker-onprem-1.2.0.run` (it offers the update), or
+> `sudo /media/usb/task-tracker-onprem-v1.2.0/update.sh --from /media/usb/task-tracker-onprem-v1.2.0`.
+> It moves the name from the old image to `APP_NAME` in `.env` and sets
+> `TT_ONPREM=1`. (The 1.1.x `update.sh` would reset the name to the default.)
 
 ## Generated secrets
 
@@ -252,66 +318,64 @@ every user out.
 | `VAPID_PRIVATE_KEY` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Web Push (P-256, RFC 8292) — online installs only |
 | superuser invite link          | one-time, 72 h, in `ACCESS.txt` — no password     |
 
-> The app has no `JWT_SECRET` and no `ACCESS_CODE_PEPPER` — sessions are
-> database-backed cookies signed with `SESSION_SECRET`, and passwords are hashed
-> with argon2 (no application-level pepper). `SESSION_SECRET` is the equivalent
-> of the "JWT secret" here.
+## Online vs. offline packages
 
-## Online vs. offline bundles
-
-|                        | online bundle          | offline bundle                         |
+|                        | online package         | offline package                        |
 | ---------------------- | ---------------------- | -------------------------------------- |
 | size                   | ~20 MB                 | ~600 MB (+ ~150 MB with `--debs`)      |
 | `images/`              | empty                  | app + postgres + caddy images          |
+| `app/` (source code)   | yes                    | no (only with `--with-source`)         |
 | target server needs    | internet for the build | nothing                                |
-| install command        | `sudo ./install.sh`    | `sudo ./install.sh --offline`          |
-| instance name          | `install.sh --app-name`| `make-bundle.sh --app-name`            |
-| Web Push               | per installation       | off (or one keypair per bundle with `--push`) |
+| install command        | `sudo ./install.sh`    | `sudo bash …run` or `sudo ./install.sh --offline` |
+| instance name          | runtime (`APP_NAME`)   | runtime (`APP_NAME`)                   |
+| Web Push               | per installation       | off (or one keypair per package with `--push`) |
 
-### Offline caveat: `NEXT_PUBLIC_*` is compiled in
+## Neutrality and passing on (for the publisher)
 
-`next build` inlines every `NEXT_PUBLIC_*` value into the JavaScript bundles, so
-those cannot be changed by editing `.env` afterwards. For offline bundles, where
-the image is pre-built by us:
+The package goes to a third party who runs it on their own server. Therefore:
 
-- **Name** — see above (`--app-name` at bundle time).
-- **Web Push** — off by default. `make-bundle.sh --push` bakes one VAPID
-  keypair into the image (recorded in `images/build-info.env`) and
-  `install.sh --offline --push` uses it; everyone installed from that bundle
-  shares the key.
-- **`NEXT_PUBLIC_APP_URL`** cannot be the customer's address, because it is not
-  known at build time. It only affects canonical/OG/sitemap links, not how the
-  app works. Invite links use `TT_PUBLIC_URL` and are always right.
+- **Images are neutral.** `make-bundle.sh --offline` always builds with
+  `NEXT_PUBLIC_APP_URL=https://task-tracker.local`, without
+  `NEXT_PUBLIC_APP_NAME`, and with `TT_ONPREM_IMAGE=1` (no dev seed scripts,
+  no schema comments). Name, address and logo come from the installation.
+- **No source code** in offline packages (`--with-source` for emergencies).
+- **No accounts, passwords, keys or tokens** in package or image; the superuser
+  is created on the target server by invite link. Web Push keys only with
+  `--push`.
+- `TT_ONPREM=1` (always set by `install.sh`) hides the Android-APK download.
+- Internal material (sales documents, the HTML sources and screenshots of the
+  guides) is never copied into the package; `make-bundle.sh` checks that.
+- `NUTZUNGSHINWEISE.md` (terms of use, support contact) is always included.
 
-## Building a bundle (for us)
+## Building a package (for the publisher)
 
-The app source in the bundle is `git archive <ref>` — **commit first** (or pass
+The app source is taken from `git archive <ref>` — **commit first** (or pass
 `--ref`), uncommitted changes are not included.
 
 ```bash
 cd deployment/task-tracker-usb
-./make-bundle.sh                                           # online bundle
-./make-bundle.sh --offline --app-name "Coast Shield"       # + pre-built images
-./make-bundle.sh --offline --debs --app-name "Coast Shield" --out /media/usb
+./make-bundle.sh                                     # online package (with source)
+./make-bundle.sh --offline --run                     # offline package + .run file
+./make-bundle.sh --offline --debs --run --app-name "Harbour Tasks" --out /media/usb
+./make-run.sh ../../dist/task-tracker-onprem-v1.2.0  # .run from an existing folder
 ```
 
-Output: `task-tracker-onprem-v<VERSION>/` + `task-tracker-onprem-v<VERSION>.tar.gz`
-(+ `.zip` if `zip` is installed) in `--out` (default `<repo>/dist/`). Copy the
-**folder** onto the stick (or unpack the `.tar.gz` there) — `install.sh` is
-meant to be run straight off it. Bump `VERSION` before packaging a new release.
+Output in `--out` (default `<repo>/dist/`): `task-tracker-onprem-v<VERSION>/`,
+`task-tracker-onprem-v<VERSION>.tar.gz` (+ `.zip` if `zip` is installed) and with
+`--run` `task-tracker-onprem-<VERSION>.run` + `.run.sha256`. `--app-name` is
+only the installer's suggestion. Bump `VERSION` before packaging a new release.
+Works on Linux and on Windows (Git Bash + Docker Desktop).
 
 `--debs` downloads `docker-ce`, `docker-ce-cli`, `containerd.io`,
 `docker-buildx-plugin`, `docker-compose-plugin` **with dependencies** for
-**both** Ubuntu releases, each resolved in a clean `ubuntu:22.04` / `ubuntu:24.04`
-container, into `packages/jammy/` and `packages/noble/`. `install.sh` picks the
-set matching `VERSION_CODENAME` from `/etc/os-release`. The architecture is the
-build machine's — build on x86_64 for x86_64 servers.
+**both** Ubuntu releases into `packages/jammy/` and `packages/noble/`. The
+architecture is the build machine's — build on x86_64 for x86_64 servers.
 
-`images/build-info.env` records version, commit, build time, `APP_NAME`, the
-image tags and their digests.
+`images/build-info.env` records version, commit, build time, the installer's
+name suggestion, the image tags and their digests.
 
-Regenerate the customer PDFs after changing the installer flow (needs
-Playwright's Chromium, or Chrome via `TT_CHROME`):
+Regenerate the PDF guides after changing the installer flow (needs Playwright's
+Chromium, or Chrome via `TT_CHROME`):
 
 ```bash
 node docs/build-pdfs.mjs
@@ -320,28 +384,28 @@ node docs/build-pdfs.mjs
 ## Layout
 
 ```
-task-tracker-usb/                (packaged as task-tracker-onprem-v<VERSION>)
-├── install.sh              one-click installer (online + --offline, TLS modes)
+task-tracker-onprem-v<VERSION>/
+├── NUTZUNGSHINWEISE.md     terms of use (DE/EN/AR), support contact
+├── install.sh              installer (online + --offline, TLS modes, --logo)
 ├── update.sh               update / restart / rollback
 ├── backup.sh               database + uploads + certificates/CA
 ├── restore.sh              restore, with a safety copy first
 ├── invite.sh               fresh one-time invite link
 ├── uninstall.sh            remove, optionally purge the data
-├── make-bundle.sh          packaging (ours, not the customer's)
 ├── docker-compose.yml      the three-service stack
-├── VERSION                 bundle version, also the image tag
+├── VERSION                 package version, also the image tag
 ├── lib/
 │   ├── common.sh           shared shell helpers
-│   └── bootstrap-admin.cjs superuser + invite, runs inside the container
-├── templates/
-│   ├── env.template        rendered to /opt/task-tracker/.env
-│   ├── Caddyfile.internal  --tls internal → own local CA (default)
-│   ├── Caddyfile.domain    --tls domain   → Let's Encrypt
-│   └── Caddyfile.local     --tls http     → plain HTTP on the LAN
-├── docs/                   INSTALL_DE.pdf, INSTALL_AR.pdf, OFFLINE.md + sources
-├── images/                 pre-built images (offline bundles only)
-└── packages/{jammy,noble}/ Docker .deb packages (--debs bundles only)
+│   └── bootstrap-admin.cjs superuser + invite + logo, runs inside the container
+├── templates/              .env and Caddyfile templates
+├── docs/                   INSTALL_DE.pdf, INSTALL_EN.pdf, INSTALL_AR.pdf, OFFLINE.md
+├── images/                 pre-built images (offline packages only)
+├── packages/{jammy,noble}/ Docker .deb packages (--debs packages only)
+└── app/                    source code (online packages / --with-source only)
 ```
+
+In the repository the folder also holds `make-bundle.sh`, `make-run.sh` and the
+sources of the guides (`docs/build-pdfs.mjs`, `docs/install-*.html`).
 
 ## Troubleshooting
 
@@ -356,8 +420,7 @@ Another address: re-run `sudo ./install.sh --host … --ip …`.
 
 **No HTTPS certificate (`--tls domain`).** Caddy needs the domain to resolve to
 this server and ports 80+443 to be open from the internet. Check with
-`docker compose logs caddy`. Let's Encrypt rate-limits repeated failures, so fix
-DNS first and only then restart.
+`docker compose logs caddy`.
 
 **Login does not stick over `http://`.** `COOKIE_SECURE=false` must be in
 `.env` (set by `--tls http`), then `sudo ./update.sh --restart`.
@@ -365,8 +428,13 @@ DNS first and only then restart.
 **Invite link expired / forgotten password.** `sudo ./invite.sh`
 (`--user <name>` for other users).
 
+**The `.run` file says "Checksum MISMATCH".** The copy is damaged or incomplete
+— copy it again and compare with `sha256sum -c …run.sha256`.
+
 **Port 80 already in use.** Install with
 `sudo ./install.sh --http-port 8080 --https-port 8443`.
 
-**Starting over.** `sudo ./uninstall.sh --purge`, then `sudo ./install.sh`.
+**Starting over.** `sudo ./uninstall.sh --purge`, then install again.
 The purge offers a final backup first.
+
+**Support:** see [`NUTZUNGSHINWEISE.md`](NUTZUNGSHINWEISE.md).

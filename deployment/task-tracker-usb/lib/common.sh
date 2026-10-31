@@ -94,6 +94,22 @@ require_installed() {
 # unattended (that is what the automated test does).
 TT_ASSUME_YES="${TT_ASSUME_YES:-0}"
 
+# TOF-0795 (Offline-Test): read one answer — from the terminal when there is
+# one (works even if stdin is redirected), otherwise from stdin (answers piped
+# in). No terminal AND no input → stop with a clear message instead of silently
+# taking the suggestion.
+read_answer() {
+  local __v="$1" line
+  if { : </dev/tty; } 2>/dev/null; then
+    IFS= read -r line </dev/tty || line=""
+  elif IFS= read -r line; then
+    :
+  else
+    die "No answer available (no terminal, no input). Run it in a terminal, or pass the options after -- together with --yes."
+  fi
+  printf -v "$__v" '%s' "$line"
+}
+
 confirm() {
   local prompt="$1" default="${2:-n}" reply
   if [ "$TT_ASSUME_YES" = "1" ]; then
@@ -102,7 +118,7 @@ confirm() {
   fi
   local hint="[y/N]"; [ "$default" = "y" ] && hint="[Y/n]"
   printf '%s%s %s %s' "$C_BOLD" "$prompt" "$hint" "$C_RESET"
-  read -r reply </dev/tty || reply=""
+  read_answer reply
   reply="${reply:-$default}"
   case "$reply" in [yY]*) return 0 ;; *) return 1 ;; esac
 }
@@ -120,7 +136,7 @@ ask() {
   else
     printf '%s%s%s: ' "$C_BOLD" "$prompt" "$C_RESET"
   fi
-  read -r reply </dev/tty || reply=""
+  read_answer reply
   printf -v "$__var" '%s' "${reply:-$default}"
 }
 
@@ -187,7 +203,7 @@ render_template() {
 
 timestamp() { date -u +%Y%m%d-%H%M%S; }
 
-# --- TLS "internal": Caddy's own local CA (TOF-0794, Tarek 31.10.2026) -------
+# --- TLS "internal": Caddy's own local CA (TOF-0794) -------
 # With `tls internal` Caddy creates a private root CA inside its data volume
 # (docker volume task-tracker_caddy_data, mounted at /data in the container) and
 # issues the site certificates from it — no ACME, no internet. Devices trust the
@@ -253,4 +269,53 @@ build_info_get() {
   local key="$1" file="$2"
   [ -f "$file" ] || return 0
   sed -n "s/^${key}=//p" "$file" | sed -n '1p'
+}
+
+# --- Logo for install.sh --logo (TOF-0795) -----------------
+# The app itself accepts logos up to 2 MB (src/actions/branding.ts) and serves
+# logo.<png|jpg|webp|svg> (src/app/uploads/tenants/[slug]/[file]/route.ts).
+# validate_logo <file> — on success sets LOGO_EXT (png|jpg|webp|svg) and
+# LOGO_BYTES; otherwise prints the reason and returns 1. Checks the extension,
+# the size, the magic bytes (od) and — when installed — `file`. SVG files with
+# scripts, event handlers or external entities are refused.
+TT_LOGO_MAX_BYTES=$((2 * 1024 * 1024))
+LOGO_EXT=""; LOGO_BYTES=0
+
+validate_logo() {
+  local f="$1" ext magic mime=""
+  LOGO_EXT=""; LOGO_BYTES=0
+  if [ ! -f "$f" ] || [ ! -r "$f" ]; then err "Logo not found or not readable: $f"; return 1; fi
+  ext="$(printf '%s' "${f##*.}" | tr '[:upper:]' '[:lower:]')"
+  case "$ext" in
+    png|webp|svg) ;;
+    jpg|jpeg) ext="jpg" ;;
+    *) err "The logo must be a .png, .jpg, .webp or .svg file (got: $(basename "$f"))."; return 1 ;;
+  esac
+  LOGO_BYTES="$(wc -c <"$f" | tr -d ' ')"
+  if [ "$LOGO_BYTES" -le 0 ]; then err "The logo file is empty: $f"; return 1; fi
+  if [ "$LOGO_BYTES" -gt "$TT_LOGO_MAX_BYTES" ]; then
+    err "The logo is larger than 2 MB ($LOGO_BYTES bytes): $f"; return 1
+  fi
+  magic="$(od -An -tx1 -N12 "$f" 2>/dev/null | tr -d ' \n')"
+  case "$ext" in
+    png)  [[ "$magic" == 89504e470d0a1a0a* ]] || { err "Not a PNG file: $f"; return 1; } ;;
+    jpg)  [[ "$magic" == ffd8ff* ]] || { err "Not a JPEG file: $f"; return 1; } ;;
+    webp) [[ "$magic" == 52494646????????57454250 ]] || { err "Not a WEBP file: $f"; return 1; } ;;
+    svg)
+      grep -a -q -i '<svg' "$f" || { err "Not an SVG file: $f"; return 1; }
+      if grep -a -q -i -E '<script|[[:space:]]on[a-z]+[[:space:]]*=|javascript:|<foreignobject|<!entity' "$f"; then
+        err "The SVG contains scripts, event handlers or entities — refused. Use a PNG instead."; return 1
+      fi ;;
+  esac
+  if command -v file >/dev/null 2>&1; then
+    mime="$(file -b --mime-type "$f" 2>/dev/null || true)"
+    case "$ext:$mime" in
+      *:application/octet-stream|*:"") ;;                 # file does not know it — magic bytes decided
+      png:image/png|jpg:image/jpeg|webp:image/webp) ;;
+      svg:image/svg+xml|svg:image/svg|svg:text/*) ;;
+      *) err "The logo's content ($mime) does not match its extension .$ext: $f"; return 1 ;;
+    esac
+  fi
+  LOGO_EXT="$ext"
+  return 0
 }

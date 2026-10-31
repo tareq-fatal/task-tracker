@@ -1,7 +1,7 @@
 import "server-only";
 import { headers } from "next/headers";
 import { prisma } from "./prisma";
-import { SITE_URL } from "./seo";
+import { instanceUrl } from "./instance-url";
 import { inviteUrl, mintInviteToken, originFromHeaders } from "./invite";
 
 // Server half of the invite link (TOF-0783, Tarek 28.10.2026). Deliberately
@@ -11,7 +11,8 @@ import { inviteUrl, mintInviteToken, originFromHeaders } from "./invite";
 
 /** Origin for links shown to the admin: request headers, else APP_URL / SITE_URL. */
 export function requestOrigin(): string {
-  return originFromHeaders(headers(), process.env.APP_URL || SITE_URL);
+  // TOF-0795: APP_URL > NEXT_PUBLIC_APP_URL > SITE_URL (src/lib/instance-url.ts).
+  return originFromHeaders(headers(), instanceUrl());
 }
 
 /**

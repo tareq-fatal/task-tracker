@@ -7,7 +7,9 @@ import { TENANT_COOKIE } from "@/lib/tenant";
 import { getActiveLocale } from "@/lib/locale";
 import { getDictionary } from "@/lib/i18n";
 import { isLocale } from "@/lib/enums";
-import { SITE_URL, SEO_COPY, OG_LOCALE, languageAlternates } from "@/lib/seo";
+import { siteUrl, seoCopy, OG_LOCALE, languageAlternates } from "@/lib/seo";
+import { brandName } from "@/lib/brand";
+import { apkDownloadEnabled } from "@/lib/onprem";
 import { I18nProvider } from "@/components/i18n-provider";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import {
@@ -35,8 +37,8 @@ export function generateMetadata({
   searchParams: LoginSearchParams;
 }): Metadata {
   const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
-  const copy = SEO_COPY[locale];
-  const url = `${SITE_URL}/login`;
+  const copy = seoCopy(locale);
+  const url = `${siteUrl()}/login`;
 
   return {
     title: { absolute: copy.title },
@@ -85,14 +87,14 @@ export default async function LoginPage({
 
   const locale = isLocale(searchParams?.lang) ? searchParams.lang : getActiveLocale();
   const t = getDictionary(locale);
-  const copy = SEO_COPY[locale];
+  const copy = seoCopy(locale);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: copy.appName,
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web, Android",
-    url: `${SITE_URL}/login`,
+    url: `${siteUrl()}/login`,
     description: copy.description,
     inLanguage: ["ar", "en", "de"],
   };
@@ -103,7 +105,7 @@ export default async function LoginPage({
   const showDemo = process.env.NEXT_PUBLIC_SHOW_DEMO_CREDENTIALS === "true";
 
   return (
-    <I18nProvider locale={locale}>
+    <I18nProvider locale={locale} appName={brandName()}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -157,7 +159,8 @@ export default async function LoginPage({
                 </p>
               </div>
             )}
-            <ApkDownloadLink />
+            {/* TOF-0795: On-Prem (TT_ONPREM=1) ohne APK-Download — die APK ist für andere Server gebaut. */}
+            <ApkDownloadLink apk={apkDownloadEnabled()} />
           </CardContent>
         </Card>
       </main>

@@ -1,15 +1,28 @@
 import type { Locale } from "./enums";
-import { applyBrandToSeo, BRAND_NAME } from "./brand";
+import { applyBrandToSeo, BRAND_NAME, runtimeBrandName } from "./brand";
+import { SITE_URL, instanceUrl } from "./instance-url";
 
-/** Public base URL — used for canonical links, sitemap, OG/JSON-LD absolute URLs.
+/** Public base URL (Build-Zeit) — siehe src/lib/instance-url.ts.
  *
  * `||`, not `??`: NEXT_PUBLIC_APP_URL is inlined at build time, so a build that
- * passes it as an empty string (an unset `--build-arg`, e.g. the self-hosted
- * installer's pre-built image) leaves `""` here rather than `undefined`. With
- * `??` that empty string wins and every `new URL(SITE_URL)` below throws
- * "Invalid URL", 500-ing every page. */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "https://tasks.coastshield.net";
+ * passes it as an empty string (an unset `--build-arg`) leaves `""` rather than
+ * `undefined`. With `??` that empty string wins and every `new URL(SITE_URL)`
+ * throws "Invalid URL", 500-ing every page.
+ *
+ * TOF-0795 (Tarek 31.10.2026): serverseitig zur Laufzeit `siteUrl()` benutzen —
+ * APP_URL > NEXT_PUBLIC_APP_URL > SITE_URL. Ohne APP_URL identisch mit SITE_URL. */
+export { SITE_URL };
+
+/** Laufzeit-Basisadresse für canonical/OG/sitemap/robots (ohne „/“ am Ende). */
+export function siteUrl(): string {
+  const u = instanceUrl();
+  try {
+    new URL(u); // eine kaputte APP_URL darf keine Seite mit „Invalid URL“ abstürzen lassen
+    return u;
+  } catch {
+    return SITE_URL.replace(/\/+$/, "");
+  }
+}
 
 type SeoCopy = {
   appName: string;
@@ -43,7 +56,18 @@ export const SEO_COPY: Record<Locale, SeoCopy> = applyBrandToSeo({
     description:
       "Görev Takibi; Kanban panoları, sprintler, yol haritaları ve ekip çalışmasıyla hafif, çok kiracılı bir görev ve proje yönetimi uygulamasıdır.",
   },
-}, BRAND_NAME); // TOF-0791: Instanz-Name, leer = unverändert
+}, BRAND_NAME); // TOF-0791: Instanz-Name (Build), leer = unverändert
+
+/**
+ * TOF-0795: SEO-Texte einer Sprache mit dem LAUFZEIT-Namen (APP_NAME). Erst beim
+ * Aufruf ausgewertet — ohne APP_NAME exakt SEO_COPY[locale].
+ */
+export function seoCopy(locale: Locale): SeoCopy {
+  const base = SEO_COPY[locale] ?? SEO_COPY.de;
+  const name = runtimeBrandName();
+  if (!name || name === base.appName) return base;
+  return applyBrandToSeo({ x: { ...base } }, name).x;
+}
 
 /** Open Graph locale codes (BCP-47-ish `og:locale` format). */
 export const OG_LOCALE: Record<Locale, string> = {
@@ -59,10 +83,11 @@ export const OG_LOCALE: Record<Locale, string> = {
  * URL per language (read by the page to render that locale server-side).
  */
 export function languageAlternates(path: string): Record<string, string> {
+  const base = siteUrl();
   return {
-    ar: `${SITE_URL}${path}?lang=ar`,
-    en: `${SITE_URL}${path}?lang=en`,
-    de: `${SITE_URL}${path}?lang=de`,
-    "x-default": `${SITE_URL}${path}`,
+    ar: `${base}${path}?lang=ar`,
+    en: `${base}${path}?lang=en`,
+    de: `${base}${path}?lang=de`,
+    "x-default": `${base}${path}`,
   };
 }

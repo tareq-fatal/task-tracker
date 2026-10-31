@@ -7,7 +7,7 @@
 #   caddy     — TLS termination + reverse proxy (Let's Encrypt with --tls domain,
 #               its own local CA with --tls internal, plain HTTP with --tls http)
 #
-# TOF-0794 (Tarek 31.10.2026): offline installs set TT_PULL_POLICY=never in .env
+# TOF-0794: offline installs set TT_PULL_POLICY=never in .env
 # so compose never tries to pull — every image must already be loaded from
 # images/ (install.sh checks that). The app's `build:` section is only used by
 # online installs (`compose build app`); offline runs always use `up --no-build`.
@@ -55,7 +55,7 @@ services:
   app:
     # Pre-built and loaded from images/ in offline mode; built from ./app in
     # online mode. Either way the tag is the same, so `up -d` finds it.
-    image: task-tracker:${TT_VERSION:-1.1.0}
+    image: task-tracker:${TT_VERSION:-1.2.0}
     pull_policy: ${TT_PULL_POLICY:-missing}
     build:
       context: ./app
@@ -66,8 +66,11 @@ services:
         # (Compose interpolates it automatically).
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
-        # TOF-0791/TOF-0794: instance name in the UI (install.sh --app-name).
+        # TOF-0791/TOF-0794: build-time instance name — empty for on-prem; the
+        # name is set at runtime (APP_NAME in .env, TOF-0795).
         NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-}
+        # TOF-0795: neutral image (no dev seed scripts / schema comments).
+        TT_ONPREM_IMAGE: "1"
     restart: unless-stopped
     depends_on:
       postgres:
@@ -79,8 +82,11 @@ services:
       PORT: "3000"
       HOSTNAME: 0.0.0.0
     volumes:
-      # Uploaded attachments + voice notes. Backed up by backup.sh.
-      - uploads:/app/public/uploads
+      # Uploaded attachments, voice notes, tenant logos. Backed up by backup.sh.
+      # TOF-0795: mounted where the app keeps them
+      # (UPLOAD_ROOT = /app/var/uploads, src/lib/upload-paths.ts — outside
+      # public/ since the K-6 fix). Same volume as in 1.1.x.
+      - uploads:/app/var/uploads
     healthcheck:
       test:
         [

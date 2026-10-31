@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from "./enums";
-import { applyBrandToDictionaries, BRAND_NAME } from "./brand";
+import { applyBrandToDictionaries, BRAND_NAME, runtimeBrandName } from "./brand";
 
 export const dictionaries = {
   ar: {
@@ -58,7 +58,7 @@ export const dictionaries = {
     "settings.sso.title": "الدخول الموحّد (SSO)",
     "settings.sso.desc": "فعّل مزوّدي الدخول لهذه المؤسسة.",
     "settings.sso.domains": "نطاقات البريد",
-    "settings.sso.domainsHint": "نطاقات مفصولة بفواصل تُوجَّه إلى هذه المؤسسة (مثال: objektus.de)",
+    "settings.sso.domainsHint": "نطاقات مفصولة بفواصل تُوجَّه إلى هذه المؤسسة (مثال: example.com)",
     "settings.sso.autoProvision": "إنشاء حساب تلقائيًا عند أول دخول",
     "settings.sso.save": "حفظ",
     "settings.sso.saved": "تم الحفظ",
@@ -139,7 +139,7 @@ export const dictionaries = {
     "error.confirmMismatch": "التأكيد غير مطابق",
     "db.danger.title": "تفريغ بيانات المؤسسة",
     "db.danger.desc": "يحذف كل المهام والمشاريع والفرق والسبرنتات لهذه المؤسسة. تبقى المؤسسة والمستخدمون. اكتب المعرّف (slug) مرتين للتأكيد.",
-    "db.danger.slug": "معرّف المؤسسة (مثال: tarek)",
+    "db.danger.slug": "معرّف المؤسسة (مثال: acme)",
     "db.danger.reconfirm": "أعد كتابة المعرّف",
     "db.danger.button": "تفريغ المؤسسة",
     "db.danger.willRemove": "سيُحذف نهائيًا:",
@@ -866,7 +866,8 @@ export const dictionaries = {
     "tg.copied": "تم النسخ ✓",
     "tg.print": "طباعة الكل (PDF)",
     "tg.group.title": "مجموعة البث (اختياري)",
-    "tg.group.help": "أنشئ مجموعة في تيليغرام يدويًا، أضف البوت @CoastShieldHelpBot كمشرف، ثم الصق معرّف المجموعة هنا واختر الأحداث التي تُنشر فيها. انضمام الأعضاء يتم عبر رابط دعوة تشاركه أنت.",
+    "tg.group.botGeneric": "الخاص بك",
+    "tg.group.help": "أنشئ مجموعة في تيليغرام يدويًا، أضف البوت {bot} كمشرف، ثم الصق معرّف المجموعة هنا واختر الأحداث التي تُنشر فيها. انضمام الأعضاء يتم عبر رابط دعوة تشاركه أنت.",
     "tg.group.chatId": "معرّف المجموعة (Chat ID)",
     "tg.group.events": "الأحداث المنشورة في المجموعة",
     "tg.group.save": "حفظ",
@@ -925,7 +926,7 @@ export const dictionaries = {
     "settings.allEvents": "استقبال كل الأحداث على تيليغرام",
     "settings.allEventsHint": "كمسؤول: تصلك نسخة من كل حدث في المستأجر على محادثتك الخاصة — حتى الأحداث التي لست طرفًا فيها.",
     "env.apkNoPushTitle": "الإشعارات لا تعمل في نسخة APK حاليًا",
-    "env.apkNoPushText": "لتصلك الإشعارات: افتح tasks.coastshield.net في كروم واختر «تثبيت التطبيق»، ثم فعّل الإشعارات من الإعدادات.",
+    "env.apkNoPushText": "لتصلك الإشعارات: افتح {host} في كروم واختر «تثبيت التطبيق»، ثم فعّل الإشعارات من الإعدادات.",
     "env.installTitle": "ثبّت التطبيق على جهازك",
     "env.installText": "تطبيق كامل مع إشعارات فورية — حتى والتطبيق مغلق.",
     "env.installHint": "افتح قائمة كروم (⋮) واختر «تثبيت التطبيق» — ستصلك الإشعارات حتى والتطبيق مغلق.",
@@ -1342,7 +1343,7 @@ export const dictionaries = {
     "settings.sso.title": "Single Sign-On (SSO)",
     "settings.sso.desc": "Aktiviere Login-Provider für diese Organisation.",
     "settings.sso.domains": "E-Mail-Domains",
-    "settings.sso.domainsHint": "Kommagetrennte Domains, die dieser Organisation zugeordnet werden (z. B. objektus.de)",
+    "settings.sso.domainsHint": "Kommagetrennte Domains, die dieser Organisation zugeordnet werden (z. B. example.com)",
     "settings.sso.autoProvision": "Konto bei erstem Login automatisch anlegen",
     "settings.sso.save": "Speichern",
     "settings.sso.saved": "Gespeichert",
@@ -1423,7 +1424,7 @@ export const dictionaries = {
     "error.confirmMismatch": "Bestätigung stimmt nicht überein",
     "db.danger.title": "Mandant-Daten leeren",
     "db.danger.desc": "Löscht ALLE Tasks, Projekte, Teams & Sprints dieses Mandanten. Mandant + Benutzer bleiben erhalten. Tippe den Mandant-Slug zweimal zur Bestätigung.",
-    "db.danger.slug": "Mandant-Slug (z. B. tarek)",
+    "db.danger.slug": "Mandant-Slug (z. B. acme)",
     "db.danger.reconfirm": "Slug erneut eingeben",
     "db.danger.button": "Mandant leeren",
     "db.danger.willRemove": "Wird dauerhaft entfernt:",
@@ -2148,7 +2149,8 @@ export const dictionaries = {
     "tg.copied": "Kopiert ✓",
     "tg.print": "Alle drucken (PDF)",
     "tg.group.title": "Broadcast-Gruppe (optional)",
-    "tg.group.help": "Gruppe in Telegram manuell anlegen, den Bot @CoastShieldHelpBot als Admin hinzufügen, dann die Gruppen-Chat-ID hier eintragen und die Ereignisse wählen, die dort gepostet werden. Mitglieder treten selbst über einen von dir geteilten Einladungslink bei.",
+    "tg.group.botGeneric": "deiner Instanz",
+    "tg.group.help": "Gruppe in Telegram manuell anlegen, den Bot {bot} als Admin hinzufügen, dann die Gruppen-Chat-ID hier eintragen und die Ereignisse wählen, die dort gepostet werden. Mitglieder treten selbst über einen von dir geteilten Einladungslink bei.",
     "tg.group.chatId": "Gruppen-Chat-ID",
     "tg.group.events": "In die Gruppe gespiegelte Ereignisse",
     "tg.group.save": "Speichern",
@@ -2207,7 +2209,7 @@ export const dictionaries = {
     "settings.allEvents": "Alle Ereignisse per Telegram empfangen",
     "settings.allEventsHint": "Als Admin: Du bekommst jede Benachrichtigung des Mandanten zusätzlich privat in deinen Telegram-Chat — auch Ereignisse ohne deine Beteiligung.",
     "env.apkNoPushTitle": "Push-Benachrichtigungen funktionieren in dieser APK-Version nicht",
-    "env.apkNoPushText": "Für Benachrichtigungen: tasks.coastshield.net in Chrome öffnen, „App installieren“ wählen und in den Einstellungen Push aktivieren.",
+    "env.apkNoPushText": "Für Benachrichtigungen: {host} in Chrome öffnen, „App installieren“ wählen und in den Einstellungen Push aktivieren.",
     "env.installTitle": "App auf dem Gerät installieren",
     "env.installText": "Volle App inkl. Push-Benachrichtigungen — auch bei geschlossener App.",
     "env.installHint": "Chrome-Menü (⋮) öffnen und „App installieren“ wählen — Benachrichtigungen kommen dann auch bei geschlossener App an.",
@@ -2623,7 +2625,7 @@ export const dictionaries = {
     "settings.sso.title": "Single Sign-On (SSO)",
     "settings.sso.desc": "Enable login providers for this organization.",
     "settings.sso.domains": "Email domains",
-    "settings.sso.domainsHint": "Comma-separated domains routed to this organization (e.g. objektus.de)",
+    "settings.sso.domainsHint": "Comma-separated domains routed to this organization (e.g. example.com)",
     "settings.sso.autoProvision": "Auto-create an account on first login",
     "settings.sso.save": "Save",
     "settings.sso.saved": "Saved",
@@ -2704,7 +2706,7 @@ export const dictionaries = {
     "error.confirmMismatch": "Confirmation doesn't match",
     "db.danger.title": "Empty tenant data",
     "db.danger.desc": "Deletes ALL tasks, projects, teams & sprints of this tenant. The tenant + users are kept. Type the tenant slug twice to confirm.",
-    "db.danger.slug": "tenant slug (e.g. tarek)",
+    "db.danger.slug": "tenant slug (e.g. acme)",
     "db.danger.reconfirm": "re-type slug to confirm",
     "db.danger.button": "Empty tenant",
     "db.danger.willRemove": "Will be permanently removed:",
@@ -3429,7 +3431,8 @@ export const dictionaries = {
     "tg.copied": "Copied ✓",
     "tg.print": "Print all (PDF)",
     "tg.group.title": "Broadcast group (optional)",
-    "tg.group.help": "Create a Telegram group manually, add @CoastShieldHelpBot as admin, paste the group chat id here and pick the events to mirror. Members join via an invite link you share.",
+    "tg.group.botGeneric": "your bot",
+    "tg.group.help": "Create a Telegram group manually, add {bot} as admin, paste the group chat id here and pick the events to mirror. Members join via an invite link you share.",
     "tg.group.chatId": "Group chat ID",
     "tg.group.events": "Events mirrored to the group",
     "tg.group.save": "Save",
@@ -3488,7 +3491,7 @@ export const dictionaries = {
     "settings.allEvents": "Receive ALL events on Telegram",
     "settings.allEventsHint": "As admin: every tenant notification is mirrored to your private Telegram chat — including events you are not part of.",
     "env.apkNoPushTitle": "Push notifications do not work in this APK version",
-    "env.apkNoPushText": "To get notifications: open tasks.coastshield.net in Chrome, choose \"Install app\", then enable push in Settings.",
+    "env.apkNoPushText": "To get notifications: open {host} in Chrome, choose \"Install app\", then enable push in Settings.",
     "env.installTitle": "Install the app on your device",
     "env.installText": "Full app incl. push notifications — even when the app is closed.",
     "env.installHint": "Open the Chrome menu (⋮) and choose \"Install app\" — notifications then arrive even when the app is closed.",
@@ -3902,7 +3905,7 @@ export const dictionaries = {
     "settings.sso.title": "Tek Oturum Açma (SSO)",
     "settings.sso.desc": "Bu kuruluş için giriş sağlayıcılarını etkinleştirin.",
     "settings.sso.domains": "E-posta alan adları",
-    "settings.sso.domainsHint": "Bu kuruluşa yönlendirilen alan adları, virgülle ayrılmış (örn. objektus.de)",
+    "settings.sso.domainsHint": "Bu kuruluşa yönlendirilen alan adları, virgülle ayrılmış (örn. example.com)",
     "settings.sso.autoProvision": "İlk girişte hesabı otomatik oluştur",
     "settings.sso.save": "Kaydet",
     "settings.sso.saved": "Kaydedildi",
@@ -3983,7 +3986,7 @@ export const dictionaries = {
     "error.confirmMismatch": "Onay eşleşmiyor",
     "db.danger.title": "Kiracı verilerini boşalt",
     "db.danger.desc": "Bu kiracının TÜM görev, proje, ekip ve sprintlerini siler. Kiracı ve kullanıcılar korunur. Onaylamak için kiracı kodunu iki kez yazın.",
-    "db.danger.slug": "kiracı kodu (örn. tarek)",
+    "db.danger.slug": "kiracı kodu (örn. acme)",
     "db.danger.reconfirm": "onay için kodu tekrar yazın",
     "db.danger.button": "Kiracıyı boşalt",
     "db.danger.willRemove": "Kalıcı olarak silinecekler:",
@@ -4706,7 +4709,8 @@ export const dictionaries = {
     "tg.copied": "Kopyalandı ✓",
     "tg.print": "Tümünü yazdır (PDF)",
     "tg.group.title": "Yayın grubu (isteğe bağlı)",
-    "tg.group.help": "Telegram'da elle bir grup oluşturun, @CoastShieldHelpBot'u yönetici olarak ekleyin, grup sohbet kimliğini buraya yapıştırın ve yansıtılacak olayları seçin. Üyeler sizin paylaştığınız davet bağlantısıyla katılır.",
+    "tg.group.botGeneric": "Bot",
+    "tg.group.help": "Telegram'da elle bir grup oluşturun, {bot}'u yönetici olarak ekleyin, grup sohbet kimliğini buraya yapıştırın ve yansıtılacak olayları seçin. Üyeler sizin paylaştığınız davet bağlantısıyla katılır.",
     "tg.group.chatId": "Grup sohbet kimliği",
     "tg.group.events": "Gruba yansıtılan olaylar",
     "tg.group.save": "Kaydet",
@@ -4765,7 +4769,7 @@ export const dictionaries = {
     "settings.allEvents": "TÜM olayları Telegram'da al",
     "settings.allEventsHint": "Yönetici olarak: kiracıdaki her bildirim, dahil olmadığınız olaylar da dahil, özel Telegram sohbetinize yansıtılır.",
     "env.apkNoPushTitle": "Bu APK sürümünde anlık bildirimler çalışmıyor",
-    "env.apkNoPushText": "Bildirim almak için: tasks.coastshield.net adresini Chrome'da açın, \"Uygulamayı yükle\"yi seçin, sonra Ayarlar'dan bildirimleri etkinleştirin.",
+    "env.apkNoPushText": "Bildirim almak için: {host} adresini Chrome'da açın, \"Uygulamayı yükle\"yi seçin, sonra Ayarlar'dan bildirimleri etkinleştirin.",
     "env.installTitle": "Uygulamayı cihazınıza yükleyin",
     "env.installText": "Anlık bildirimler dahil tam uygulama — uygulama kapalıyken bile.",
     "env.installHint": "Chrome menüsünü (⋮) açın ve \"Uygulamayı yükle\"yi seçin — bildirimler uygulama kapalıyken bile gelir.",
@@ -5123,14 +5127,28 @@ export const dictionaries = {
   },
 };
 
-// TOF-0791: Instanz-Name (z. B. „Objektus“) aus NEXT_PUBLIC_APP_NAME — leer = unverändert.
+// TOF-0791: Instanz-Name aus NEXT_PUBLIC_APP_NAME (Build) — leer = unverändert.
 applyBrandToDictionaries(dictionaries, BRAND_NAME);
 
 export type TKey = keyof (typeof dictionaries)["de"];
 export type Dict = Record<TKey, string>;
 
+// TOF-0795 (Tarek 31.10.2026): APP_NAME (Laufzeit) überschreibt „app.name“ —
+// erst beim Aufruf, nicht beim Laden des Moduls (sonst fröre ein statisch
+// vorgerendertes Modul den Build-Wert ein). Ohne APP_NAME: das Original-Objekt.
+const brandedCache = new Map<string, Dict>();
+
 export function getDictionary(locale: Locale): Dict {
-  return dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
+  const base: Dict = dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
+  const name = runtimeBrandName();
+  if (!name || base["app.name"] === name) return base;
+  const key = `${locale}|${name}`;
+  let d = brandedCache.get(key);
+  if (!d) {
+    d = { ...base, "app.name": name };
+    brandedCache.set(key, d);
+  }
+  return d;
 }
 
 export function translate(locale: Locale, key: TKey): string {

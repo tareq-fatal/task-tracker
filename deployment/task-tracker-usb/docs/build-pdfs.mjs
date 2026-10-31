@@ -1,12 +1,18 @@
 /**
- * Task Tracker on-prem package — builds docs/INSTALL_DE.pdf and docs/INSTALL_AR.pdf.
+ * Task Tracker on-prem package — builds docs/INSTALL_DE.pdf, docs/INSTALL_EN.pdf
+ * and docs/INSTALL_AR.pdf.
  *
  *   node deployment/task-tracker-usb/docs/build-pdfs.mjs
  *
- * TOF-0794 (Tarek 31.10.2026): EXACTLY two A4 pages per language — hardware,
+ * TOF-0794: EXACTLY two A4 pages per language — hardware,
  * offline installation step by step (TLS internal, root certificate, invite
  * link), name/logo, backup, restore, update/rollback. The script checks the
  * page count and fails if a guide does not come out at 2 pages.
+ *
+ * TOF-0795: third language (English); installation through
+ * the one-file installer `sudo bash task-tracker-onprem-<version>.run` with its
+ * four questions (name, logo, language, address); support contact and the
+ * reference to NUTZUNGSHINWEISE.md. No customer names in the examples.
  *
  * Rendered with Chromium so the Arabic edition gets proper RTL shaping and bidi
  * handling for free — no reshaper library, no font juggling. Browser: the repo's
@@ -14,7 +20,8 @@
  * or the usual install locations).
  *
  * The HTML sources are written next to the PDFs (install-de.html,
- * install-ar.html) so a shipped guide is always inspectable.
+ * install-en.html, install-ar.html) so a guide is always inspectable. Only the
+ * PDFs go into the package.
  */
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -24,8 +31,9 @@ import { chromium } from "@playwright/test";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BUNDLE = resolve(HERE, "..");
 const VERSION = readFileSync(join(BUNDLE, "VERSION"), "utf8").trim();
-const PKG = `task-tracker-onprem-v${VERSION}`;
+const RUN = `task-tracker-onprem-${VERSION}.run`;
 const EXPECTED_PAGES = 2;
+const SUPPORT = "TOF Solution · Tarek@tarekfatal.com";
 
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -35,7 +43,8 @@ const md = (s) =>
     .replace(/`([^`]+)`/g, '<code dir="ltr">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
 
-const INSTALL_CMD = `sudo ./install.sh --offline --tls internal --app-name "Coast Shield" --locale ar`;
+const COPY_CMD = `cp /media/$USER/USB/${RUN}* ~/ && cd ~\nsha256sum -c ${RUN}.sha256`;
+const RUN_CMD = `sudo bash ${RUN}`;
 
 // --- Content -------------------------------------------------------------------
 // One object per language with the same structure, so the editions cannot drift.
@@ -45,7 +54,7 @@ const L = {
     lang: "de",
     font: `"Segoe UI", "Helvetica Neue", Arial, sans-serif`,
     title: "Task Tracker — Installation auf dem eigenen Server",
-    sub: `On-Premise-Paket ${PKG} · auch ganz ohne Internet · Ubuntu 22.04 / 24.04`,
+    sub: `Installationsdatei ${RUN} · auch ganz ohne Internet · Ubuntu 22.04 / 24.04`,
     hwTitle: "1  Was Sie brauchen",
     hwHead: ["", "Mindestens", "Empfohlen"],
     hwRows: [
@@ -56,22 +65,22 @@ const L = {
       ["Netzwerk", "Ports 80 und 443 frei; feste LAN-IP empfohlen", ""],
     ],
     hwNote:
-      "Docker wird automatisch installiert (offline aus dem Paket). Daten verlassen den Server nicht — keine Cloud.",
+      "Docker wird automatisch installiert (offline aus dem Paket). Daten verlassen den Server nicht — keine Cloud, kein Zugang von außen.",
     instTitle: "2  Installation Schritt für Schritt (ohne Internet)",
     steps: [
       [
-        "Ordner kopieren",
-        `USB-Stick anschließen und den Ordner \`${PKG}\` auf den Server kopieren, dann hineinwechseln:`,
-        `cp -r /media/$USER/USB/${PKG} ~/\ncd ~/${PKG}`,
+        "Datei kopieren und prüfen",
+        `USB-Stick anschließen, die Datei \`${RUN}\` (und \`.sha256\`) auf den Server kopieren; die Prüfung muss „OK“ melden:`,
+        COPY_CMD,
       ],
       [
         "Installation starten",
-        "Ein Befehl. `--locale ar` = Arabisch (oder `de`, `en`). Optional `--host tracker.marine.local` und `--ip 192.168.1.10` — sonst wird die IP automatisch erkannt.",
-        INSTALL_CMD,
+        "Ein Befehl, dann vier Fragen — Enter übernimmt den Vorschlag: **Name** der Oberfläche, **Logo** (optional, Pfad zu PNG/JPG/WEBP/SVG), **Sprache** (`ar`, `de`, `en`), **Adresse** (Hostname optional, IP wird erkannt).",
+        RUN_CMD,
       ],
       [
         "Warten (3–5 Minuten)",
-        "Am Ende zeigt der Installer **Adresse, Benutzername, Einladungslink** und den **Pfad + Fingerabdruck des Zertifikats**. Alles steht auch in `/opt/task-tracker/ACCESS.txt` (nur root): `sudo cat /opt/task-tracker/ACCESS.txt`",
+        "Am Ende zeigt der Installer **Adresse, Benutzername, Einladungslink** und **Pfad + Fingerabdruck des Zertifikats**. Alles steht auch in `/opt/task-tracker/ACCESS.txt` (nur root): `sudo cat /opt/task-tracker/ACCESS.txt`",
         null,
       ],
       [
@@ -91,12 +100,12 @@ const L = {
       ["iPhone/iPad", "Download-Link in Safari öffnen → Einstellungen → Profil installieren; dann Allgemein → Info → Zertifikatsvertrauenseinstellungen → einschalten."],
     ],
     otherModes:
-      "Mit Internet und eigener Domain: `--tls domain --domain tasks.firma.de` (Let's Encrypt). Nur im geschlossenen LAN ohne Verschlüsselung: `--tls http` (nicht empfohlen).",
+      "Ohne Fragen: `sudo bash RUN -- --app-name \"Mein Team\" --locale de --yes`. Mit Internet und eigener Domain (Online-Paket): `sudo ./install.sh --tls domain --domain tasks.firma.de`.",
     nameTitle: "3  Name, Logo, Sprache",
     nameRows: [
-      ["Name", "`--app-name \"Coast Shield\"` — erscheint überall statt „Task Tracker“. Beim Offline-Paket ist der Name bereits eingebaut (Paket mit diesem Namen bestellen)."],
-      ["Logo, Farben", "In der App als Superuser: **Einstellungen → Branding → Logo hochladen**. Wird mitgesichert."],
-      ["Sprache", "`--locale ar|de|en` — Sprache der Anmeldeseite und des Superusers. Jeder Benutzer kann seine Sprache selbst umstellen."],
+      ["Name", "Frage 1 bei der Installation. Später ändern: `APP_NAME=…` in `/opt/task-tracker/.env`, dann `sudo ./update.sh --restart`. Leer = Standardname je Sprache."],
+      ["Logo, Farben", "Logo: Frage 2 (max. 2 MB). Später in der App als Superuser: **Einstellungen → Branding**. Wird mitgesichert."],
+      ["Sprache", "Frage 3 — Sprache der Anmeldeseite und des Superusers. Jeder Benutzer kann seine Sprache selbst umstellen."],
     ],
     opsIntro: "Alle Befehle im Ordner `/opt/task-tracker` ausführen: `cd /opt/task-tracker`",
     backupTitle: "4  Sicherung (Backup)",
@@ -106,7 +115,7 @@ const L = {
       ["`sudo ./backup.sh --to /media/$USER/USB`", "Sicherung direkt auf einen USB-Stick schreiben"],
     ],
     backupWarn:
-      "Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Eine Sicherung enthält alle Passwörter: sicher aufbewahren.",
+      "Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Sicherungen sind nicht verschlüsselt und enthalten alle Passwörter: sicher aufbewahren.",
     restoreTitle: "5  Wiederherstellen",
     restoreRows: [
       ["`sudo ./restore.sh`", "vorhandene Sicherungen anzeigen"],
@@ -117,7 +126,7 @@ const L = {
       "Vorher wird der aktuelle Stand automatisch gesichert (`pre-restore-…`) — eine falsche Wiederherstellung lässt sich rückgängig machen.",
     updateTitle: "6  Update und Rollback",
     updateRows: [
-      ["`sudo ./update.sh --from /media/$USER/USB/task-tracker-onprem-v1.2.0`", "neue Version vom USB-Stick einspielen (offline automatisch)"],
+      ["`sudo bash task-tracker-onprem-<neu>.run`", "neue Version: erkennt die Installation und bietet das Update an"],
       ["`sudo ./update.sh --rollback`", "das letzte Update rückgängig machen"],
       ["`sudo ./update.sh --restart`", "nur neu starten (z. B. nach Änderung der `.env`)"],
     ],
@@ -125,10 +134,106 @@ const L = {
       "Jedes Update sichert zuerst alles. Startet die neue Version nicht sauber, läuft automatisch wieder die alte.",
     helpTitle: "7  Wenn etwas nicht klappt",
     helpRows: [
-      ["Zertifikatswarnung", "Zertifikat auf dem Gerät noch nicht importiert (Schritt 4) — oder eine andere Adresse geöffnet als bei `--host`/`--ip` angegeben."],
+      ["Zertifikatswarnung", "Zertifikat auf dem Gerät noch nicht importiert (Schritt 4) — oder eine andere Adresse geöffnet als bei der Installation angegeben."],
       ["Seite nicht erreichbar", "`sudo docker compose ps` — alle drei Dienste „running“, app „healthy“. Protokoll: `sudo docker compose logs -f app`"],
       ["Link abgelaufen / Passwort vergessen", "`sudo ./invite.sh` (für andere Benutzer: `--user NAME`)"],
+      ["„Checksum MISMATCH“", "Die `.run`-Datei ist beschädigt — erneut kopieren."],
     ],
+    supportNote: `**Support:** ${SUPPORT} · Nutzungshinweise: \`NUTZUNGSHINWEISE.md\` (im Paket und in \`/opt/task-tracker\`)`,
+    footer: `Task Tracker On-Premise ${VERSION}`,
+  },
+
+  en: {
+    dir: "ltr",
+    lang: "en",
+    font: `"Segoe UI", "Helvetica Neue", Arial, sans-serif`,
+    title: "Task Tracker — installation on your own server",
+    sub: `Installer file ${RUN} · works without any internet · Ubuntu 22.04 / 24.04`,
+    hwTitle: "1  What you need",
+    hwHead: ["", "Minimum", "Recommended"],
+    hwRows: [
+      ["Processor", "2 cores (x86_64 or ARM64)", "4 cores"],
+      ["Memory", "4 GB", "8 GB"],
+      ["Disk", "20 GB free", "50 GB SSD"],
+      ["System", "Ubuntu 22.04 or 24.04, access with sudo", ""],
+      ["Network", "ports 80 and 443 free; fixed LAN IP recommended", ""],
+    ],
+    hwNote:
+      "Docker is installed automatically (offline from the package). Data never leaves the server — no cloud, no access from outside.",
+    instTitle: "2  Installation step by step (no internet)",
+    steps: [
+      [
+        "Copy and check the file",
+        `Plug in the USB stick, copy \`${RUN}\` (and \`.sha256\`) to the server; the check must report “OK”:`,
+        COPY_CMD,
+      ],
+      [
+        "Start the installation",
+        "One command, then four questions — Enter keeps the suggestion: **name** of the interface, **logo** (optional, path to PNG/JPG/WEBP/SVG), **language** (`ar`, `de`, `en`), **address** (host name optional, IP is detected).",
+        RUN_CMD,
+      ],
+      [
+        "Wait (3–5 minutes)",
+        "At the end the installer shows the **address, user name, invite link** and the **path + fingerprint of the certificate**. Everything is also in `/opt/task-tracker/ACCESS.txt` (root only): `sudo cat /opt/task-tracker/ACCESS.txt`",
+        null,
+      ],
+      [
+        "Import the certificate — once per device",
+        "The server issues its own HTTPS certificates. For browsers to trust it, import `/opt/task-tracker/ca/task-tracker-root-ca.crt` (or download `http://<server-IP>/ca.crt`) and compare the fingerprint:",
+        null,
+      ],
+      [
+        "Open the invite link",
+        "Open the link in the browser and choose a password — done, you are logged in as superuser. The link works **once only** and for 72 hours. Expired? `sudo /opt/task-tracker/invite.sh` creates a new one.",
+        null,
+      ],
+    ],
+    certRows: [
+      ["Windows", "Double-click the file → Install Certificate → Local Machine → “Place all certificates in the following store” → Trusted Root Certification Authorities."],
+      ["Android", "Settings → Security → Encryption & credentials → Install a certificate → CA certificate."],
+      ["iPhone/iPad", "Open the download link in Safari → Settings → install the profile; then General → About → Certificate Trust Settings → switch on."],
+    ],
+    otherModes:
+      "Without questions: `sudo bash RUN -- --app-name \"My Team\" --locale en --yes`. With internet and your own domain (online package): `sudo ./install.sh --tls domain --domain tasks.example.com`.",
+    nameTitle: "3  Name, logo, language",
+    nameRows: [
+      ["Name", "Question 1 of the installation. Change it later: `APP_NAME=…` in `/opt/task-tracker/.env`, then `sudo ./update.sh --restart`. Empty = default name per language."],
+      ["Logo, colours", "Logo: question 2 (max. 2 MB). Later in the app as superuser: **Settings → Branding**. Included in backups."],
+      ["Language", "Question 3 — language of the login page and of the superuser. Every user can switch their own language."],
+    ],
+    opsIntro: "Run all commands in the folder `/opt/task-tracker`: `cd /opt/task-tracker`",
+    backupTitle: "4  Backup",
+    backupRows: [
+      ["automatic", "every night at **03:30**, the last 14 are kept in `/var/backups/task-tracker`"],
+      ["`sudo ./backup.sh`", "make a backup now"],
+      ["`sudo ./backup.sh --to /media/$USER/USB`", "write the backup straight to a USB stick"],
+    ],
+    backupWarn:
+      "Copy a backup to USB regularly — a backup on the same server does not help if the server fails. Backups are not encrypted and contain every password: keep them safe.",
+    restoreTitle: "5  Restore",
+    restoreRows: [
+      ["`sudo ./restore.sh`", "list the available backups"],
+      ["`sudo ./restore.sh --from latest --yes`", "restore the newest backup"],
+      ["`sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes`", "restore a backup from a USB stick"],
+    ],
+    restoreNote:
+      "The current state is saved automatically first (`pre-restore-…`) — a wrong restore can be undone.",
+    updateTitle: "6  Update and rollback",
+    updateRows: [
+      ["`sudo bash task-tracker-onprem-<new>.run`", "new version: detects the installation and offers the update"],
+      ["`sudo ./update.sh --rollback`", "undo the last update"],
+      ["`sudo ./update.sh --restart`", "restart only (e.g. after editing `.env`)"],
+    ],
+    updateNote:
+      "Every update backs up everything first. If the new version does not start cleanly, the old one runs again automatically.",
+    helpTitle: "7  If something does not work",
+    helpRows: [
+      ["Certificate warning", "Certificate not imported on that device yet (step 4) — or an address was opened other than the one given at installation."],
+      ["Site not reachable", "`sudo docker compose ps` — all three services “running”, app “healthy”. Log: `sudo docker compose logs -f app`"],
+      ["Link expired / password forgotten", "`sudo ./invite.sh` (for other users: `--user NAME`)"],
+      ["“Checksum MISMATCH”", "The `.run` file is damaged — copy it again."],
+    ],
+    supportNote: `**Support:** ${SUPPORT} · Terms of use: \`NUTZUNGSHINWEISE.md\` (in the package and in \`/opt/task-tracker\`)`,
     footer: `Task Tracker On-Premise ${VERSION}`,
   },
 
@@ -137,7 +242,7 @@ const L = {
     lang: "ar",
     font: `"Segoe UI", "Tahoma", "Arial", sans-serif`,
     title: "متتبِّع المهام — التثبيت على خادمك الخاص",
-    sub: `حزمة التثبيت المحلي ${PKG} · تعمل حتى دون أي اتصال بالإنترنت · Ubuntu 22.04 / 24.04`,
+    sub: `ملف التثبيت ${RUN} · يعمل حتى دون أي اتصال بالإنترنت · Ubuntu 22.04 / 24.04`,
     hwTitle: "١  ما تحتاج إليه",
     hwHead: ["", "الحد الأدنى", "المُوصى به"],
     hwRows: [
@@ -148,18 +253,18 @@ const L = {
       ["الشبكة", "المنفذان 80 و 443 غير مستخدمَين؛ يُفضَّل عنوان IP ثابت في الشبكة المحلية", ""],
     ],
     hwNote:
-      "يُثبَّت Docker تلقائيًا (دون إنترنت من داخل الحزمة). لا تغادر البيانات الخادم — لا سحابة.",
+      "يُثبَّت Docker تلقائيًا (دون إنترنت من داخل الحزمة). لا تغادر البيانات الخادم — لا سحابة ولا وصول من الخارج.",
     instTitle: "٢  التثبيت خطوة بخطوة (دون إنترنت)",
     steps: [
       [
-        "نسخ المجلد",
-        `صِل ذاكرة USB وانسخ المجلد \`${PKG}\` إلى الخادم، ثم ادخل إليه:`,
-        `cp -r /media/$USER/USB/${PKG} ~/\ncd ~/${PKG}`,
+        "نسخ الملف والتحقق منه",
+        `صِل ذاكرة USB وانسخ الملف \`${RUN}\` (والملف \`.sha256\`) إلى الخادم؛ يجب أن يُظهر التحقق «OK»:`,
+        COPY_CMD,
       ],
       [
         "بدء التثبيت",
-        "أمر واحد. ‏`--locale ar` تعني العربية (أو `de` أو `en`). اختياريًا `--host tracker.marine.local` و `--ip 192.168.1.10` — وإلا يُكتشف عنوان IP تلقائيًا.",
-        INSTALL_CMD,
+        "أمر واحد ثم أربعة أسئلة — زر Enter يقبل الاقتراح: **اسم** الواجهة، **الشعار** (اختياري، مسار ملف PNG/JPG/WEBP/SVG)، **اللغة** (`ar` أو `de` أو `en`)، **العنوان** (اسم الخادم اختياري، ويُكتشف عنوان IP تلقائيًا).",
+        RUN_CMD,
       ],
       [
         "الانتظار (٣ إلى ٥ دقائق)",
@@ -183,12 +288,12 @@ const L = {
       ["iPhone/iPad", "افتح رابط التنزيل في Safari ← الإعدادات ← تثبيت ملف التعريف؛ ثم عام ← حول ← إعدادات الثقة بالشهادات ← تفعيل."],
     ],
     otherModes:
-      "مع إنترنت ونطاق خاص: `--tls domain --domain tasks.company.com` (Let's Encrypt). داخل شبكة مغلقة فقط ودون تشفير: `--tls http` (غير مُوصى به).",
+      "دون أسئلة: `sudo bash RUN -- --app-name \"My Team\" --locale ar --yes`. مع إنترنت ونطاق خاص (الحزمة المتصلة): `sudo ./install.sh --tls domain --domain tasks.example.com`.",
     nameTitle: "٣  الاسم والشعار واللغة",
     nameRows: [
-      ["الاسم", "`--app-name \"Coast Shield\"` — يظهر في كل مكان بدلًا من «متتبِّع المهام». في الحزمة دون إنترنت يكون الاسم مدمجًا مسبقًا (اطلب الحزمة بهذا الاسم)."],
-      ["الشعار والألوان", "داخل التطبيق كمستخدم أعلى: **الإعدادات ← الهوية ← رفع الشعار**. يُحفظ ضمن النسخ الاحتياطية."],
-      ["اللغة", "`--locale ar|de|en` — لغة صفحة الدخول ولغة المستخدم الأعلى. ويستطيع كل مستخدم تغيير لغته بنفسه."],
+      ["الاسم", "السؤال ١ أثناء التثبيت. لتغييره لاحقًا: `APP_NAME=…` في `/opt/task-tracker/.env` ثم `sudo ./update.sh --restart`. فارغ = الاسم الافتراضي لكل لغة."],
+      ["الشعار والألوان", "الشعار: السؤال ٢ (حتى 2 MB). لاحقًا داخل التطبيق كمستخدم أعلى: **الإعدادات ← الهوية**. يُحفظ ضمن النسخ الاحتياطية."],
+      ["اللغة", "السؤال ٣ — لغة صفحة الدخول ولغة المستخدم الأعلى. ويستطيع كل مستخدم تغيير لغته بنفسه."],
     ],
     opsIntro: "نفّذ كل الأوامر داخل المجلد `/opt/task-tracker`: ‏`cd /opt/task-tracker`",
     backupTitle: "٤  النسخ الاحتياطي",
@@ -198,7 +303,7 @@ const L = {
       ["`sudo ./backup.sh --to /media/$USER/USB`", "كتابة النسخة مباشرة على ذاكرة USB"],
     ],
     backupWarn:
-      "انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. تحتوي النسخة على كل كلمات المرور: احفظها في مكان آمن.",
+      "انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. النسخ غير مشفّرة وتحتوي على كل كلمات المرور: احفظها في مكان آمن.",
     restoreTitle: "٥  الاستعادة",
     restoreRows: [
       ["`sudo ./restore.sh`", "عرض النسخ الاحتياطية المتاحة"],
@@ -209,7 +314,7 @@ const L = {
       "قبل ذلك تُحفظ الحالة الحالية تلقائيًا (`pre-restore-…`) — لذا يمكن التراجع عن استعادة خاطئة.",
     updateTitle: "٦  التحديث والتراجع",
     updateRows: [
-      ["`sudo ./update.sh --from /media/$USER/USB/task-tracker-onprem-v1.2.0`", "تثبيت إصدار جديد من ذاكرة USB (دون إنترنت تلقائيًا)"],
+      ["`sudo bash task-tracker-onprem-<new>.run`", "إصدار جديد: يتعرّف على التثبيت الحالي ويعرض التحديث"],
       ["`sudo ./update.sh --rollback`", "التراجع عن آخر تحديث"],
       ["`sudo ./update.sh --restart`", "إعادة التشغيل فقط (مثلًا بعد تعديل ملف `.env`)"],
     ],
@@ -217,13 +322,16 @@ const L = {
       "كل تحديث يبدأ بنسخة احتياطية كاملة. وإذا لم يعمل الإصدار الجديد بشكل سليم، يعود الإصدار القديم تلقائيًا.",
     helpTitle: "٧  إذا لم يعمل شيء ما",
     helpRows: [
-      ["تحذير الشهادة", "لم تُستورد الشهادة على هذا الجهاز بعد (الخطوة ٤) — أو فُتح عنوان غير المحدد في `--host`/`--ip`."],
+      ["تحذير الشهادة", "لم تُستورد الشهادة على هذا الجهاز بعد (الخطوة ٤) — أو فُتح عنوان غير الذي حُدِّد أثناء التثبيت."],
       ["الصفحة غير متاحة", "`sudo docker compose ps` — يجب أن تكون الخدمات الثلاث running و app بحالة healthy. السجل: `sudo docker compose logs -f app`"],
       ["انتهت صلاحية الرابط / نسيت كلمة المرور", "`sudo ./invite.sh` (لمستخدم آخر: `--user NAME`)"],
+      ["«Checksum MISMATCH»", "ملف `.run` تالف — انسخه مرة أخرى."],
     ],
+    supportNote: `**الدعم:** ${SUPPORT} · شروط الاستخدام: \`NUTZUNGSHINWEISE.md\` (داخل الحزمة وفي \`/opt/task-tracker\`)`,
     footer: `Task Tracker On-Premise ${VERSION}`,
   },
 };
+for (const t of Object.values(L)) t.otherModes = t.otherModes.replace("RUN", RUN);
 
 // --- Rendering -------------------------------------------------------------------
 const table = (rows, { codeFirst = false, head = null, cls = "" } = {}) => `
@@ -338,6 +446,7 @@ function buildHtml(t) {
 
   <h2>${esc(t.helpTitle)}</h2>
   ${table(t.helpRows)}
+  <p class="note">${md(t.supportNote)}</p>
   <div class="foot"><span>${esc(t.footer)}</span><span dir="ltr">2 / 2</span></div>
 </section>
 
@@ -348,6 +457,7 @@ function buildHtml(t) {
 // --- Build -----------------------------------------------------------------------
 const OUT = {
   de: join(HERE, "INSTALL_DE.pdf"),
+  en: join(HERE, "INSTALL_EN.pdf"),
   ar: join(HERE, "INSTALL_AR.pdf"),
 };
 
@@ -383,7 +493,7 @@ async function main() {
   const browser = await launch();
   let bad = 0;
   try {
-    for (const lang of ["de", "ar"]) {
+    for (const lang of ["de", "en", "ar"]) {
       const t = L[lang];
       const html = buildHtml(t);
       // Keep the HTML next to the PDF so the source of a shipped guide is

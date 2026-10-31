@@ -6,6 +6,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { dirForLocale, isLocale, type Locale } from "@/lib/enums";
 import { INVITE_MIN_PASSWORD, hashInviteToken, inviteUsable, isPlausibleInviteToken } from "@/lib/invite";
 import { I18nProvider } from "@/components/i18n-provider";
+import { brandName } from "@/lib/brand";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ export default async function InvitePage({ params }: { params: { token: string }
   const dir = dirForLocale(locale);
 
   return (
-    <I18nProvider locale={locale}>
+    <I18nProvider locale={locale} appName={brandName()}>
       <main
         lang={locale}
         dir={dir}

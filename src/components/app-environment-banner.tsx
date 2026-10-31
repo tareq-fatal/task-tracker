@@ -5,6 +5,7 @@ import { Download, TriangleAlert, X } from "lucide-react";
 import { isNativeApp } from "@/lib/native";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/components/i18n-provider";
+import { siteHost } from "@/lib/instance-url";
 
 const DISMISS_APK = "tt-apk-push-warn-dismissed";
 const DISMISS_INSTALL = "tt-install-banner-dismissed";
@@ -76,7 +77,7 @@ export function AppEnvironmentBanner() {
         <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
         <div className="flex-1">
           <p className="font-semibold">{t("env.apkNoPushTitle")}</p>
-          <p className="mt-0.5">{t("env.apkNoPushText")}</p>
+          <p className="mt-0.5">{t("env.apkNoPushText", { host: siteHost() })}</p>
         </div>
         <button
           onClick={() => dismiss(DISMISS_APK)}

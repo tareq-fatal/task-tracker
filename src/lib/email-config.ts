@@ -7,6 +7,8 @@
 // aus der Umgebung. Ist nichts gesetzt, ist der Versandweg `none` — die
 // Anwendung läuft dann genau wie vorher, nur ohne E-Mail.
 
+import { instanceUrl } from "./instance-url";
+
 export type EmailTransport = "none" | "resend" | "smtp";
 
 export type EmailConfig =
@@ -26,8 +28,20 @@ export type EmailConfig =
 
 export type Env = Record<string, string | undefined>;
 
-const DEFAULT_FROM = "Task Tracker <noreply@tasks.coastshield.net>";
-const DEFAULT_BASE_URL = "https://tasks.coastshield.net";
+// TOF-0795 (Tarek 31.10.2026): Standard-Absender und Link-Basis kommen aus der
+// Adresse der Instanz (src/lib/instance-url.ts: APP_URL > NEXT_PUBLIC_APP_URL >
+// Build-Adresse). Absender = „<APP_NAME oder Task Tracker> <noreply@<Host>>“ —
+// ohne APP_URL/APP_NAME exakt wie bisher.
+function defaultFrom(env: Env, baseUrl: string): string {
+  let host = "localhost";
+  try {
+    host = new URL(baseUrl).hostname || host;
+  } catch {
+    /* unlesbare Adresse → localhost */
+  }
+  const name = (env.APP_NAME || "").replace(/[<>"\r\n]/g, "").trim() || "Task Tracker";
+  return `${name} <noreply@${host}>`;
+}
 
 /**
  * Auflösen der Konfiguration.
@@ -41,8 +55,8 @@ const DEFAULT_BASE_URL = "https://tasks.coastshield.net";
  * zu verschicken.
  */
 export function resolveEmailConfig(env: Env): EmailConfig {
-  const from = env.EMAIL_FROM?.trim() || DEFAULT_FROM;
-  const baseUrl = (env.APP_URL || env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = instanceUrl(env);
+  const from = env.EMAIL_FROM?.trim() || defaultFrom(env, baseUrl);
 
   const forced = env.EMAIL_TRANSPORT?.trim().toLowerCase();
   const wanted: EmailTransport =

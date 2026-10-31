@@ -44,7 +44,7 @@
 <section class="page">
   <header>
     <h1>Task Tracker — Installation auf dem eigenen Server</h1>
-    <div class="sub">On-Premise-Paket task-tracker-onprem-v1.1.0 · auch ganz ohne Internet · Ubuntu 22.04 / 24.04</div>
+    <div class="sub">Installationsdatei task-tracker-onprem-1.2.0.run · auch ganz ohne Internet · Ubuntu 22.04 / 24.04</div>
   </header>
 
   <h2>1  Was Sie brauchen</h2>
@@ -59,26 +59,26 @@
 <tr><th>Netzwerk</th><td>Ports 80 und 443 frei; feste LAN-IP empfohlen</td><td></td></tr>
   </tbody>
 </table>
-  <p class="note">Docker wird automatisch installiert (offline aus dem Paket). Daten verlassen den Server nicht — keine Cloud.</p>
+  <p class="note">Docker wird automatisch installiert (offline aus dem Paket). Daten verlassen den Server nicht — keine Cloud, kein Zugang von außen.</p>
 
   <h2>2  Installation Schritt für Schritt (ohne Internet)</h2>
   <ol class="steps">
     <li>
-      <div class="st"><span class="num">1</span><b>Ordner kopieren</b></div>
-      <p>USB-Stick anschließen und den Ordner <code dir="ltr">task-tracker-onprem-v1.1.0</code> auf den Server kopieren, dann hineinwechseln:</p>
-      <pre class="cmd" dir="ltr">cp -r /media/$USER/USB/task-tracker-onprem-v1.1.0 ~/
-cd ~/task-tracker-onprem-v1.1.0</pre>
+      <div class="st"><span class="num">1</span><b>Datei kopieren und prüfen</b></div>
+      <p>USB-Stick anschließen, die Datei <code dir="ltr">task-tracker-onprem-1.2.0.run</code> (und <code dir="ltr">.sha256</code>) auf den Server kopieren; die Prüfung muss „OK“ melden:</p>
+      <pre class="cmd" dir="ltr">cp /media/$USER/USB/task-tracker-onprem-1.2.0.run* ~/ &amp;&amp; cd ~
+sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
       
     </li>
     <li>
       <div class="st"><span class="num">2</span><b>Installation starten</b></div>
-      <p>Ein Befehl. <code dir="ltr">--locale ar</code> = Arabisch (oder <code dir="ltr">de</code>, <code dir="ltr">en</code>). Optional <code dir="ltr">--host tracker.marine.local</code> und <code dir="ltr">--ip 192.168.1.10</code> — sonst wird die IP automatisch erkannt.</p>
-      <pre class="cmd" dir="ltr">sudo ./install.sh --offline --tls internal --app-name "Coast Shield" --locale ar</pre>
+      <p>Ein Befehl, dann vier Fragen — Enter übernimmt den Vorschlag: <b>Name</b> der Oberfläche, <b>Logo</b> (optional, Pfad zu PNG/JPG/WEBP/SVG), <b>Sprache</b> (<code dir="ltr">ar</code>, <code dir="ltr">de</code>, <code dir="ltr">en</code>), <b>Adresse</b> (Hostname optional, IP wird erkannt).</p>
+      <pre class="cmd" dir="ltr">sudo bash task-tracker-onprem-1.2.0.run</pre>
       
     </li>
     <li>
       <div class="st"><span class="num">3</span><b>Warten (3–5 Minuten)</b></div>
-      <p>Am Ende zeigt der Installer <b>Adresse, Benutzername, Einladungslink</b> und den <b>Pfad + Fingerabdruck des Zertifikats</b>. Alles steht auch in <code dir="ltr">/opt/task-tracker/ACCESS.txt</code> (nur root): <code dir="ltr">sudo cat /opt/task-tracker/ACCESS.txt</code></p>
+      <p>Am Ende zeigt der Installer <b>Adresse, Benutzername, Einladungslink</b> und <b>Pfad + Fingerabdruck des Zertifikats</b>. Alles steht auch in <code dir="ltr">/opt/task-tracker/ACCESS.txt</code> (nur root): <code dir="ltr">sudo cat /opt/task-tracker/ACCESS.txt</code></p>
       
       
     </li>
@@ -102,8 +102,8 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
       
       
     </li></ol>
-  <p class="note">Mit Internet und eigener Domain: <code dir="ltr">--tls domain --domain tasks.firma.de</code> (Let's Encrypt). Nur im geschlossenen LAN ohne Verschlüsselung: <code dir="ltr">--tls http</code> (nicht empfohlen).</p>
-  <div class="foot"><span>Task Tracker On-Premise 1.1.0</span><span dir="ltr">1 / 2</span></div>
+  <p class="note">Ohne Fragen: <code dir="ltr">sudo bash task-tracker-onprem-1.2.0.run -- --app-name "Mein Team" --locale de --yes</code>. Mit Internet und eigener Domain (Online-Paket): <code dir="ltr">sudo ./install.sh --tls domain --domain tasks.firma.de</code>.</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">1 / 2</span></div>
 </section>
 
 <section class="page">
@@ -112,9 +112,9 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="">
   
   <tbody>
-    <tr><th>Name</th><td><code dir="ltr">--app-name "Coast Shield"</code> — erscheint überall statt „Task Tracker“. Beim Offline-Paket ist der Name bereits eingebaut (Paket mit diesem Namen bestellen).</td></tr>
-<tr><th>Logo, Farben</th><td>In der App als Superuser: <b>Einstellungen → Branding → Logo hochladen</b>. Wird mitgesichert.</td></tr>
-<tr><th>Sprache</th><td><code dir="ltr">--locale ar|de|en</code> — Sprache der Anmeldeseite und des Superusers. Jeder Benutzer kann seine Sprache selbst umstellen.</td></tr>
+    <tr><th>Name</th><td>Frage 1 bei der Installation. Später ändern: <code dir="ltr">APP_NAME=…</code> in <code dir="ltr">/opt/task-tracker/.env</code>, dann <code dir="ltr">sudo ./update.sh --restart</code>. Leer = Standardname je Sprache.</td></tr>
+<tr><th>Logo, Farben</th><td>Logo: Frage 2 (max. 2 MB). Später in der App als Superuser: <b>Einstellungen → Branding</b>. Wird mitgesichert.</td></tr>
+<tr><th>Sprache</th><td>Frage 3 — Sprache der Anmeldeseite und des Superusers. Jeder Benutzer kann seine Sprache selbst umstellen.</td></tr>
   </tbody>
 </table>
 
@@ -130,7 +130,7 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <tr><th><code dir="ltr">sudo ./backup.sh --to /media/$USER/USB</code></th><td>Sicherung direkt auf einen USB-Stick schreiben</td></tr>
   </tbody>
 </table>
-  <p class="warn">Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Eine Sicherung enthält alle Passwörter: sicher aufbewahren.</p>
+  <p class="warn">Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Sicherungen sind nicht verschlüsselt und enthalten alle Passwörter: sicher aufbewahren.</p>
 
   <h2>5  Wiederherstellen</h2>
   
@@ -149,7 +149,7 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="ops">
   
   <tbody>
-    <tr><th><code dir="ltr">sudo ./update.sh --from /media/$USER/USB/task-tracker-onprem-v1.2.0</code></th><td>neue Version vom USB-Stick einspielen (offline automatisch)</td></tr>
+    <tr><th><code dir="ltr">sudo bash task-tracker-onprem-&lt;neu&gt;.run</code></th><td>neue Version: erkennt die Installation und bietet das Update an</td></tr>
 <tr><th><code dir="ltr">sudo ./update.sh --rollback</code></th><td>das letzte Update rückgängig machen</td></tr>
 <tr><th><code dir="ltr">sudo ./update.sh --restart</code></th><td>nur neu starten (z. B. nach Änderung der <code dir="ltr">.env</code>)</td></tr>
   </tbody>
@@ -161,12 +161,14 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="">
   
   <tbody>
-    <tr><th>Zertifikatswarnung</th><td>Zertifikat auf dem Gerät noch nicht importiert (Schritt 4) — oder eine andere Adresse geöffnet als bei <code dir="ltr">--host</code>/<code dir="ltr">--ip</code> angegeben.</td></tr>
+    <tr><th>Zertifikatswarnung</th><td>Zertifikat auf dem Gerät noch nicht importiert (Schritt 4) — oder eine andere Adresse geöffnet als bei der Installation angegeben.</td></tr>
 <tr><th>Seite nicht erreichbar</th><td><code dir="ltr">sudo docker compose ps</code> — alle drei Dienste „running“, app „healthy“. Protokoll: <code dir="ltr">sudo docker compose logs -f app</code></td></tr>
 <tr><th>Link abgelaufen / Passwort vergessen</th><td><code dir="ltr">sudo ./invite.sh</code> (für andere Benutzer: <code dir="ltr">--user NAME</code>)</td></tr>
+<tr><th>„Checksum MISMATCH“</th><td>Die <code dir="ltr">.run</code>-Datei ist beschädigt — erneut kopieren.</td></tr>
   </tbody>
 </table>
-  <div class="foot"><span>Task Tracker On-Premise 1.1.0</span><span dir="ltr">2 / 2</span></div>
+  <p class="note"><b>Support:</b> TOF Solution · Tarek@tarekfatal.com · Nutzungshinweise: <code dir="ltr">NUTZUNGSHINWEISE.md</code> (im Paket und in <code dir="ltr">/opt/task-tracker</code>)</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">2 / 2</span></div>
 </section>
 
 </body>

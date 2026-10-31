@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
+import { instanceUrl } from "./instance-url";
 
 // Telegram Bot API — direct HTTP calls, no external service. Enabled only when
 // TELEGRAM_BOT_TOKEN is set (kept in the server env, never in git).
@@ -9,7 +10,8 @@ const API = TOKEN ? `https://api.telegram.org/bot${TOKEN}` : null;
 export const telegramEnabled = Boolean(TOKEN);
 export const telegramBotUsername = process.env.TELEGRAM_BOT_USERNAME || null;
 
-const APP_URL = process.env.APP_BASE_URL || "https://tasks.coastshield.net";
+// TOF-0795: Fallback aus src/lib/instance-url.ts (APP_URL > … > Build-Adresse).
+const APP_URL = process.env.APP_BASE_URL || instanceUrl();
 
 export type TelegramSendResult = { ok: boolean; status?: number };
 

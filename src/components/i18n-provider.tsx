@@ -23,15 +23,23 @@ const I18nContext = createContext<I18nContextValue>({
   t: (k) => k,
 });
 
+/**
+ * TOF-0795 (Tarek 31.10.2026): `appName` = Instanz-Name vom Server (APP_NAME zur
+ * Laufzeit, sonst NEXT_PUBLIC_APP_NAME). Überschreibt „app.name“ im Client-
+ * Wörterbuch; ohne Prop (oder leer) bleibt alles wie bisher.
+ */
 export function I18nProvider({
   locale,
+  appName,
   children,
 }: {
   locale: Locale;
+  appName?: string | null;
   children: React.ReactNode;
 }) {
   const dict: Dict = dictionaries[locale] ?? dictionaries.ar;
-  const t = (key: TKey, vars?: Vars) => interpolate(dict[key] ?? key, vars);
+  const t = (key: TKey, vars?: Vars) =>
+    interpolate(key === "app.name" && appName ? appName : dict[key] ?? key, vars);
   return (
     <I18nContext.Provider value={{ locale, t }}>
       {children}

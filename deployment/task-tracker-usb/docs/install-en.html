@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Task Tracker — installation on your own server</title>
+<style>
+  @page { size: A4; margin: 11mm 12mm 13mm 12mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; font-size: 8.9pt; line-height: 1.42; color: #1e293b; margin: 0; }
+  .page { height: 272mm; overflow: hidden; display: flex; flex-direction: column; gap: 2.2mm; }
+  .page + .page { break-before: page; }
+  header { border-bottom: 3px solid #0ea5e9; padding-bottom: 2mm; }
+  h1 { font-size: 15pt; margin: 0 0 1mm; color: #0f172a; }
+  .sub { color: #0369a1; font-size: 9pt; }
+  h2 { font-size: 11pt; margin: 1.5mm 0 1mm; color: #0f172a; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 0.8mm; }
+  p { margin: 0 0 1mm; }
+  code { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 8pt;
+         background: #f1f5f9; border-radius: 3px; padding: 0 3px; color: #0f172a; unicode-bidi: isolate; }
+  pre.cmd { font-family: "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace; font-size: 8.6pt;
+            background: #0f172a; color: #e2e8f0; border-radius: 5px; padding: 1.6mm 2.6mm; margin: 1mm 0 0;
+            white-space: pre-wrap; text-align: left; border-inline-start: 3px solid #0ea5e9; }
+  table { width: 100%; border-collapse: collapse; margin: 0.6mm 0 0.6mm; }
+  th, td { border: 1px solid #e2e8f0; padding: 1mm 2mm; text-align: left; vertical-align: top; font-weight: normal; }
+  tbody th { background: #f8fafc; font-weight: 600; width: 30%; }
+  thead th { background: #e0f2fe; font-weight: 600; }
+  table.hw tbody th { width: 22%; }
+  table.cert th { width: 17%; }
+  table.cert { font-size: 8.3pt; }
+  table.ops tbody th { width: 52%; font-weight: normal; }
+  ol.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.8mm; }
+  .st { margin-bottom: 0.6mm; font-size: 9.6pt; }
+  .num { display: inline-block; width: 5.2mm; height: 5.2mm; line-height: 5.2mm; text-align: center;
+         background: #0ea5e9; color: #fff; border-radius: 50%; font-size: 8.4pt; margin-inline-end: 2mm; }
+  .note, .warn { border-radius: 5px; padding: 1.4mm 2.6mm; margin: 0.8mm 0; font-size: 8.5pt; }
+  .note { background: #f0f9ff; border-inline-start: 3px solid #0ea5e9; }
+  .warn { background: #fffbeb; border-inline-start: 3px solid #f59e0b; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 5mm; }
+  .foot { margin-top: auto; color: #94a3b8; font-size: 7.4pt; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <header>
+    <h1>Task Tracker — installation on your own server</h1>
+    <div class="sub">Installer file task-tracker-onprem-1.2.0.run · works without any internet · Ubuntu 22.04 / 24.04</div>
+  </header>
+
+  <h2>1  What you need</h2>
+  
+<table class="hw">
+  <thead><tr><th></th><th>Minimum</th><th>Recommended</th></tr></thead>
+  <tbody>
+    <tr><th>Processor</th><td>2 cores (x86_64 or ARM64)</td><td>4 cores</td></tr>
+<tr><th>Memory</th><td>4 GB</td><td>8 GB</td></tr>
+<tr><th>Disk</th><td>20 GB free</td><td>50 GB SSD</td></tr>
+<tr><th>System</th><td>Ubuntu 22.04 or 24.04, access with sudo</td><td></td></tr>
+<tr><th>Network</th><td>ports 80 and 443 free; fixed LAN IP recommended</td><td></td></tr>
+  </tbody>
+</table>
+  <p class="note">Docker is installed automatically (offline from the package). Data never leaves the server — no cloud, no access from outside.</p>
+
+  <h2>2  Installation step by step (no internet)</h2>
+  <ol class="steps">
+    <li>
+      <div class="st"><span class="num">1</span><b>Copy and check the file</b></div>
+      <p>Plug in the USB stick, copy <code dir="ltr">task-tracker-onprem-1.2.0.run</code> (and <code dir="ltr">.sha256</code>) to the server; the check must report “OK”:</p>
+      <pre class="cmd" dir="ltr">cp /media/$USER/USB/task-tracker-onprem-1.2.0.run* ~/ &amp;&amp; cd ~
+sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
+      
+    </li>
+    <li>
+      <div class="st"><span class="num">2</span><b>Start the installation</b></div>
+      <p>One command, then four questions — Enter keeps the suggestion: <b>name</b> of the interface, <b>logo</b> (optional, path to PNG/JPG/WEBP/SVG), <b>language</b> (<code dir="ltr">ar</code>, <code dir="ltr">de</code>, <code dir="ltr">en</code>), <b>address</b> (host name optional, IP is detected).</p>
+      <pre class="cmd" dir="ltr">sudo bash task-tracker-onprem-1.2.0.run</pre>
+      
+    </li>
+    <li>
+      <div class="st"><span class="num">3</span><b>Wait (3–5 minutes)</b></div>
+      <p>At the end the installer shows the <b>address, user name, invite link</b> and the <b>path + fingerprint of the certificate</b>. Everything is also in <code dir="ltr">/opt/task-tracker/ACCESS.txt</code> (root only): <code dir="ltr">sudo cat /opt/task-tracker/ACCESS.txt</code></p>
+      
+      
+    </li>
+    <li>
+      <div class="st"><span class="num">4</span><b>Import the certificate — once per device</b></div>
+      <p>The server issues its own HTTPS certificates. For browsers to trust it, import <code dir="ltr">/opt/task-tracker/ca/task-tracker-root-ca.crt</code> (or download <code dir="ltr">http://&lt;server-IP&gt;/ca.crt</code>) and compare the fingerprint:</p>
+      
+      
+<table class="cert">
+  
+  <tbody>
+    <tr><th>Windows</th><td>Double-click the file → Install Certificate → Local Machine → “Place all certificates in the following store” → Trusted Root Certification Authorities.</td></tr>
+<tr><th>Android</th><td>Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate.</td></tr>
+<tr><th>iPhone/iPad</th><td>Open the download link in Safari → Settings → install the profile; then General → About → Certificate Trust Settings → switch on.</td></tr>
+  </tbody>
+</table>
+    </li>
+    <li>
+      <div class="st"><span class="num">5</span><b>Open the invite link</b></div>
+      <p>Open the link in the browser and choose a password — done, you are logged in as superuser. The link works <b>once only</b> and for 72 hours. Expired? <code dir="ltr">sudo /opt/task-tracker/invite.sh</code> creates a new one.</p>
+      
+      
+    </li></ol>
+  <p class="note">Without questions: <code dir="ltr">sudo bash task-tracker-onprem-1.2.0.run -- --app-name "My Team" --locale en --yes</code>. With internet and your own domain (online package): <code dir="ltr">sudo ./install.sh --tls domain --domain tasks.example.com</code>.</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">1 / 2</span></div>
+</section>
+
+<section class="page">
+  <h2>3  Name, logo, language</h2>
+  
+<table class="">
+  
+  <tbody>
+    <tr><th>Name</th><td>Question 1 of the installation. Change it later: <code dir="ltr">APP_NAME=…</code> in <code dir="ltr">/opt/task-tracker/.env</code>, then <code dir="ltr">sudo ./update.sh --restart</code>. Empty = default name per language.</td></tr>
+<tr><th>Logo, colours</th><td>Logo: question 2 (max. 2 MB). Later in the app as superuser: <b>Settings → Branding</b>. Included in backups.</td></tr>
+<tr><th>Language</th><td>Question 3 — language of the login page and of the superuser. Every user can switch their own language.</td></tr>
+  </tbody>
+</table>
+
+  <p class="note">Run all commands in the folder <code dir="ltr">/opt/task-tracker</code>: <code dir="ltr">cd /opt/task-tracker</code></p>
+
+  <h2>4  Backup</h2>
+  
+<table class="ops">
+  
+  <tbody>
+    <tr><th>automatic</th><td>every night at <b>03:30</b>, the last 14 are kept in <code dir="ltr">/var/backups/task-tracker</code></td></tr>
+<tr><th><code dir="ltr">sudo ./backup.sh</code></th><td>make a backup now</td></tr>
+<tr><th><code dir="ltr">sudo ./backup.sh --to /media/$USER/USB</code></th><td>write the backup straight to a USB stick</td></tr>
+  </tbody>
+</table>
+  <p class="warn">Copy a backup to USB regularly — a backup on the same server does not help if the server fails. Backups are not encrypted and contain every password: keep them safe.</p>
+
+  <h2>5  Restore</h2>
+  
+<table class="ops">
+  
+  <tbody>
+    <tr><th><code dir="ltr">sudo ./restore.sh</code></th><td>list the available backups</td></tr>
+<tr><th><code dir="ltr">sudo ./restore.sh --from latest --yes</code></th><td>restore the newest backup</td></tr>
+<tr><th><code dir="ltr">sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes</code></th><td>restore a backup from a USB stick</td></tr>
+  </tbody>
+</table>
+  <p class="note">The current state is saved automatically first (<code dir="ltr">pre-restore-…</code>) — a wrong restore can be undone.</p>
+
+  <h2>6  Update and rollback</h2>
+  
+<table class="ops">
+  
+  <tbody>
+    <tr><th><code dir="ltr">sudo bash task-tracker-onprem-&lt;new&gt;.run</code></th><td>new version: detects the installation and offers the update</td></tr>
+<tr><th><code dir="ltr">sudo ./update.sh --rollback</code></th><td>undo the last update</td></tr>
+<tr><th><code dir="ltr">sudo ./update.sh --restart</code></th><td>restart only (e.g. after editing <code dir="ltr">.env</code>)</td></tr>
+  </tbody>
+</table>
+  <p class="note">Every update backs up everything first. If the new version does not start cleanly, the old one runs again automatically.</p>
+
+  <h2>7  If something does not work</h2>
+  
+<table class="">
+  
+  <tbody>
+    <tr><th>Certificate warning</th><td>Certificate not imported on that device yet (step 4) — or an address was opened other than the one given at installation.</td></tr>
+<tr><th>Site not reachable</th><td><code dir="ltr">sudo docker compose ps</code> — all three services “running”, app “healthy”. Log: <code dir="ltr">sudo docker compose logs -f app</code></td></tr>
+<tr><th>Link expired / password forgotten</th><td><code dir="ltr">sudo ./invite.sh</code> (for other users: <code dir="ltr">--user NAME</code>)</td></tr>
+<tr><th>“Checksum MISMATCH”</th><td>The <code dir="ltr">.run</code> file is damaged — copy it again.</td></tr>
+  </tbody>
+</table>
+  <p class="note"><b>Support:</b> TOF Solution · Tarek@tarekfatal.com · Terms of use: <code dir="ltr">NUTZUNGSHINWEISE.md</code> (in the package and in <code dir="ltr">/opt/task-tracker</code>)</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">2 / 2</span></div>
+</section>
+
+</body>
+</html>

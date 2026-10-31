@@ -34,6 +34,7 @@ import {
 } from "./enums";
 import { SSO_PROVIDERS } from "./sso";
 import { MAX_UPLOAD_BYTES, ALLOWED_MIME } from "./validation";
+import { SITE_URL, instanceUrl } from "./instance-url";
 
 /** JSON value — the served document is plain JSON, so we keep the type loose. */
 type Json = Record<string, unknown>;
@@ -149,7 +150,7 @@ const Login: Json = {
   description: "Credentials for password login (`loginSchema`).",
   required: ["username", "password"],
   properties: {
-    username: { type: "string", minLength: 1, example: "tarek" },
+    username: { type: "string", minLength: 1, example: "layla" },
     password: { type: "string", minLength: 1, format: "password", example: "s3cret-pass" },
   },
 };
@@ -201,8 +202,8 @@ const Project: Json = {
   description: "Project create/update payload (`projectSchema`).",
   required: ["name"],
   properties: {
-    name: { type: "string", minLength: 1, maxLength: 120, example: "Coast Shield" },
-    description: { type: "string", maxLength: 2000, default: "", example: "Maritime awareness programme." },
+    name: { type: "string", minLength: 1, maxLength: 120, example: "Harbour Upgrade" },
+    description: { type: "string", maxLength: 2000, default: "", example: "Quay renovation programme." },
     color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$", default: "#6366f1", example: "#0ea5e9" },
   },
 };
@@ -231,12 +232,12 @@ const User: Json = {
       minLength: 3,
       maxLength: 40,
       pattern: "^[a-zA-Z0-9_.-]+$",
-      example: "tarek.fatal",
+      example: "ahmed.ali",
     },
     email: {
       oneOf: [{ type: "string", enum: [""] }, { type: "string", format: "email" }],
       default: "",
-      example: "tarek@coastshield.net",
+      example: "ahmed.ali@example.com",
     },
     password: {
       oneOf: [{ type: "string", enum: [""] }, { type: "string", minLength: 6 }],
@@ -526,7 +527,7 @@ const paths: Json = {
       description:
         "Returns the user/tenant the token acts as, its scopes, and the operations it may " +
         "call. Used by the MCP server (`mcp/task-tracker-mcp.mjs`) and as a connectivity " +
-        "check. See [MCP.md](https://github.com/tareq-fatal/task-tracker/blob/main/docs/MCP.md).",
+        "check (see docs/MCP.md in the source repository).",
       tags: ["MCP"],
       security: [{ mcpToken: [] }],
       responses: {
@@ -546,8 +547,8 @@ const paths: Json = {
               },
               example: {
                 ok: true,
-                user: { id: "clx…", name: "Tarek", username: "tarek", role: "Admin" },
-                tenant: { id: "clx…", slug: "objektus", name: "Objektus" },
+                user: { id: "clx…", name: "Layla", username: "layla", role: "Admin" },
+                tenant: { id: "clx…", slug: "acme", name: "Acme" },
                 scopes: ["read", "write"],
                 ops: [{ name: "create_task", scope: "write", describe: "Create a task…" }],
               },
@@ -696,7 +697,7 @@ const paths: Json = {
       tags: ["Tenancy"],
       security: [{ sessionCookie: [] }],
       parameters: [
-        { name: "slug", in: "path", required: true, schema: { type: "string" }, description: "Tenant slug.", example: "coast-shield" },
+        { name: "slug", in: "path", required: true, schema: { type: "string" }, description: "Tenant slug.", example: "acme" },
       ],
       responses: {
         "302": redirect302("Redirect to `/` (tenant cookie set for BackendAdmin) or `/login`.", "/"),
@@ -731,57 +732,66 @@ const paths: Json = {
 };
 
 // ── Assembled document ───────────────────────────────────────────────────────
-export const openApiDocument: Json = {
-  openapi: "3.1.0",
-  info: {
-    title: "Task-Tracker API",
-    version: VERSION,
-    description: DESCRIPTION,
-    contact: { name: "Task-Tracker", url: "https://tasks.coastshield.net" },
-    license: { name: "Proprietary" },
-  },
-  servers: [
-    { url: "https://tasks.coastshield.net", description: "Production" },
-    { url: "http://localhost:3000", description: "Local development" },
-  ],
-  tags: [
-    { name: "Authentication", description: "Sign-in, OAuth/SSO, logout." },
-    { name: "Cron & sync", description: "Machine-to-machine jobs guarded by `x-sync-secret`." },
-    { name: "MCP", description: "Agent integration (Claude Code) via per-user machine tokens." },
-    { name: "Web Push", description: "Browser push-notification subscriptions." },
-    { name: "Attachments", description: "Tenant-scoped file downloads." },
-    { name: "Tenancy", description: "Multi-tenant switching." },
-    { name: "Meta", description: "The spec itself." },
-  ],
-  paths,
-  components: {
-    securitySchemes,
-    schemas: {
-      // Enums (from src/lib/enums.ts and src/lib/sso.ts)
-      Role: enumSchema(ROLES, "User role. `BackendAdmin` (legacy `SuperAdmin`) spans all tenants."),
-      TaskStatus: enumSchema(TASK_STATUSES, "Task lifecycle status."),
-      TaskPriority: enumSchema(TASK_PRIORITIES, "Task priority."),
-      TaskType: enumSchema(TASK_TYPES, "Issue hierarchy type (Epic > Story > Task > Subtask; Bug with Task)."),
-      TaskLinkType: enumSchema(TASK_LINK_TYPES, "Relationship between two tasks."),
-      Locale: enumSchema(LOCALES, "UI locale. `ar` is the default (RTL)."),
-      SsoProvider: enumSchema(SSO_PROVIDERS, "Configured OAuth/OIDC identity providers."),
-      // Domain models (mirror src/lib/validation.ts)
-      Login,
-      Task,
-      Subtask,
-      Progress,
-      Project,
-      Team,
-      User,
-      Comment,
-      Settings,
-      PushSubscription,
-      PushUnsubscribe,
-      CronResult,
-      Error,
+// TOF-0795 (Tarek 31.10.2026): Kontakt/Server-Adresse = Adresse der Instanz
+// (src/lib/instance-url.ts: APP_URL > NEXT_PUBLIC_APP_URL > Build-Adresse).
+// Die Route /api/openapi.json baut das Dokument zur Laufzeit; ohne APP_URL ist
+// es identisch mit dem bisherigen.
+export function buildOpenApiDocument(baseUrl: string = instanceUrl()): Json {
+  return {
+    openapi: "3.1.0",
+    info: {
+      title: "Task-Tracker API",
+      version: VERSION,
+      description: DESCRIPTION,
+      contact: { name: "Task-Tracker", url: baseUrl },
+      license: { name: "Proprietary" },
     },
-  },
-  "x-allowed-upload-mime-types": ALLOWED_MIME,
-};
+    servers: [
+      { url: baseUrl, description: "Production" },
+      { url: "http://localhost:3000", description: "Local development" },
+    ],
+    tags: [
+      { name: "Authentication", description: "Sign-in, OAuth/SSO, logout." },
+      { name: "Cron & sync", description: "Machine-to-machine jobs guarded by `x-sync-secret`." },
+      { name: "MCP", description: "Agent integration (Claude Code) via per-user machine tokens." },
+      { name: "Web Push", description: "Browser push-notification subscriptions." },
+      { name: "Attachments", description: "Tenant-scoped file downloads." },
+      { name: "Tenancy", description: "Multi-tenant switching." },
+      { name: "Meta", description: "The spec itself." },
+    ],
+    paths,
+    components: {
+      securitySchemes,
+      schemas: {
+        // Enums (from src/lib/enums.ts and src/lib/sso.ts)
+        Role: enumSchema(ROLES, "User role. `BackendAdmin` (legacy `SuperAdmin`) spans all tenants."),
+        TaskStatus: enumSchema(TASK_STATUSES, "Task lifecycle status."),
+        TaskPriority: enumSchema(TASK_PRIORITIES, "Task priority."),
+        TaskType: enumSchema(TASK_TYPES, "Issue hierarchy type (Epic > Story > Task > Subtask; Bug with Task)."),
+        TaskLinkType: enumSchema(TASK_LINK_TYPES, "Relationship between two tasks."),
+        Locale: enumSchema(LOCALES, "UI locale. `ar` is the default (RTL)."),
+        SsoProvider: enumSchema(SSO_PROVIDERS, "Configured OAuth/OIDC identity providers."),
+        // Domain models (mirror src/lib/validation.ts)
+        Login,
+        Task,
+        Subtask,
+        Progress,
+        Project,
+        Team,
+        User,
+        Comment,
+        Settings,
+        PushSubscription,
+        PushUnsubscribe,
+        CronResult,
+        Error,
+      },
+    },
+    "x-allowed-upload-mime-types": ALLOWED_MIME,
+  };
+}
+
+/** Dokument mit der Build-Adresse (für scripts/gen-openapi.mjs und Tests). */
+export const openApiDocument: Json = buildOpenApiDocument(SITE_URL);
 
 export default openApiDocument;
