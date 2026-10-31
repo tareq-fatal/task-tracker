@@ -19,9 +19,12 @@ import {
 export function TelegramGroupSettings({
   initial,
   events,
+  bot = null,
 }: {
   initial: GroupSettings;
   events: string[];
+  /** TOF-0795: Benutzername des Bots (ohne @), vom Server; null = allgemeiner Text. */
+  bot?: string | null;
 }) {
   const { t } = useT();
   const [chatId, setChatId] = useState(initial.chatId);
@@ -44,7 +47,7 @@ export function TelegramGroupSettings({
         <Users2 className="h-4 w-4 text-indigo-600" />
         {t("tg.group.title")}
       </h2>
-      <p className="mb-4 text-sm text-muted-foreground">{t("tg.group.help")}</p>
+      <p className="mb-4 text-sm text-muted-foreground">{t("tg.group.help", { bot: bot ? `@${bot}` : t("tg.group.botGeneric") })}</p>
 
       <label className="mb-1 block text-sm font-medium">{t("tg.group.chatId")}</label>
       <Input

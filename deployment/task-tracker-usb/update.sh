@@ -2,7 +2,7 @@
 # =============================================================================
 # Task Tracker — update / restart.
 #
-#   sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.1.0  # new version from USB
+#   sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.2.0  # new version from USB
 #   sudo ./update.sh --rebuild        # rebuild from the source already installed
 #   sudo ./update.sh --restart        # just restart (e.g. after editing .env)
 #   sudo ./update.sh --rollback       # undo the last update
@@ -37,7 +37,8 @@ Usage: sudo ./update.sh [options]
                   folder instead of building. Automatic for installations
                   made with install.sh --offline.
   --rebuild       Rebuild the app image from the installed source (needs
-                  an internet connection).
+                  an internet connection and an installation WITH source —
+                  not available for installs from a pre-built image).
   --restart       Only restart the containers. Use after editing .env.
   --rollback      Restore the backup that the last update made.
   -h, --help      Show this help.
@@ -144,15 +145,26 @@ if [ -n "$FROM_BUNDLE" ]; then
     warn "That is the version already installed."
     confirm "Re-install it anyway?" n || die "Nothing to do."
   fi
-  # TOF-0794: the instance name is compiled into a pre-built image.
-  if [ "$OFFLINE" = "1" ]; then
-    NEW_APP_NAME="$(build_info_get APP_NAME "$FROM_BUNDLE/images/build-info.env")"
-    CUR_APP_NAME="$(env_get NEXT_PUBLIC_APP_NAME || true)"
-    if [ "$NEW_APP_NAME" != "$CUR_APP_NAME" ]; then
-      warn "The new bundle shows the name \"${NEW_APP_NAME:-<default>}\" (installed: \"${CUR_APP_NAME:-<default>}\")."
-      confirm "Continue anyway?" y || die "Aborted — build a bundle with make-bundle.sh --offline --app-name \"$CUR_APP_NAME\"."
+  # TOF-0795 (Tarek 31.10.2026): from 1.2.0 on the name is a runtime setting
+  # (APP_NAME in .env) — nothing to compare against the bundle any more.
+  # A bundle without source (app/) but with images can only update offline.
+  if [ "$OFFLINE" = "0" ] && [ ! -d "$FROM_BUNDLE/app" ]; then
+    if [ -f "$FROM_BUNDLE/images/task-tracker.tar.gz" ]; then
+      info "The new bundle has pre-built images and no source — updating offline."
+      OFFLINE=1
+    else
+      die "$FROM_BUNDLE has neither the source (app/) nor pre-built images (images/)."
     fi
   fi
+fi
+
+# TOF-0795: --rebuild (and an online update without --from) builds from the
+# installed source. Offline installations from a bundle without source have
+# none — stop before the backup instead of failing halfway.
+if [ "$OFFLINE" = "0" ] && [ -z "$FROM_BUNDLE" ] && [ ! -f "$TT_INSTALL_DIR/app/Dockerfile" ]; then
+  die "This installation has no source code ($TT_INSTALL_DIR/app is empty) — it runs a pre-built image.
+Nothing can be rebuilt here. To update, use the new bundle:  sudo ./update.sh --from <bundle folder>
+(or run the new task-tracker-onprem-<version>.run). For a changed .env: sudo ./update.sh --restart"
 fi
 
 # --- 1. Pre-update backup -------------------------------------------------------
@@ -195,15 +207,21 @@ if [ -n "$FROM_BUNDLE" ]; then
   fi
   # Bump the version in .env so compose picks the new image tag.
   sed -i "s/^TT_VERSION=.*/TT_VERSION=$NEW_VERSION/" "$TT_INSTALL_DIR/.env"
-  # TOF-0794: an offline image carries its own instance name — keep .env honest.
-  if [ "$OFFLINE" = "1" ] && [ -f "$FROM_BUNDLE/images/build-info.env" ]; then
-    NEW_APP_NAME="$(build_info_get APP_NAME "$FROM_BUNDLE/images/build-info.env")"
-    if grep -q '^NEXT_PUBLIC_APP_NAME=' "$TT_INSTALL_DIR/.env"; then
-      sed -i "s|^NEXT_PUBLIC_APP_NAME=.*|NEXT_PUBLIC_APP_NAME=$(sed_escape "$NEW_APP_NAME")|" "$TT_INSTALL_DIR/.env"
-    else
-      printf 'NEXT_PUBLIC_APP_NAME=%s\n' "$NEW_APP_NAME" >>"$TT_INSTALL_DIR/.env"
-    fi
+  # TOF-0795: .env of 1.1.x → 1.2.0. The name moves from the image to the
+  # runtime (APP_NAME, taken over from NEXT_PUBLIC_APP_NAME); TT_ONPREM=1 hides
+  # the Android APK download. Existing values are never overwritten.
+  env_has() { grep -q "^$1=" "$TT_INSTALL_DIR/.env"; }
+  if ! env_has APP_NAME; then
+    OLD_NAME="$(env_get NEXT_PUBLIC_APP_NAME || true)"
+    printf '\n# TOF-0795: instance name, runtime (./update.sh --restart after a change).\nAPP_NAME=%s\n' "$OLD_NAME" >>"$TT_INSTALL_DIR/.env"
+    info "Instance name is now a runtime setting: APP_NAME=${OLD_NAME:-<default per language>}"
   fi
+  if ! env_has TT_ONPREM; then
+    printf 'TT_ONPREM=1\n' >>"$TT_INSTALL_DIR/.env"
+  fi
+  for f in NUTZUNGSHINWEISE.md README.md; do
+    if [ -f "$FROM_BUNDLE/$f" ]; then cp -f "$FROM_BUNDLE/$f" "$TT_INSTALL_DIR/"; fi
+  done
   ok "Files updated"
 fi
 

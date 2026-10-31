@@ -40,12 +40,22 @@
  * CommonJS (.cjs) on purpose: the runtime image's traced node_modules are
  * CommonJS, and this avoids any ESM/CJS interop surprises.
  *
+ * TOF-0795 (Tarek 31.10.2026): logo from install.sh --logo. TT_LOGO_SRC is a
+ * file inside the container (install.sh copied it there), TT_LOGO_EXT its type.
+ * It is written to <UPLOAD_ROOT>/tenants/<slug>/logo.<ext> and tenant.logo is set
+ * to "/uploads/tenants/<slug>/logo.<ext>?v=<bytes>" — exactly what Settings ->
+ * Branding does (src/actions/branding.ts, src/lib/upload-paths.ts). The tenant
+ * is the superuser's. Prints "logo_url=<url>".
+ *
  * Reads from the environment (all supplied by install.sh / invite.sh):
  *   TT_TENANT_SLUG, TT_TENANT_NAME, TT_LOCALE, TT_PUBLIC_URL,
  *   TT_INVITE_HOURS, TT_NEW_INVITE, TT_INVITE_ONLY,
- *   ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD (optional exception)
+ *   ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_PASSWORD (optional exception),
+ *   TT_LOGO_SRC, TT_LOGO_EXT (optional), UPLOAD_DIR (like the app)
  */
 const { createHash, randomBytes } = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const { PrismaClient } = require("@prisma/client");
 const { hash } = require("@node-rs/argon2");
 
@@ -59,6 +69,13 @@ const PUBLIC_URL = (process.env.TT_PUBLIC_URL || process.env.APP_URL || "").repl
 const INVITE_HOURS = Math.max(1, Number.parseInt(process.env.TT_INVITE_HOURS || "72", 10) || 72);
 const NEW_INVITE = process.env.TT_NEW_INVITE === "1";
 const INVITE_ONLY = process.env.TT_INVITE_ONLY === "1";
+// TOF-0795: logo (optional). Same limits/types as the app's logo route.
+const LOGO_SRC = process.env.TT_LOGO_SRC || "";
+const LOGO_EXT = (process.env.TT_LOGO_EXT || "").toLowerCase();
+const LOGO_EXTS = ["png", "jpg", "webp", "svg"];
+const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+// = src/lib/upload-paths.ts UPLOAD_ROOT
+const UPLOAD_ROOT = process.env.UPLOAD_DIR || path.join(process.cwd(), "var", "uploads");
 // Same role the app's own user administration stores for the superuser
 // (src/lib/enums.ts; legacy "SuperAdmin" is still accepted everywhere).
 const ROLE = "BackendAdmin";
@@ -96,6 +113,36 @@ async function issueInvite(user) {
   ]);
   console.log(`invite_url=${inviteUrl(PUBLIC_URL, raw)}`);
   console.log(`invite_expires=${expiresAt.toISOString()}`);
+}
+
+/** TOF-0795: install.sh --logo → uploads volume + tenant.logo (like branding.ts). */
+async function applyLogo(tenant) {
+  if (!LOGO_SRC || !tenant) return;
+  if (!LOGO_EXTS.includes(LOGO_EXT)) {
+    console.error(`logo skipped: unsupported type '${LOGO_EXT}'`);
+    return;
+  }
+  if (!/^[a-z0-9-]{1,60}$/.test(tenant.slug)) {
+    console.error(`logo skipped: tenant slug '${tenant.slug}' cannot be served`);
+    return;
+  }
+  // A logo problem must never fail the superuser step — it can be uploaded in
+  // the app later.
+  try {
+    const bytes = fs.readFileSync(LOGO_SRC);
+    if (bytes.length === 0 || bytes.length > LOGO_MAX_BYTES) {
+      console.error(`logo skipped: ${bytes.length} bytes (max. ${LOGO_MAX_BYTES})`);
+      return;
+    }
+    const dir = path.join(UPLOAD_ROOT, "tenants", tenant.slug);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, `logo.${LOGO_EXT}`), bytes);
+    const url = `/uploads/tenants/${tenant.slug}/logo.${LOGO_EXT}?v=${bytes.length}`; // cache-bust on change
+    await prisma.tenant.update({ where: { id: tenant.id }, data: { logo: url } });
+    console.log(`logo_url=${url}`);
+  } catch (e) {
+    console.error(`logo skipped: ${e && e.message ? e.message : e}`);
+  }
 }
 
 async function tenantIsEmpty(tenantId) {
@@ -173,6 +220,7 @@ async function main() {
   const existing = await prisma.user.findUnique({ where: { username: USERNAME } });
   if (existing) {
     if (NEW_INVITE) await issueInvite(existing);
+    if (LOGO_SRC) await applyLogo(await prisma.tenant.findUnique({ where: { id: existing.tenantId } }));
     await pruneEmptyDefaultTenant(existing.tenantId);
     console.log(`status=exists username=${USERNAME} tenant=${TENANT_SLUG}`);
     return;
@@ -196,6 +244,7 @@ async function main() {
     },
   });
   if (!PASSWORD) await issueInvite(user);
+  await applyLogo(tenant);
 
   // 3. Drop a still-empty placeholder "default" tenant next to the real one —
   //    only when it is genuinely empty, so an upgraded instance whose real data

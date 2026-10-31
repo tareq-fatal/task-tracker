@@ -20,6 +20,7 @@ import { getTelegramStatus, getNotifyAllEvents } from "@/actions/telegram";
 import { NotifyAllToggle } from "@/components/notify-all-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
+import { apkDownloadEnabled } from "@/lib/onprem";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -144,28 +145,31 @@ export default async function SettingsPage() {
 
       {isAdmin && (
         <>
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-base">{t["settings.mobile.title"]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-sm text-muted-foreground">
-                {t["settings.mobile.desc"]}
-              </p>
-              <a
-                href="/download/task-tracker-latest.apk"
-                className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
-              >
-                📱 {t["settings.mobile.download"]}
-              </a>
-              <p className="mt-3 text-xs text-muted-foreground">
-                {t["settings.mobile.steps"]}
-              </p>
-              <p className="mt-1 text-xs italic text-amber-600">
-                {t["settings.mobile.beta"]}
-              </p>
-            </CardContent>
-          </Card>
+          {/* TOF-0795 (Tarek 31.10.2026): On-Prem (TT_ONPREM=1) ohne APK-Download. */}
+          {apkDownloadEnabled() && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-base">{t["settings.mobile.title"]}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  {t["settings.mobile.desc"]}
+                </p>
+                <a
+                  href="/download/task-tracker-latest.apk"
+                  className="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-indigo-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90"
+                >
+                  📱 {t["settings.mobile.download"]}
+                </a>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {t["settings.mobile.steps"]}
+                </p>
+                <p className="mt-1 text-xs italic text-amber-600">
+                  {t["settings.mobile.beta"]}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

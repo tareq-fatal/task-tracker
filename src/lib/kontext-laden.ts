@@ -2,10 +2,11 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { taskVisibilityClause, visibleProjectIds } from "@/lib/task-access";
 import type { KontextAufgabe, KontextProjekt } from "@/lib/kontext";
+import { instanceUrl } from "@/lib/instance-url";
 
 /** Absolute Basis für Links in der Ausgabe (wie export-runner.ts). */
 export function kontextBasis(): string {
-  return (process.env.APP_URL || "https://tasks.coastshield.net").replace(/\/+$/, "");
+  return instanceUrl(); // TOF-0795: APP_URL > NEXT_PUBLIC_APP_URL > Build-Adresse
 }
 
 /**

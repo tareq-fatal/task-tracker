@@ -17,7 +17,7 @@ const TEMPLATES: { label: string; sql: string }[] = [
   { label: "Tenants overview", sql: 'SELECT slug, name, "createdAt" FROM "Tenant" ORDER BY "createdAt";' },
   { label: "Users", sql: 'SELECT username, role, "tenantId" FROM "User" ORDER BY role;' },
   { label: "Recent tasks", sql: 'SELECT id, title, status, "createdAt" FROM "Task" ORDER BY "createdAt" DESC LIMIT 50;' },
-  { label: "Preview: empty a tenant", sql: 'SELECT count(*) FROM "Task" WHERE "tenantId" = (SELECT id FROM "Tenant" WHERE slug = \'tarek\');' },
+  { label: "Preview: empty a tenant", sql: 'SELECT count(*) FROM "Task" WHERE "tenantId" = (SELECT id FROM "Tenant" WHERE slug = \'acme\');' },
 ];
 
 function csv(columns: string[], rows: unknown[][]): string {

@@ -24,8 +24,11 @@ function detect(): Platform {
  * #38 — the APK link only makes sense on desktop (download → sideload to a
  * phone). On Android we offer the PWA "install" instead; on iOS (can't run an
  * APK at all) we show the Add-to-Home-Screen hint.
+ *
+ * TOF-0795 (Tarek 31.10.2026): `apk={false}` (On-Prem, TT_ONPREM=1) blendet den
+ * APK-Link aus; die PWA-Hinweise für Android/iOS bleiben.
  */
-export function ApkDownloadLink() {
+export function ApkDownloadLink({ apk = true }: { apk?: boolean } = {}) {
   const { t } = useT();
   const [platform, setPlatform] = useState<Platform>("unknown");
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -44,6 +47,7 @@ export function ApkDownloadLink() {
   if (platform === "unknown") return null;
 
   if (platform === "desktop") {
+    if (!apk) return null;
     return (
       <div className="mt-4 text-center">
         <a

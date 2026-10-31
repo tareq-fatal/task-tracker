@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "node:module";
-import { resolve } from "node:path";
+import { resolve, join } from "node:path";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { hashInviteToken, isPlausibleInviteToken, INVITE_TTL_HOURS } from "./invite";
 
 // TOF-0794 (Tarek 31.10.2026): deployment/task-tracker-usb/lib/bootstrap-admin.cjs
@@ -85,6 +87,7 @@ let exitCode: number | undefined;
 const ENV_KEYS = [
   "TT_TENANT_SLUG", "TT_TENANT_NAME", "TT_LOCALE", "ADMIN_USERNAME", "ADMIN_PASSWORD",
   "ADMIN_EMAIL", "TT_PUBLIC_URL", "APP_URL", "TT_INVITE_HOURS", "TT_NEW_INVITE", "TT_INVITE_ONLY",
+  "TT_LOGO_SRC", "TT_LOGO_EXT", "UPLOAD_DIR",
 ];
 const savedEnv: Record<string, string | undefined> = {};
 
@@ -242,5 +245,45 @@ describe("TOF-0794: Superuser per Einladungslink (bootstrap-admin.cjs)", () => {
     await run(fake, BASE);
     expect(fake.db.tenants.map((t) => t.slug).sort()).toEqual(["coast-shield", "default"]);
     expect(logs).not.toContain("renamed=empty-default-tenant");
+  });
+  // TOF-0795 (Tarek 31.10.2026): install.sh --logo
+  it("Logo: landet in <UPLOAD_ROOT>/tenants/<slug>/logo.<ext>, tenant.logo wie branding.ts", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tt-logo-"));
+    const src = join(dir, "in.png");
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+    writeFileSync(src, png);
+    const fake = makeDb();
+    await run(fake, { ...BASE, TT_LOGO_SRC: src, TT_LOGO_EXT: "png", UPLOAD_DIR: join(dir, "up") });
+    expect(exitCode).toBeUndefined();
+    const out = join(dir, "up", "tenants", "coast-shield", "logo.png");
+    expect(existsSync(out)).toBe(true);
+    expect(readFileSync(out).equals(png)).toBe(true);
+    const url = `/uploads/tenants/coast-shield/logo.png?v=${png.length}`;
+    expect(fake.db.tenants[0].logo).toBe(url);
+    expect(logs).toContain(`logo_url=${url}`);
+  });
+
+  it("Logo bei bestehendem Superuser: dessen Mandant; ungültiger Typ wird übersprungen, kein Abbruch", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tt-logo-"));
+    const src = join(dir, "in.webp");
+    writeFileSync(src, Buffer.from("RIFF0000WEBPxxxx"));
+    const fake = makeDb();
+    await run(fake, BASE);
+    const again = makeDb();
+    again.db.tenants = fake.db.tenants;
+    again.db.users = fake.db.users;
+    again.db.invites = fake.db.invites;
+    logs = [];
+    await run(again, { ...BASE, TT_TENANT_SLUG: "anders", TT_LOGO_SRC: src, TT_LOGO_EXT: "webp", UPLOAD_DIR: dir });
+    const home = again.db.tenants.find((t) => t.id === again.db.users[0].tenantId)!;
+    expect(home.logo).toBe(`/uploads/tenants/${home.slug}/logo.webp?v=16`);
+
+    const bad = makeDb();
+    errors = [];
+    await run(bad, { ...BASE, TT_LOGO_SRC: src, TT_LOGO_EXT: "gif", UPLOAD_DIR: dir });
+    expect(exitCode).toBeUndefined();
+    expect(bad.db.users).toHaveLength(1);
+    expect(bad.db.tenants[0].logo).toBeUndefined();
+    expect(errors.join("\n")).toMatch(/logo skipped/);
   });
 });

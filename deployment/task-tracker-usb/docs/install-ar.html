@@ -44,7 +44,7 @@
 <section class="page">
   <header>
     <h1>متتبِّع المهام — التثبيت على خادمك الخاص</h1>
-    <div class="sub">حزمة التثبيت المحلي task-tracker-onprem-v1.1.0 · تعمل حتى دون أي اتصال بالإنترنت · Ubuntu 22.04 / 24.04</div>
+    <div class="sub">ملف التثبيت task-tracker-onprem-1.2.0.run · يعمل حتى دون أي اتصال بالإنترنت · Ubuntu 22.04 / 24.04</div>
   </header>
 
   <h2>١  ما تحتاج إليه</h2>
@@ -59,21 +59,21 @@
 <tr><th>الشبكة</th><td>المنفذان 80 و 443 غير مستخدمَين؛ يُفضَّل عنوان IP ثابت في الشبكة المحلية</td><td></td></tr>
   </tbody>
 </table>
-  <p class="note">يُثبَّت Docker تلقائيًا (دون إنترنت من داخل الحزمة). لا تغادر البيانات الخادم — لا سحابة.</p>
+  <p class="note">يُثبَّت Docker تلقائيًا (دون إنترنت من داخل الحزمة). لا تغادر البيانات الخادم — لا سحابة ولا وصول من الخارج.</p>
 
   <h2>٢  التثبيت خطوة بخطوة (دون إنترنت)</h2>
   <ol class="steps">
     <li>
-      <div class="st"><span class="num">1</span><b>نسخ المجلد</b></div>
-      <p>صِل ذاكرة USB وانسخ المجلد <code dir="ltr">task-tracker-onprem-v1.1.0</code> إلى الخادم، ثم ادخل إليه:</p>
-      <pre class="cmd" dir="ltr">cp -r /media/$USER/USB/task-tracker-onprem-v1.1.0 ~/
-cd ~/task-tracker-onprem-v1.1.0</pre>
+      <div class="st"><span class="num">1</span><b>نسخ الملف والتحقق منه</b></div>
+      <p>صِل ذاكرة USB وانسخ الملف <code dir="ltr">task-tracker-onprem-1.2.0.run</code> (والملف <code dir="ltr">.sha256</code>) إلى الخادم؛ يجب أن يُظهر التحقق «OK»:</p>
+      <pre class="cmd" dir="ltr">cp /media/$USER/USB/task-tracker-onprem-1.2.0.run* ~/ &amp;&amp; cd ~
+sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
       
     </li>
     <li>
       <div class="st"><span class="num">2</span><b>بدء التثبيت</b></div>
-      <p>أمر واحد. ‏<code dir="ltr">--locale ar</code> تعني العربية (أو <code dir="ltr">de</code> أو <code dir="ltr">en</code>). اختياريًا <code dir="ltr">--host tracker.marine.local</code> و <code dir="ltr">--ip 192.168.1.10</code> — وإلا يُكتشف عنوان IP تلقائيًا.</p>
-      <pre class="cmd" dir="ltr">sudo ./install.sh --offline --tls internal --app-name "Coast Shield" --locale ar</pre>
+      <p>أمر واحد ثم أربعة أسئلة — زر Enter يقبل الاقتراح: <b>اسم</b> الواجهة، <b>الشعار</b> (اختياري، مسار ملف PNG/JPG/WEBP/SVG)، <b>اللغة</b> (<code dir="ltr">ar</code> أو <code dir="ltr">de</code> أو <code dir="ltr">en</code>)، <b>العنوان</b> (اسم الخادم اختياري، ويُكتشف عنوان IP تلقائيًا).</p>
+      <pre class="cmd" dir="ltr">sudo bash task-tracker-onprem-1.2.0.run</pre>
       
     </li>
     <li>
@@ -102,8 +102,8 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
       
       
     </li></ol>
-  <p class="note">مع إنترنت ونطاق خاص: <code dir="ltr">--tls domain --domain tasks.company.com</code> (Let's Encrypt). داخل شبكة مغلقة فقط ودون تشفير: <code dir="ltr">--tls http</code> (غير مُوصى به).</p>
-  <div class="foot"><span>Task Tracker On-Premise 1.1.0</span><span dir="ltr">1 / 2</span></div>
+  <p class="note">دون أسئلة: <code dir="ltr">sudo bash task-tracker-onprem-1.2.0.run -- --app-name "My Team" --locale ar --yes</code>. مع إنترنت ونطاق خاص (الحزمة المتصلة): <code dir="ltr">sudo ./install.sh --tls domain --domain tasks.example.com</code>.</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">1 / 2</span></div>
 </section>
 
 <section class="page">
@@ -112,9 +112,9 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="">
   
   <tbody>
-    <tr><th>الاسم</th><td><code dir="ltr">--app-name "Coast Shield"</code> — يظهر في كل مكان بدلًا من «متتبِّع المهام». في الحزمة دون إنترنت يكون الاسم مدمجًا مسبقًا (اطلب الحزمة بهذا الاسم).</td></tr>
-<tr><th>الشعار والألوان</th><td>داخل التطبيق كمستخدم أعلى: <b>الإعدادات ← الهوية ← رفع الشعار</b>. يُحفظ ضمن النسخ الاحتياطية.</td></tr>
-<tr><th>اللغة</th><td><code dir="ltr">--locale ar|de|en</code> — لغة صفحة الدخول ولغة المستخدم الأعلى. ويستطيع كل مستخدم تغيير لغته بنفسه.</td></tr>
+    <tr><th>الاسم</th><td>السؤال ١ أثناء التثبيت. لتغييره لاحقًا: <code dir="ltr">APP_NAME=…</code> في <code dir="ltr">/opt/task-tracker/.env</code> ثم <code dir="ltr">sudo ./update.sh --restart</code>. فارغ = الاسم الافتراضي لكل لغة.</td></tr>
+<tr><th>الشعار والألوان</th><td>الشعار: السؤال ٢ (حتى 2 MB). لاحقًا داخل التطبيق كمستخدم أعلى: <b>الإعدادات ← الهوية</b>. يُحفظ ضمن النسخ الاحتياطية.</td></tr>
+<tr><th>اللغة</th><td>السؤال ٣ — لغة صفحة الدخول ولغة المستخدم الأعلى. ويستطيع كل مستخدم تغيير لغته بنفسه.</td></tr>
   </tbody>
 </table>
 
@@ -130,7 +130,7 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <tr><th><code dir="ltr">sudo ./backup.sh --to /media/$USER/USB</code></th><td>كتابة النسخة مباشرة على ذاكرة USB</td></tr>
   </tbody>
 </table>
-  <p class="warn">انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. تحتوي النسخة على كل كلمات المرور: احفظها في مكان آمن.</p>
+  <p class="warn">انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. النسخ غير مشفّرة وتحتوي على كل كلمات المرور: احفظها في مكان آمن.</p>
 
   <h2>٥  الاستعادة</h2>
   
@@ -149,7 +149,7 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="ops">
   
   <tbody>
-    <tr><th><code dir="ltr">sudo ./update.sh --from /media/$USER/USB/task-tracker-onprem-v1.2.0</code></th><td>تثبيت إصدار جديد من ذاكرة USB (دون إنترنت تلقائيًا)</td></tr>
+    <tr><th><code dir="ltr">sudo bash task-tracker-onprem-&lt;new&gt;.run</code></th><td>إصدار جديد: يتعرّف على التثبيت الحالي ويعرض التحديث</td></tr>
 <tr><th><code dir="ltr">sudo ./update.sh --rollback</code></th><td>التراجع عن آخر تحديث</td></tr>
 <tr><th><code dir="ltr">sudo ./update.sh --restart</code></th><td>إعادة التشغيل فقط (مثلًا بعد تعديل ملف <code dir="ltr">.env</code>)</td></tr>
   </tbody>
@@ -161,12 +161,14 @@ cd ~/task-tracker-onprem-v1.1.0</pre>
 <table class="">
   
   <tbody>
-    <tr><th>تحذير الشهادة</th><td>لم تُستورد الشهادة على هذا الجهاز بعد (الخطوة ٤) — أو فُتح عنوان غير المحدد في <code dir="ltr">--host</code>/<code dir="ltr">--ip</code>.</td></tr>
+    <tr><th>تحذير الشهادة</th><td>لم تُستورد الشهادة على هذا الجهاز بعد (الخطوة ٤) — أو فُتح عنوان غير الذي حُدِّد أثناء التثبيت.</td></tr>
 <tr><th>الصفحة غير متاحة</th><td><code dir="ltr">sudo docker compose ps</code> — يجب أن تكون الخدمات الثلاث running و app بحالة healthy. السجل: <code dir="ltr">sudo docker compose logs -f app</code></td></tr>
 <tr><th>انتهت صلاحية الرابط / نسيت كلمة المرور</th><td><code dir="ltr">sudo ./invite.sh</code> (لمستخدم آخر: <code dir="ltr">--user NAME</code>)</td></tr>
+<tr><th>«Checksum MISMATCH»</th><td>ملف <code dir="ltr">.run</code> تالف — انسخه مرة أخرى.</td></tr>
   </tbody>
 </table>
-  <div class="foot"><span>Task Tracker On-Premise 1.1.0</span><span dir="ltr">2 / 2</span></div>
+  <p class="note"><b>الدعم:</b> TOF Solution · Tarek@tarekfatal.com · شروط الاستخدام: <code dir="ltr">NUTZUNGSHINWEISE.md</code> (داخل الحزمة وفي <code dir="ltr">/opt/task-tracker</code>)</p>
+  <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">2 / 2</span></div>
 </section>
 
 </body>

@@ -546,7 +546,7 @@
     "/api/mcp": {
       "get": {
         "summary": "MCP discovery — identity and available operations",
-        "description": "Returns the user/tenant the token acts as, its scopes, and the operations it may call. Used by the MCP server (`mcp/task-tracker-mcp.mjs`) and as a connectivity check. See [MCP.md](https://github.com/tareq-fatal/task-tracker/blob/main/docs/MCP.md).",
+        "description": "Returns the user/tenant the token acts as, its scopes, and the operations it may call. Used by the MCP server (`mcp/task-tracker-mcp.mjs`) and as a connectivity check (see docs/MCP.md in the source repository).",
         "tags": [
           "MCP"
         ],
@@ -594,14 +594,14 @@
                   "ok": true,
                   "user": {
                     "id": "clx…",
-                    "name": "Tarek",
-                    "username": "tarek",
+                    "name": "Layla",
+                    "username": "layla",
                     "role": "Admin"
                   },
                   "tenant": {
                     "id": "clx…",
-                    "slug": "objektus",
-                    "name": "Objektus"
+                    "slug": "acme",
+                    "name": "Acme"
                   },
                   "scopes": [
                     "read",
@@ -1036,7 +1036,7 @@
               "type": "string"
             },
             "description": "Tenant slug.",
-            "example": "coast-shield"
+            "example": "acme"
           }
         ],
         "responses": {
@@ -1230,7 +1230,7 @@
           "username": {
             "type": "string",
             "minLength": 1,
-            "example": "tarek"
+            "example": "layla"
           },
           "password": {
             "type": "string",
@@ -1356,13 +1356,13 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 120,
-            "example": "Coast Shield"
+            "example": "Harbour Upgrade"
           },
           "description": {
             "type": "string",
             "maxLength": 2000,
             "default": "",
-            "example": "Maritime awareness programme."
+            "example": "Quay renovation programme."
           },
           "color": {
             "type": "string",
@@ -1418,7 +1418,7 @@
             "minLength": 3,
             "maxLength": 40,
             "pattern": "^[a-zA-Z0-9_.-]+$",
-            "example": "tarek.fatal"
+            "example": "ahmed.ali"
           },
           "email": {
             "oneOf": [
@@ -1434,7 +1434,7 @@
               }
             ],
             "default": "",
-            "example": "tarek@coastshield.net"
+            "example": "ahmed.ali@example.com"
           },
           "password": {
             "oneOf": [

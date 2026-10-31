@@ -82,6 +82,10 @@ trap cleanup_failed EXIT
 step "Backing up to $DEST"
 mkdir -p "$DEST"
 chmod 700 "$DEST"
+# TOF-0795 (Tarek 31.10.2026): backups are NOT encrypted (no key of anyone else
+# is involved) — so the backup root itself is root-only too. On a FAT/exFAT
+# stick chmod is not possible; the stick then has to be kept safe.
+chmod 700 "$TT_BACKUP_DIR" 2>/dev/null || true
 
 # --- 1. Database --------------------------------------------------------------
 info "Dumping the database…"
@@ -130,7 +134,7 @@ TLS mode: $(env_get TT_TLS_MODE || echo '-')
 Contents
 --------
 db.sql.gz       PostgreSQL dump (database "$PG_DB", user "$PG_USER")
-uploads.tar.gz  /app/public/uploads — attachments and voice notes
+uploads.tar.gz  uploads volume (/app/var/uploads) — attachments, voice notes, logos
 caddy.tar.gz    Caddy /data — HTTPS certificates (with --tls internal: the local CA)
 config.env      .env at the time of the backup — CONTAINS ALL PASSWORDS
 Caddyfile       web-server configuration

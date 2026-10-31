@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { UPLOAD_ROOT } from "@/lib/upload-paths";
+import { instanceUrl } from "@/lib/instance-url";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, basicEmailTemplate, emailEnabled } from "@/lib/email";
 import { isLocale, type Locale } from "@/lib/enums";
@@ -16,7 +17,7 @@ const MAX_ATTEMPTS = 3;
 
 /** Base URL for emailed download links. */
 function appBaseUrl(): string {
-  return (process.env.APP_URL || "https://tasks.coastshield.net").replace(/\/+$/, "");
+  return instanceUrl(); // TOF-0795: APP_URL > NEXT_PUBLIC_APP_URL > Build-Adresse
 }
 
 export type EnqueueInput = {

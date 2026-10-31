@@ -1,33 +1,41 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Task Tracker USB bundle — PACKAGING SCRIPT (for us, not for the customer).
+# Task Tracker on-prem bundle — PACKAGING SCRIPT (for the publisher, not for
+# the recipient).
 #
 # Produces the folder that goes onto the USB stick, plus a .tar.gz (and a .zip
-# when `zip` is installed) — all named task-tracker-onprem-v<VERSION>.
+# when `zip` is installed) — all named task-tracker-onprem-v<VERSION> — and with
+# --run additionally the one-file installer task-tracker-onprem-<VERSION>.run.
 #
-#   ./make-bundle.sh                     # online bundle (small, ~5 MB)
-#   ./make-bundle.sh --offline           # + docker save images (~600 MB)
+#   ./make-bundle.sh                     # online bundle (source, image is built on the server)
+#   ./make-bundle.sh --offline           # pre-built images, NO source code
 #   ./make-bundle.sh --offline --debs    # + Docker .deb packages for air-gapped
 #                                        #   hosts with no apt mirror
-#   ./make-bundle.sh --offline --debs --app-name "Coast Shield" --out /mnt/e
+#   ./make-bundle.sh --offline --debs --run --out /mnt/e
 #
-# TOF-0794 (Tarek 31.10.2026): package "task-tracker-onprem"; --app-name is
-# compiled into the offline image (NEXT_PUBLIC_APP_NAME) and recorded in
-# images/build-info.env; --debs fetches one set per Ubuntu release
-# (packages/jammy = 22.04, packages/noble = 24.04); offline bundles carry NO
-# Web-Push key unless --push is given (push needs the internet).
+# TOF-0794 (Tarek 31.10.2026): package "task-tracker-onprem"; --debs fetches one
+# set per Ubuntu release (packages/jammy = 22.04, packages/noble = 24.04);
+# offline bundles carry NO Web-Push key unless --push is given.
 #
-# The "online" bundle carries the application source and builds the image on the
-# customer's server. The "offline" bundle additionally carries pre-built images,
-# so the customer's server needs no internet at all.
+# TOF-0795 (Tarek 31.10.2026): the bundle is handed to a THIRD PARTY —
+#   * the offline image is always built NEUTRAL: NEXT_PUBLIC_APP_URL=
+#     https://task-tracker.local, no NEXT_PUBLIC_APP_NAME (the name is set at
+#     runtime by install.sh → APP_NAME), TT_ONPREM_IMAGE=1 (no dev seed
+#     scripts in the image);
+#   * --offline bundles contain NO source code (app/) — --with-source adds it
+#     (emergency / rebuild on site). Online bundles always contain app/;
+#   * --app-name is only a SUGGESTION for the installer (APP_NAME_DEFAULT in
+#     images/build-info.env), nothing is compiled in;
+#   * NUTZUNGSHINWEISE.md (usage notice) is always copied; internal material
+#     (docs/CUSTOMER_OPTIONS.md, docs/*.html, docs/assets) never;
+#   * --run builds the self-extracting installer (make-run.sh).
 #
 # IMPORTANT — Web Push in offline bundles: NEXT_PUBLIC_* values are compiled
 # into the image by `next build` and cannot be changed afterwards. With --push
 # an offline bundle gets ONE VAPID keypair, generated here, baked into the image
 # and written to images/build-info.env for install.sh --offline --push to pick
-# up. Every customer installed from the same offline bundle shares that keypair
-# — regenerate the bundle per customer if that matters to you. Without --push
-# (the default since TOF-0794) the image has no push key at all.
+# up. Every recipient installed from the same offline bundle shares that keypair.
+# Without --push (the default) the image has no push key at all.
 # =============================================================================
 set -euo pipefail
 
@@ -39,24 +47,35 @@ REPO_ROOT="$(cd "$BUNDLE_DIR/../.." && pwd)"
 OFFLINE=0
 WITH_DEBS=0
 WITH_PUSH=0
-APP_NAME=""
+WITH_SOURCE=0
+WITH_RUN=0
+APP_NAME_DEFAULT=""
 # Ubuntu releases install.sh supports, as codename=docker base image.
 DEB_RELEASES=("jammy=ubuntu:22.04" "noble=ubuntu:24.04")
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/dist}"
 GIT_REF="HEAD"
+# TOF-0795: the neutral build-time address of every pre-built image.
+NEUTRAL_APP_URL="https://task-tracker.local"
 
 usage() {
   cat <<'EOF'
 Usage: ./make-bundle.sh [options]
 
-  --offline       Also build and export the container images into images/.
+  --offline       Build the container images and export them into images/.
+                  The bundle then contains NO source code (see --with-source).
+  --with-source   Also put the application source (app/) into an offline
+                  bundle (allows ./update.sh --rebuild on site; online bundles
+                  always contain it).
   --debs          Also download the Docker .deb packages (with their
                   dependencies) into packages/jammy and packages/noble
                   (for hosts with neither internet nor an apt mirror).
-  --app-name <n>  Instance name compiled into the offline image, e.g.
-                  "Coast Shield" (NEXT_PUBLIC_APP_NAME).
+  --app-name <n>  Name SUGGESTED by the installer (images/build-info.env
+                  APP_NAME_DEFAULT). Nothing is compiled in.
+                                                     [default: Task Tracker]
   --push          Offline image WITH a Web-Push key (only useful if the
                   clients have internet). Default: no push.
+  --run           Also build task-tracker-onprem-<VERSION>.run (one-file
+                  installer, make-run.sh) + .run.sha256.
   --ref <ref>     Git ref to snapshot as the app source.       [default: HEAD]
   --out <dir>     Where to write the folder + archives.  [default: <repo>/dist]
   -h, --help      Show this help.
@@ -66,9 +85,11 @@ EOF
 while [ $# -gt 0 ]; do
   case "$1" in
     --offline) OFFLINE=1; shift ;;
+    --with-source) WITH_SOURCE=1; shift ;;
     --debs) WITH_DEBS=1; shift ;;
-    --app-name) APP_NAME="${2:-}"; shift 2 ;;
+    --app-name) APP_NAME_DEFAULT="${2:-}"; shift 2 ;;
     --push) WITH_PUSH=1; shift ;;
+    --run) WITH_RUN=1; shift ;;
     --ref) GIT_REF="${2:-HEAD}"; shift 2 ;;
     --out) OUT_DIR="${2:-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -80,21 +101,28 @@ done
 mkdir -p "$OUT_DIR"
 OUT_DIR="$(cd "$OUT_DIR" && pwd)"
 # Same character rules as install.sh (.env / Caddyfile safe).
-APP_NAME="$(printf '%s' "$APP_NAME" | tr -d '"\\$#{}`\r\n' | sed 's/^ *//; s/ *$//')"
-if [ -n "$APP_NAME" ] && [ "$OFFLINE" = "0" ]; then
-  warn "--app-name only matters for --offline bundles (online installs take install.sh --app-name)."
-fi
+APP_NAME_DEFAULT="$(printf '%s' "$APP_NAME_DEFAULT" | tr -d '"\\$#{}`\r\n' | sed 's/^ *//; s/ *$//')"
+[ -n "$APP_NAME_DEFAULT" ] || APP_NAME_DEFAULT="Task Tracker"
+# Online bundles build the image on the server — they always need the source.
+[ "$OFFLINE" = "0" ] && WITH_SOURCE=1
 
 VERSION="$(tr -d ' \t\n\r' <"$BUNDLE_DIR/VERSION")"
 NAME="task-tracker-onprem-v$VERSION"
 STAGE="$OUT_DIR/$NAME"
 TARGZ="$OUT_DIR/$NAME.tar.gz"
 ZIP="$OUT_DIR/$NAME.zip"
+BUILD_SRC=""   # temporary build context of an offline bundle without app/
+
+cleanup_build_src() {
+  if [ -n "$BUILD_SRC" ] && [ -d "$BUILD_SRC" ]; then rm -rf "$BUILD_SRC"; fi
+}
+trap cleanup_build_src EXIT
 
 step "Packaging Task Tracker on-prem bundle v$VERSION"
 info "Repository: $REPO_ROOT"
 info "Source ref: $GIT_REF ($(git -C "$REPO_ROOT" rev-parse --short "$GIT_REF"))"
 info "Output:     $STAGE"
+if [ "$WITH_SOURCE" = "1" ]; then info "Source:     included (app/)"; else info "Source:     NOT included (offline bundle)"; fi
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
@@ -102,12 +130,13 @@ mkdir -p "$STAGE"
 # --- 1. Bundle files ----------------------------------------------------------
 step "Copying the bundle files"
 cp "$BUNDLE_DIR"/{docker-compose.yml,install.sh,update.sh,backup.sh,restore.sh,uninstall.sh,invite.sh} "$STAGE/"
-cp "$BUNDLE_DIR"/{README.md,VERSION} "$STAGE/"
+cp "$BUNDLE_DIR"/{README.md,VERSION,NUTZUNGSHINWEISE.md} "$STAGE/"
 cp -r "$BUNDLE_DIR/lib" "$BUNDLE_DIR/templates" "$STAGE/"
 mkdir -p "$STAGE/docs" "$STAGE/images" "$STAGE/packages"
-# Only the finished PDFs go on the stick — not the HTML they are generated from
-# — plus OFFLINE.md for the customer's IT (which outside connections exist).
-find "$BUNDLE_DIR/docs" -maxdepth 1 -name '*.pdf' -exec cp {} "$STAGE/docs/" \; 2>/dev/null || true
+# Only the finished PDFs go on the stick — not the HTML they are generated from,
+# not the screenshots — plus OFFLINE.md for the recipient's IT (which outside
+# connections exist). docs/CUSTOMER_OPTIONS.md is internal and NEVER shipped.
+find "$BUNDLE_DIR/docs" -maxdepth 1 -name 'INSTALL_*.pdf' -exec cp {} "$STAGE/docs/" \; 2>/dev/null || true
 if [ -f "$BUNDLE_DIR/docs/OFFLINE.md" ]; then cp "$BUNDLE_DIR/docs/OFFLINE.md" "$STAGE/docs/"; fi
 chmod +x "$STAGE"/*.sh
 # CRLF in a shell script makes bash fail with a confusing "\r: not found"; this
@@ -115,22 +144,41 @@ chmod +x "$STAGE"/*.sh
 # up inside every .env value.
 find "$STAGE" \( -name '*.sh' -o -name '*.cjs' -o -name 'Caddyfile.*' -o -name 'env.template' -o -name '*.yml' \) \
   -exec sed -i 's/\r$//' {} \;
-ok "Scripts, templates and documentation copied"
+ok "Scripts, templates, documentation and usage notice copied"
 
 # --- 2. Application source -----------------------------------------------------
-step "Snapshotting the application source ($GIT_REF)"
-mkdir -p "$STAGE/app"
-git -C "$REPO_ROOT" archive --format=tar "$GIT_REF" | tar -x -C "$STAGE/app"
-# Things the image build does not need and that would only bloat the stick.
-rm -rf "$STAGE/app"/{e2e,e2e-live,screenshots,releases,test-results,android,ios,worker,.github,.claude,deployment}
-rm -f  "$STAGE/app"/*.tar.gz
-git -C "$REPO_ROOT" rev-parse "$GIT_REF" >"$STAGE/app/.source-commit"
-ok "Source: $(du -sh "$STAGE/app" | cut -f1)"
+# snapshot_source <dir> — `git archive` of GIT_REF without what neither the image
+# build nor the recipient needs (internal docs, infrastructure, tests, old
+# bundles, mobile projects, repo tooling).
+snapshot_source() {
+  local dest="$1"
+  mkdir -p "$dest"
+  git -C "$REPO_ROOT" archive --format=tar "$GIT_REF" | tar -x -C "$dest"
+  rm -rf "$dest"/{e2e,e2e-live,screenshots,releases,test-results,android,ios,.github,.claude,deployment,dist,docs,infra,scripts,mcp,secrets}
+  rm -f "$dest"/*.tar.gz "$dest"/*.md "$dest"/.mcp.json "$dest"/.env.example "$dest"/openapi.json \
+        "$dest"/playwright.config.ts "$dest"/playwright.live.config.ts "$dest"/capacitor.config.ts
+  git -C "$REPO_ROOT" rev-parse "$GIT_REF" >"$dest/.source-commit"
+}
+
+if [ "$WITH_SOURCE" = "1" ]; then
+  step "Snapshotting the application source ($GIT_REF) into app/"
+  snapshot_source "$STAGE/app"
+  ok "Source: $(du -sh "$STAGE/app" | cut -f1)"
+fi
 
 # --- 3. Offline images ----------------------------------------------------------
 if [ "$OFFLINE" = "1" ]; then
   step "Building the application image (this takes a while)"
   docker info >/dev/null 2>&1 || die "The Docker daemon is not reachable."
+
+  if [ "$WITH_SOURCE" = "1" ]; then
+    BUILD_CTX="$STAGE/app"
+  else
+    BUILD_SRC="$OUT_DIR/.build-src-$NAME"
+    rm -rf "$BUILD_SRC"
+    snapshot_source "$BUILD_SRC"
+    BUILD_CTX="$BUILD_SRC"
+  fi
 
   VAPID_PUBLIC_KEY=""; VAPID_PRIVATE_KEY=""
   if [ "$WITH_PUSH" = "1" ]; then
@@ -139,14 +187,20 @@ if [ "$OFFLINE" = "1" ]; then
   else
     info "No Web-Push key (offline default — use --push to include one)."
   fi
-  if [ -n "$APP_NAME" ]; then info "Instance name compiled in: $APP_NAME"; fi
+  info "Neutral image: NEXT_PUBLIC_APP_URL=$NEUTRAL_APP_URL, no compiled-in name"
 
-  docker build \
+  # Git Bash (Windows build host): hand docker a native path for the context.
+  ctx="$BUILD_CTX"
+  command -v cygpath >/dev/null 2>&1 && ctx="$(cygpath -w "$ctx")"
+  MSYS_NO_PATHCONV=1 docker build \
     --build-arg "NEXT_PUBLIC_VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY" \
-    --build-arg "NEXT_PUBLIC_APP_NAME=$APP_NAME" \
+    --build-arg "NEXT_PUBLIC_APP_URL=$NEUTRAL_APP_URL" \
+    --build-arg "NEXT_PUBLIC_APP_NAME=" \
+    --build-arg "TT_ONPREM_IMAGE=1" \
     -t "task-tracker:$VERSION" \
-    "$STAGE/app" || die "The image build failed."
+    "$ctx" || die "The image build failed."
   ok "task-tracker:$VERSION built"
+  cleanup_build_src; BUILD_SRC=""
 
   step "Fetching PostgreSQL and Caddy"
   docker pull postgres:16-alpine >/dev/null
@@ -164,20 +218,22 @@ if [ "$OFFLINE" = "1" ]; then
 
   cat >"$STAGE/images/build-info.env" <<EOF
 # Generated by make-bundle.sh — read by install.sh in offline mode.
-# The public key below is COMPILED INTO task-tracker:$VERSION; the private key
-# must therefore be the one it was built with.
 TT_VERSION=$VERSION
 SOURCE_COMMIT=$(git -C "$REPO_ROOT" rev-parse "$GIT_REF")
 BUILT_AT=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-# TOF-0794: instance name compiled into the image (empty = default per language).
-APP_NAME=$APP_NAME
+# TOF-0795: nothing instance-specific is compiled in. The name is set at
+# install time (APP_NAME, runtime); this is only the installer's suggestion.
+APP_NAME_DEFAULT=$APP_NAME_DEFAULT
+BUILD_APP_URL=$NEUTRAL_APP_URL
+WITH_SOURCE=$WITH_SOURCE
 # Images in this bundle (tag = what docker-compose.yml uses; digest = exact build).
 IMAGE_APP=task-tracker:$VERSION
 IMAGE_POSTGRES=postgres:16-alpine
 IMAGE_POSTGRES_DIGEST=$(digest_of postgres:16-alpine)
 IMAGE_CADDY=caddy:2-alpine
 IMAGE_CADDY_DIGEST=$(digest_of caddy:2-alpine)
-# Web Push: empty unless built with --push.
+# Web Push: empty unless built with --push. The public key is COMPILED INTO
+# task-tracker:$VERSION; the private key must be the one it was built with.
 VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY
 VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY
 EOF
@@ -249,7 +305,19 @@ packages/noble for Ubuntu 24.04) and install.sh installs them from the stick.
 EOF
 fi
 
-# --- 5. Archives ----------------------------------------------------------------------
+# --- 5. Neutrality check (TOF-0795) ----------------------------------------------------
+# Internal material must never end up in the bundle.
+step "Checking the bundle contents"
+if [ -n "$(find "$STAGE" -name 'CUSTOMER_OPTIONS.md' -print)" ]; then
+  die "docs/CUSTOMER_OPTIONS.md ended up in the bundle — it is internal."
+fi
+if [ "$WITH_SOURCE" = "0" ] && [ -e "$STAGE/app" ]; then
+  die "app/ is in an offline bundle without --with-source."
+fi
+[ -f "$STAGE/NUTZUNGSHINWEISE.md" ] || die "NUTZUNGSHINWEISE.md is missing."
+ok "No internal files, usage notice present"
+
+# --- 6. Archives ----------------------------------------------------------------------
 # TOF-0794: .tar.gz always (keeps the executable bits and LF endings for Ubuntu);
 # .zip in addition when `zip` is installed (handy on Windows).
 step "Creating the archives"
@@ -263,10 +331,18 @@ else
   info "'zip' is not installed — only the .tar.gz was created."
 fi
 
+# --- 7. One-file installer (TOF-0795) -------------------------------------------------
+if [ "$WITH_RUN" = "1" ]; then
+  step "Building the one-file installer (.run)"
+  bash "$BUNDLE_DIR/make-run.sh" "$STAGE" --out "$OUT_DIR" || die "make-run.sh failed."
+fi
+
 echo
 ok "Done."
 info "Folder: $STAGE"
 info "Archive: $TARGZ"
-[ -f "$ZIP" ] && info "Zip:     $ZIP"
+if [ -f "$ZIP" ]; then info "Zip:     $ZIP"; fi
+if [ "$WITH_RUN" = "1" ]; then info "Installer: $OUT_DIR/task-tracker-onprem-$VERSION.run (+ .sha256)"; fi
 info "Copy the FOLDER onto the USB stick (or unpack the .tar.gz there:"
-info "  tar -xzf $NAME.tar.gz) so install.sh can be run straight off the stick."
+info "  tar -xzf $NAME.tar.gz) so install.sh can be run straight off the stick —"
+info "or hand over the single .run file: sudo bash task-tracker-onprem-$VERSION.run"

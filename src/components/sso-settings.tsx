@@ -38,7 +38,7 @@ export function SsoSettings({ config }: { config: TenantSsoConfig }) {
           id="domains"
           name="domains"
           defaultValue={config.domains}
-          placeholder="objektus.de, coastshield.net"
+          placeholder="example.com, example.org"
         />
         <p className="text-xs text-muted-foreground">
           {t("settings.sso.domainsHint")}

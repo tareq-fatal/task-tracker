@@ -1,5 +1,6 @@
 import "server-only";
 import { resolveEmailConfig, describeEmailConfig, type EmailConfig } from "./email-config";
+import { runtimeBrandName } from "./brand";
 
 // E-Mail-Versand. Zwei Wege, beide vollständig aus der Umgebung konfiguriert:
 //
@@ -85,11 +86,15 @@ export function basicEmailTemplate(
   url?: string | null
 ): string {
   const base = config().baseUrl;
+  // TOF-0795 (Tarek 31.10.2026): Instanz-Name zur Laufzeit (APP_NAME), sonst wie bisher.
+  const runtimeName = runtimeBrandName();
+  const mailName = runtimeName ?? "Task Tracker";
+  const mailOpen = runtimeName ? `In „${escapeHtml(runtimeName)}“ öffnen` : "Im Task Tracker öffnen";
   const btn = url
-    ? `<a href="${base}${url}" style="display:inline-block;margin-top:16px;padding:10px 18px;border-radius:10px;background:linear-gradient(110deg,#6366f1,#ec4899);color:#fff;text-decoration:none;font-weight:600">Im Task Tracker öffnen</a>`
+    ? `<a href="${base}${url}" style="display:inline-block;margin-top:16px;padding:10px 18px;border-radius:10px;background:linear-gradient(110deg,#6366f1,#ec4899);color:#fff;text-decoration:none;font-weight:600">${mailOpen}</a>`
     : "";
   return `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1f2937">
-    <div style="font-weight:700;font-size:18px;background:linear-gradient(110deg,#6366f1,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent">Task Tracker</div>
+    <div style="font-weight:700;font-size:18px;background:linear-gradient(110deg,#6366f1,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent">${escapeHtml(mailName)}</div>
     <h2 style="font-size:18px;margin:16px 0 4px">${escapeHtml(title)}</h2>
     <p style="color:#4b5563;line-height:1.5;white-space:pre-wrap">${escapeHtml(body)}</p>
     ${btn}
