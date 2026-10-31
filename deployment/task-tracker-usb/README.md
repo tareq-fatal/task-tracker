@@ -218,7 +218,7 @@ sudo ./restore.sh                    # list the available backups
 sudo ./restore.sh --from latest --yes
 sudo ./update.sh --from /media/usb/task-tracker-onprem-v1.1.0
 sudo ./update.sh --restart           # after editing .env
-sudo ./update.sh --rollback          # undo the last update
+sudo ./update.sh --rollback          # undo the last update (data AND previous version)
 sudo ./invite.sh                     # fresh invite link
 sudo ./uninstall.sh                  # remove the app, keep the data
 sudo ./uninstall.sh --purge          # remove everything

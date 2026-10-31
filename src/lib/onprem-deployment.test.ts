@@ -106,3 +106,13 @@ describe("TOF-0794: On-Premise-Paket", () => {
     }
   });
 });
+
+// TOF-0794 (Offline-Test 31.10.2026): Rollback = Daten UND vorherige Version.
+describe("TOF-0794: update.sh --rollback stellt auch die alte Version ein", () => {
+  it("liest die Version aus dem MANIFEST des Vor-Update-Backups und setzt TT_VERSION zurück", () => {
+    const s = readFileSync("deployment/task-tracker-usb/update.sh", "utf8");
+    expect(s).toMatch(/Version \*: \*/);
+    expect(s).toMatch(/ROLLBACK_TO_VERSION/);
+    expect(s).toMatch(/s\/\^TT_VERSION=\.\*\/TT_VERSION=\$ROLLBACK_TO_VERSION\//);
+  });
+});

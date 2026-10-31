@@ -107,8 +107,25 @@ if [ "$MODE" = "rollback" ]; then
   LAST="$(find "$TT_BACKUP_DIR" -mindepth 1 -maxdepth 1 -type d -name 'pre-update-*' 2>/dev/null | sort | tail -n1)"
   [ -n "$LAST" ] || die "No pre-update backup found in $TT_BACKUP_DIR."
   step "Rolling back to $(basename "$LAST")"
+  # TOF-0794 (Test 31.10.): a rollback also returns to the PREVIOUS VERSION, not
+  # only the data. The version before the update is in the backup's MANIFEST;
+  # its image is still on this server (update.sh does not remove it).
+  OLD_VERSION="$(sed -n 's/^Version *: *//p' "$LAST/MANIFEST.txt" 2>/dev/null | head -n1 | tr -d ' \r')"
+  if [ -n "$OLD_VERSION" ] && [ "$OLD_VERSION" != "unknown" ] && [ "$OLD_VERSION" != "$CURRENT_VERSION" ]; then
+    if docker image inspect "task-tracker:$OLD_VERSION" >/dev/null 2>&1; then
+      info "Version: $CURRENT_VERSION → back to $OLD_VERSION"
+      ROLLBACK_TO_VERSION="$OLD_VERSION"
+    else
+      warn "The image of version $OLD_VERSION is no longer on this server — only the DATA"
+      warn "is rolled back; the program stays at $CURRENT_VERSION. To return to $OLD_VERSION,"
+      warn "run update.sh --from <the $OLD_VERSION bundle> afterwards."
+    fi
+  fi
   warn "This restores the database and files from before the last update."
   confirm "Continue?" n || die "Aborted."
+  if [ -n "${ROLLBACK_TO_VERSION:-}" ]; then
+    sed -i "s/^TT_VERSION=.*/TT_VERSION=$ROLLBACK_TO_VERSION/" "$TT_INSTALL_DIR/.env"
+  fi
   exec "$SCRIPT_DIR/restore.sh" --from "$LAST" --yes
 fi
 
