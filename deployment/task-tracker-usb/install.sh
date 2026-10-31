@@ -415,7 +415,9 @@ case "$TLS_MODE" in
     if [ -z "$TT_IPS" ] && [ -z "$ARG_HOST" ] && [ "$REINSTALL" = "1" ]; then
       TT_IPS="$(env_get TT_IPS || true)"
     fi
-    if [ -z "$TT_IPS" ] && { [ "$TLS_MODE" = "http" ] || [ -z "$TT_HOST" ]; }; then
+    # TOF-0794 (Test 31.10.): also WITH --host — devices that open the server by
+    # its IP must get a certificate for that IP too (else: name mismatch).
+    if [ -z "$TT_IPS" ]; then
       TT_IPS="$(detect_lan_ip)"
       [ -n "$TT_IPS" ] && info "LAN address detected: $TT_IPS (override with --ip)"
     fi

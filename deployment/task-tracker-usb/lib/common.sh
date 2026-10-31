@@ -230,9 +230,17 @@ detect_lan_ip() {
     out="$(ip -4 route get 1.1.1.1 2>/dev/null || true)"
     ip="$(printf '%s\n' "$out" | sed -n 's/.* src \([0-9.]*\).*/\1/p' | sed -n '1p')"
   fi
+  # TOF-0794 (Test 31.10.): air-gapped LANs often have NO default route, so the
+  # lookup above finds nothing. Then pick the first global IPv4 by INTERFACE and
+  # skip Docker's/virtual bridges (docker0, br-*, veth*, virbr*, …) — an address
+  # range like 172.17.* is no criterion (it can be the server's real LAN).
+  if [ -z "$ip" ] && command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 -o addr show scope global 2>/dev/null \
+      | awk '$2 !~ /^(docker[0-9]*|br-|veth|virbr|lxcbr|cni|flannel|tun|tap|wg)/ { split($4, a, "/"); print a[1]; exit }')"
+  fi
   if [ -z "$ip" ]; then
     for ip in $(hostname -I 2>/dev/null || true); do
-      case "$ip" in 127.*|172.17.*|*:*) ip=""; continue ;; *) break ;; esac
+      case "$ip" in 127.*|*:*) ip=""; continue ;; *) break ;; esac
     done
   fi
   printf '%s' "$ip"

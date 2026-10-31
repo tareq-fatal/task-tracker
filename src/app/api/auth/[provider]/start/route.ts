@@ -6,6 +6,7 @@ import {
   isSsoProvider,
 } from "@/lib/sso";
 import { cookieSecure } from "@/lib/cookie-security";
+import { publicOrigin } from "@/lib/public-origin";
 
 const STATE_COOKIE = "tt_sso_state";
 
@@ -16,11 +17,11 @@ export async function GET(
 ) {
   const provider = params.provider;
   if (!isSsoProvider(provider) || !isProviderConfigured(provider)) {
-    return NextResponse.redirect(new URL("/login?sso=unavailable", req.url));
+    return NextResponse.redirect(new URL("/login?sso=unavailable", publicOrigin(req)));
   }
 
   const state = randomBytes(16).toString("hex");
-  const redirectUri = new URL(`/api/auth/${provider}/callback`, req.url).toString();
+  const redirectUri = new URL(`/api/auth/${provider}/callback`, publicOrigin(req)).toString();
   const authorizeUrl = buildAuthorizeUrl(provider, { redirectUri, state });
 
   const res = NextResponse.redirect(authorizeUrl);

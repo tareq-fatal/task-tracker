@@ -210,7 +210,11 @@ if [ "$WITH_DEBS" = "1" ]; then
     codename="${rel%%=*}"; base_image="${rel#*=}"
     mkdir -p "$STAGE/packages/$codename"
     info "$codename ($base_image)…"
-    docker run --rm -e "CODENAME=$codename" -v "$STAGE/packages/$codename":/out "$base_image" bash -c '
+    # Git Bash (Windows build host): "/c/…:/out" would be rewritten into a Windows
+    # path LIST ("…;C:\out") — hand docker a native path and switch the rewrite off.
+    out_dir="$STAGE/packages/$codename"
+    command -v cygpath >/dev/null 2>&1 && out_dir="$(cygpath -w "$out_dir")"
+    MSYS_NO_PATHCONV=1 docker run --rm -e "CODENAME=$codename" -v "$out_dir":/out "$base_image" bash -c '
       set -euo pipefail
       export DEBIAN_FRONTEND=noninteractive
       apt-get update -qq
