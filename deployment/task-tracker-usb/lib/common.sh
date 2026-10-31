@@ -94,6 +94,22 @@ require_installed() {
 # unattended (that is what the automated test does).
 TT_ASSUME_YES="${TT_ASSUME_YES:-0}"
 
+# TOF-0795 (Offline-Test): read one answer — from the terminal when there is
+# one (works even if stdin is redirected), otherwise from stdin (answers piped
+# in). No terminal AND no input → stop with a clear message instead of silently
+# taking the suggestion.
+read_answer() {
+  local __v="$1" line
+  if { : </dev/tty; } 2>/dev/null; then
+    IFS= read -r line </dev/tty || line=""
+  elif IFS= read -r line; then
+    :
+  else
+    die "No answer available (no terminal, no input). Run it in a terminal, or pass the options after -- together with --yes."
+  fi
+  printf -v "$__v" '%s' "$line"
+}
+
 confirm() {
   local prompt="$1" default="${2:-n}" reply
   if [ "$TT_ASSUME_YES" = "1" ]; then
@@ -102,7 +118,7 @@ confirm() {
   fi
   local hint="[y/N]"; [ "$default" = "y" ] && hint="[Y/n]"
   printf '%s%s %s %s' "$C_BOLD" "$prompt" "$hint" "$C_RESET"
-  read -r reply </dev/tty || reply=""
+  read_answer reply
   reply="${reply:-$default}"
   case "$reply" in [yY]*) return 0 ;; *) return 1 ;; esac
 }
@@ -120,7 +136,7 @@ ask() {
   else
     printf '%s%s%s: ' "$C_BOLD" "$prompt" "$C_RESET"
   fi
-  read -r reply </dev/tty || reply=""
+  read_answer reply
   printf -v "$__var" '%s' "${reply:-$default}"
 }
 
