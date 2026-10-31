@@ -4,12 +4,12 @@
  *
  *   node deployment/task-tracker-usb/docs/build-pdfs.mjs
  *
- * TOF-0794 (Tarek 31.10.2026): EXACTLY two A4 pages per language — hardware,
+ * TOF-0794: EXACTLY two A4 pages per language — hardware,
  * offline installation step by step (TLS internal, root certificate, invite
  * link), name/logo, backup, restore, update/rollback. The script checks the
  * page count and fails if a guide does not come out at 2 pages.
  *
- * TOF-0795 (Tarek 31.10.2026): third language (English); installation through
+ * TOF-0795: third language (English); installation through
  * the one-file installer `sudo bash task-tracker-onprem-<version>.run` with its
  * four questions (name, logo, language, address); support contact and the
  * reference to NUTZUNGSHINWEISE.md. No customer names in the examples.

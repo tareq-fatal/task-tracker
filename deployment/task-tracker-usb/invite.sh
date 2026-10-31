@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Task Tracker — fresh invite link (TOF-0794, Tarek 31.10.2026).
+# Task Tracker — fresh invite link (TOF-0794).
 #
 #   sudo ./invite.sh                   # new link for the superuser (.env ADMIN_USERNAME)
 #   sudo ./invite.sh --user layla      # new link for any existing user

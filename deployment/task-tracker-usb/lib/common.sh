@@ -187,7 +187,7 @@ render_template() {
 
 timestamp() { date -u +%Y%m%d-%H%M%S; }
 
-# --- TLS "internal": Caddy's own local CA (TOF-0794, Tarek 31.10.2026) -------
+# --- TLS "internal": Caddy's own local CA (TOF-0794) -------
 # With `tls internal` Caddy creates a private root CA inside its data volume
 # (docker volume task-tracker_caddy_data, mounted at /data in the container) and
 # issues the site certificates from it — no ACME, no internet. Devices trust the
@@ -255,7 +255,7 @@ build_info_get() {
   sed -n "s/^${key}=//p" "$file" | sed -n '1p'
 }
 
-# --- Logo for install.sh --logo (TOF-0795, Tarek 31.10.2026) -----------------
+# --- Logo for install.sh --logo (TOF-0795) -----------------
 # The app itself accepts logos up to 2 MB (src/actions/branding.ts) and serves
 # logo.<png|jpg|webp|svg> (src/app/uploads/tenants/[slug]/[file]/route.ts).
 # validate_logo <file> — on success sets LOGO_EXT (png|jpg|webp|svg) and

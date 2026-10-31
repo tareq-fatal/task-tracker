@@ -9,7 +9,7 @@
  *   docker compose cp lib/bootstrap-admin.cjs app:/app/bootstrap-admin.cjs
  *   docker compose exec -T app node /app/bootstrap-admin.cjs
  *
- * TOF-0794 (Tarek 31.10.2026): Superuser per EINLADUNGSLINK statt Passwort.
+ * TOF-0794: Superuser per EINLADUNGSLINK statt Passwort.
  * Without ADMIN_PASSWORD (the default now) the superuser gets a random password
  * hash nobody ever sees, plus an Invite row — exactly like the app does it
  * (src/lib/invite.ts mintInviteToken / src/lib/invite-server.ts issueInvite):
@@ -40,7 +40,7 @@
  * CommonJS (.cjs) on purpose: the runtime image's traced node_modules are
  * CommonJS, and this avoids any ESM/CJS interop surprises.
  *
- * TOF-0795 (Tarek 31.10.2026): logo from install.sh --logo. TT_LOGO_SRC is a
+ * TOF-0795: logo from install.sh --logo. TT_LOGO_SRC is a
  * file inside the container (install.sh copied it there), TT_LOGO_EXT its type.
  * It is written to <UPLOAD_ROOT>/tenants/<slug>/logo.<ext> and tenant.logo is set
  * to "/uploads/tenants/<slug>/logo.<ext>?v=<bytes>" — exactly what Settings ->

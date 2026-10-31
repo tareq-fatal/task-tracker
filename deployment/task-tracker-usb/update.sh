@@ -14,7 +14,7 @@
 # Database migrations are applied by the app container itself on boot; they are
 # forward-only, which is why the pre-update backup matters.
 #
-# TOF-0794 (Tarek 31.10.2026): an installation made with install.sh --offline
+# TOF-0794: an installation made with install.sh --offline
 # (TT_OFFLINE=1 in .env) updates offline automatically — the images come from
 # the new bundle's images/ folder, nothing is built or downloaded.
 # =============================================================================
@@ -145,7 +145,7 @@ if [ -n "$FROM_BUNDLE" ]; then
     warn "That is the version already installed."
     confirm "Re-install it anyway?" n || die "Nothing to do."
   fi
-  # TOF-0795 (Tarek 31.10.2026): from 1.2.0 on the name is a runtime setting
+  # TOF-0795: from 1.2.0 on the name is a runtime setting
   # (APP_NAME in .env) — nothing to compare against the bundle any more.
   # A bundle without source (app/) but with images can only update offline.
   if [ "$OFFLINE" = "0" ] && [ ! -d "$FROM_BUNDLE/app" ]; then

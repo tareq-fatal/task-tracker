@@ -51,9 +51,27 @@ ARG NEXT_PUBLIC_APP_NAME=""
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY \
     NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL \
     NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
+# TOF-0795: images for third-party on-prem installs (make-bundle.sh passes
+# TT_ONPREM_IMAGE=1) are neutralised HERE, BEFORE `prisma generate` — the
+# generated client embeds the schema text, comments included. Drops the dev
+# seed scripts, the // comments of the schema (outside string literals) and
+# the full-line -- comments of the migrations, and replaces the one migration
+# that only configured a tenant of the original deployment (a no-op on every
+# other database). Fresh on-prem databases only ever see this text, so the
+# migration checksums stay consistent there. Default empty = image unchanged.
+ARG TT_ONPREM_IMAGE=""
+RUN if [ "$TT_ONPREM_IMAGE" = "1" ]; then \
+      rm -f prisma/seed.ts prisma/bootstrap.ts \
+      && awk '{ q = 0; out = ""; for (i = 1; i <= length($0); i++) { c = substr($0, i, 1); if (c == "\"") q = !q; if (!q && substr($0, i, 2) == "//") break; out = out c } sub(/[ \t]+$/, "", out); print out }' prisma/schema.prisma > /tmp/schema.prisma \
+      && cat /tmp/schema.prisma > prisma/schema.prisma && rm -f /tmp/schema.prisma \
+      && find prisma/migrations -name migration.sql -exec sed -i '/^[[:space:]]*--/d' {} + \
+      && printf '%s\n' 'SELECT 1;' > prisma/migrations/20260816120000_workflow_chain_rules/migration.sql; \
+    fi
 # `npm run build` = `prisma generate && next build`; standalone output is
 # configured in next.config.mjs (output: "standalone").
 RUN npm run build
+# TOF-0795: on-prem images carry no source maps (*.map embeds the original sources).
+RUN if [ "$TT_ONPREM_IMAGE" = "1" ]; then find .next public -type f -name '*.map' -delete; fi
 
 # ---- 3. migrate-deps -----------------------------------------------------
 # The Prisma CLI is a devDependency and NOT part of the traced runtime, but the
@@ -100,27 +118,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=migrate-deps --chown=nextjs:nodejs /app/node_modules ./.prisma-cli/node_modules
 
 # Uploaded attachments (mount a volume here to persist across deploys).
-# TOF-0795 (Tarek 31.10.2026): also /app/var/uploads (UPLOAD_ROOT, src/lib/
+# TOF-0795: also /app/var/uploads (UPLOAD_ROOT, src/lib/
 # upload-paths.ts) — a fresh named volume mounted there then starts out owned by
 # nextjs instead of root. An existing volume is not touched by this.
 RUN mkdir -p /app/public/uploads /app/var/uploads \
     && chown -R nextjs:nodejs /app/public/uploads /app/var
 
-# TOF-0795: images for third-party on-prem installs (make-bundle.sh passes
-# TT_ONPREM_IMAGE=1) drop the dev seed scripts (demo users/tenants) and the
-# comments of the Prisma schema (// … outside string literals), plus every
-# source map (*.map carries the original sources, comments included).
-# Default empty = image unchanged.
-ARG TT_ONPREM_IMAGE=""
-RUN if [ "$TT_ONPREM_IMAGE" = "1" ]; then \
-      rm -f prisma/seed.ts prisma/bootstrap.ts \
-      && awk '{ q = 0; out = ""; for (i = 1; i <= length($0); i++) { c = substr($0, i, 1); if (c == "\"") q = !q; if (!q && substr($0, i, 2) == "//") break; out = out c } sub(/[ \t]+$/, "", out); print out }' prisma/schema.prisma > /tmp/schema.prisma \
-      && cat /tmp/schema.prisma > prisma/schema.prisma && rm -f /tmp/schema.prisma \
-      && find /app/.next /app/public -type f -name '*.map' -delete \
-      && printf '%s\n' '-- On-prem image: this migration only configured one specific tenant of the' \
-           '-- original deployment; on any other database it was a no-op. Neutral here.' \
-           'SELECT 1;' > prisma/migrations/20260816120000_workflow_chain_rules/migration.sql; \
-    fi
+# TOF-0795: on-prem neutralising happens in the builder stage (before prisma generate).
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
 RUN chmod +x /app/docker-entrypoint.sh

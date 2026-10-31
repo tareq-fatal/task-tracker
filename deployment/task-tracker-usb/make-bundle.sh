@@ -13,11 +13,11 @@
 #                                        #   hosts with no apt mirror
 #   ./make-bundle.sh --offline --debs --run --out /mnt/e
 #
-# TOF-0794 (Tarek 31.10.2026): package "task-tracker-onprem"; --debs fetches one
+# TOF-0794: package "task-tracker-onprem"; --debs fetches one
 # set per Ubuntu release (packages/jammy = 22.04, packages/noble = 24.04);
 # offline bundles carry NO Web-Push key unless --push is given.
 #
-# TOF-0795 (Tarek 31.10.2026): the bundle is handed to a THIRD PARTY —
+# TOF-0795: the bundle is handed to a THIRD PARTY —
 #   * the offline image is always built NEUTRAL: NEXT_PUBLIC_APP_URL=
 #     https://task-tracker.local, no NEXT_PUBLIC_APP_NAME (the name is set at
 #     runtime by install.sh → APP_NAME), TT_ONPREM_IMAGE=1 (no dev seed

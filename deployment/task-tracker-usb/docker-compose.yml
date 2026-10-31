@@ -7,7 +7,7 @@
 #   caddy     — TLS termination + reverse proxy (Let's Encrypt with --tls domain,
 #               its own local CA with --tls internal, plain HTTP with --tls http)
 #
-# TOF-0794 (Tarek 31.10.2026): offline installs set TT_PULL_POLICY=never in .env
+# TOF-0794: offline installs set TT_PULL_POLICY=never in .env
 # so compose never tries to pull — every image must already be loaded from
 # images/ (install.sh checks that). The app's `build:` section is only used by
 # online installs (`compose build app`); offline runs always use `up --no-build`.
@@ -83,7 +83,7 @@ services:
       HOSTNAME: 0.0.0.0
     volumes:
       # Uploaded attachments, voice notes, tenant logos. Backed up by backup.sh.
-      # TOF-0795 (Tarek 31.10.2026): mounted where the app keeps them
+      # TOF-0795: mounted where the app keeps them
       # (UPLOAD_ROOT = /app/var/uploads, src/lib/upload-paths.ts — outside
       # public/ since the K-6 fix). Same volume as in 1.1.x.
       - uploads:/app/var/uploads

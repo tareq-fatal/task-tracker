@@ -16,14 +16,14 @@
 #   6. applies the database migrations and creates the superuser account,
 #      which gets a ONE-TIME INVITE LINK to set its own password
 #
-# TOF-0794 (Tarek 31.10.2026): on-prem package "task-tracker-onprem" —
+# TOF-0794: on-prem package "task-tracker-onprem" —
 #   --tls internal (default) HTTPS from Caddy's own local CA, no internet needed
 #   --tls domain             Let's Encrypt (needs internet + public DNS)
 #   --tls http               plain HTTP on the LAN (COOKIE_SECURE=false)
 #   superuser by invite link instead of a generated password; ./invite.sh
 #   mints a fresh link. --admin-password remains as an explicit exception.
 #
-# TOF-0795 (Tarek 31.10.2026): the instance name is a RUNTIME setting now
+# TOF-0795: the instance name is a RUNTIME setting now
 #   (APP_NAME in .env — no longer compiled into the image), --logo <file> puts a
 #   logo into the uploads volume and onto the tenant, TT_ONPREM=1 is always set
 #   (hides the Android APK download, which is built for another server).
@@ -476,7 +476,7 @@ ADMIN_USERNAME="${ARG_ADMIN_USER:-}"
 clean_name() { printf '%s' "$1" | tr -d '"\\$#{}`\r\n' | sed 's/^ *//; s/ *$//'; }
 
 BUILD_INFO="$BUNDLE_DIR/images/build-info.env"
-# TOF-0795 (Tarek 31.10.2026): the name is a RUNTIME setting (APP_NAME in .env,
+# TOF-0795: the name is a RUNTIME setting (APP_NAME in .env,
 # src/lib/brand.ts) — the image no longer carries one. Order: --app-name, then
 # the existing installation (APP_NAME, or NEXT_PUBLIC_APP_NAME of a 1.1.x .env),
 # then a question with the bundle's suggestion (build-info.env APP_NAME_DEFAULT).

@@ -16,7 +16,7 @@
 # logo, language, address) and calls install.sh. Non-interactive:
 #   sudo bash x.run -- --app-name "X" --locale ar --yes
 #
-# TOF-0795 (Tarek 31.10.2026): self-extracting installer without makeself or any
+# TOF-0795: self-extracting installer without makeself or any
 # other downloaded tool — only bash, tar, gzip, sha256sum, tail. Works on a
 # Windows build machine under Git Bash, too.
 # =============================================================================
@@ -100,7 +100,7 @@ cat >"$HEADER" <<'RUNHEADER'
 #   bash task-tracker-onprem-@@VERSION@@.run --help
 #
 # Usage notice: NUTZUNGSHINWEISE.md inside the package.
-# TOF-0795 (Tarek 31.10.2026): built by make-run.sh — a bash header followed by
+# TOF-0795: built by make-run.sh — a bash header followed by
 # the package as tar.gz. Nothing below the header is ever executed; the archive
 # is checked against the SHA-256 recorded here before anything is unpacked.
 # =============================================================================
