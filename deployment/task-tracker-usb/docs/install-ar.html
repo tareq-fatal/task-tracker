@@ -52,7 +52,7 @@
 <table class="hw">
   <thead><tr><th></th><th>الحد الأدنى</th><th>المُوصى به</th></tr></thead>
   <tbody>
-    <tr><th>المعالج</th><td>نواتان (x86_64 أو ARM64)</td><td>٤ أنوية</td></tr>
+    <tr><th>المعالج</th><td>نواتان (x86_64)</td><td>٤ أنوية</td></tr>
 <tr><th>الذاكرة</th><td>4 GB</td><td>8 GB</td></tr>
 <tr><th>القرص</th><td>20 GB مساحة فارغة</td><td>50 GB SSD</td></tr>
 <tr><th>النظام</th><td>Ubuntu 22.04 أو 24.04 مع صلاحية sudo</td><td></td></tr>
@@ -103,11 +103,22 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
       
     </li></ol>
   <p class="note">دون أسئلة: <code dir="ltr">sudo bash task-tracker-onprem-1.2.0.run -- --app-name "My Team" --locale ar --yes</code>. مع إنترنت ونطاق خاص (الحزمة المتصلة): <code dir="ltr">sudo ./install.sh --tls domain --domain tasks.example.com</code>.</p>
+  <h2>٣  الجدار الناري / المنافذ (كلها واردة، TCP)</h2>
+  
+<table class="">
+  
+  <tbody>
+    <tr><th>443 (HTTPS)</th><td>الافتراضي «internal» و«domain»: من الشبكة المحلية (ومع «domain» من الإنترنت). غير مطلوب مع «http».</td></tr>
+<tr><th>80 (HTTP)</th><td>تحويل إلى HTTPS والشهادة <code dir="ltr">/ca.crt</code>؛ المنفذ الوحيد مع «http»؛ مع «domain» إلزامي من الإنترنت.</td></tr>
+<tr><th>لا يُفتح أبدًا</th><td>PostgreSQL (5432) والتطبيق (3000) — داخل شبكة Docker فقط. الصادر: لا شيء (إلا «domain»).</td></tr>
+  </tbody>
+</table>
+  <p class="note">منافذ أخرى: <code dir="ltr">--http-port 8080 --https-port 8443</code>. يتجاوز Docker قواعد UFW — قيّد الوصول بالجدار الناري أمام الخادم أو سلسلة <code dir="ltr">DOCKER-USER</code>.</p>
   <div class="foot"><span>Task Tracker On-Premise 1.2.0</span><span dir="ltr">1 / 2</span></div>
 </section>
 
 <section class="page">
-  <h2>٣  الاسم والشعار واللغة</h2>
+  <h2>٤  الاسم والشعار واللغة</h2>
   
 <table class="">
   
@@ -120,7 +131,7 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 
   <p class="note">نفّذ كل الأوامر داخل المجلد <code dir="ltr">/opt/task-tracker</code>: ‏<code dir="ltr">cd /opt/task-tracker</code></p>
 
-  <h2>٤  النسخ الاحتياطي</h2>
+  <h2>٥  النسخ الاحتياطي</h2>
   
 <table class="ops">
   
@@ -130,9 +141,9 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 <tr><th><code dir="ltr">sudo ./backup.sh --to /media/$USER/USB</code></th><td>كتابة النسخة مباشرة على ذاكرة USB</td></tr>
   </tbody>
 </table>
-  <p class="warn">انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. النسخ غير مشفّرة وتحتوي على كل كلمات المرور: احفظها في مكان آمن.</p>
+  <p class="warn">انسخها إلى USB بانتظام (إذا تعطّل الخادم تضيع النسخة معه). غير مشفّرة وتحتوي كل كلمات المرور: احفظها بأمان.</p>
 
-  <h2>٥  الاستعادة</h2>
+  <h2>٦  الاستعادة</h2>
   
 <table class="ops">
   
@@ -142,9 +153,9 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 <tr><th><code dir="ltr">sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes</code></th><td>استعادة نسخة من ذاكرة USB</td></tr>
   </tbody>
 </table>
-  <p class="note">قبل ذلك تُحفظ الحالة الحالية تلقائيًا (<code dir="ltr">pre-restore-…</code>) — لذا يمكن التراجع عن استعادة خاطئة.</p>
+  <p class="note">تُحفظ الحالة الحالية أولًا (<code dir="ltr">pre-restore-…</code>) — يمكن التراجع.</p>
 
-  <h2>٦  التحديث والتراجع</h2>
+  <h2>٧  التحديث والتراجع</h2>
   
 <table class="ops">
   
@@ -156,7 +167,7 @@ sha256sum -c task-tracker-onprem-1.2.0.run.sha256</pre>
 </table>
   <p class="note">كل تحديث يبدأ بنسخة احتياطية كاملة. وإذا لم يعمل الإصدار الجديد بشكل سليم، يعود الإصدار القديم تلقائيًا.</p>
 
-  <h2>٧  إذا لم يعمل شيء ما</h2>
+  <h2>٨  إذا لم يعمل شيء ما</h2>
   
 <table class="">
   

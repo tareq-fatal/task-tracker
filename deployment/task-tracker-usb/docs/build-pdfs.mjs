@@ -58,7 +58,7 @@ const L = {
     hwTitle: "1  Was Sie brauchen",
     hwHead: ["", "Mindestens", "Empfohlen"],
     hwRows: [
-      ["Prozessor", "2 Kerne (x86_64 oder ARM64)", "4 Kerne"],
+      ["Prozessor", "2 Kerne (x86_64)", "4 Kerne"],
       ["Arbeitsspeicher", "4 GB", "8 GB"],
       ["Festplatte", "20 GB frei", "50 GB SSD"],
       ["System", "Ubuntu 22.04 oder 24.04, Zugang mit sudo", ""],
@@ -101,30 +101,30 @@ const L = {
     ],
     otherModes:
       "Ohne Fragen: `sudo bash RUN -- --app-name \"Mein Team\" --locale de --yes`. Mit Internet und eigener Domain (Online-Paket): `sudo ./install.sh --tls domain --domain tasks.firma.de`.",
-    nameTitle: "3  Name, Logo, Sprache",
+    nameTitle: "4  Name, Logo, Sprache",
     nameRows: [
       ["Name", "Frage 1 bei der Installation. Später ändern: `APP_NAME=…` in `/opt/task-tracker/.env`, dann `sudo ./update.sh --restart`. Leer = Standardname je Sprache."],
       ["Logo, Farben", "Logo: Frage 2 (max. 2 MB). Später in der App als Superuser: **Einstellungen → Branding**. Wird mitgesichert."],
       ["Sprache", "Frage 3 — Sprache der Anmeldeseite und des Superusers. Jeder Benutzer kann seine Sprache selbst umstellen."],
     ],
     opsIntro: "Alle Befehle im Ordner `/opt/task-tracker` ausführen: `cd /opt/task-tracker`",
-    backupTitle: "4  Sicherung (Backup)",
+    backupTitle: "5  Sicherung (Backup)",
     backupRows: [
       ["automatisch", "jede Nacht um **03:30**, die letzten 14 bleiben in `/var/backups/task-tracker`"],
       ["`sudo ./backup.sh`", "sofort eine Sicherung erstellen"],
       ["`sudo ./backup.sh --to /media/$USER/USB`", "Sicherung direkt auf einen USB-Stick schreiben"],
     ],
     backupWarn:
-      "Regelmäßig eine Sicherung auf USB kopieren — eine Sicherung auf demselben Server hilft nicht, wenn der Server ausfällt. Sicherungen sind nicht verschlüsselt und enthalten alle Passwörter: sicher aufbewahren.",
-    restoreTitle: "5  Wiederherstellen",
+      "Regelmäßig auf USB kopieren (fällt der Server aus, ist die Sicherung dort weg). Unverschlüsselt, enthält alle Passwörter: sicher aufbewahren.",
+    restoreTitle: "6  Wiederherstellen",
     restoreRows: [
       ["`sudo ./restore.sh`", "vorhandene Sicherungen anzeigen"],
       ["`sudo ./restore.sh --from latest --yes`", "die neueste Sicherung zurückspielen"],
       ["`sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes`", "eine Sicherung vom USB-Stick zurückspielen"],
     ],
     restoreNote:
-      "Vorher wird der aktuelle Stand automatisch gesichert (`pre-restore-…`) — eine falsche Wiederherstellung lässt sich rückgängig machen.",
-    updateTitle: "6  Update und Rollback",
+      "Vorher wird der aktuelle Stand gesichert (`pre-restore-…`) — rückgängig machbar.",
+    updateTitle: "7  Update und Rollback",
     updateRows: [
       ["`sudo bash task-tracker-onprem-<neu>.run`", "neue Version: erkennt die Installation und bietet das Update an"],
       ["`sudo ./update.sh --rollback`", "das letzte Update rückgängig machen"],
@@ -132,7 +132,14 @@ const L = {
     ],
     updateNote:
       "Jedes Update sichert zuerst alles. Startet die neue Version nicht sauber, läuft automatisch wieder die alte.",
-    helpTitle: "7  Wenn etwas nicht klappt",
+    portsTitle: "3  Firewall / Ports (alle eingehend, TCP)",
+    portsRows: [
+      ["443 (HTTPS)", "Standard „internal“ und „domain“: aus dem LAN (bei „domain“ aus dem Internet). Bei „http“ nicht nötig."],
+      ["80 (HTTP)", "Umleitung auf HTTPS, Zertifikat `/ca.crt`; bei „http“ der einzige Port; bei „domain“ Pflicht aus dem Internet."],
+      ["Nie offen", "PostgreSQL (5432), App (3000) — nur im internen Docker-Netz. Ausgehend nichts nötig (außer „domain“)."],
+    ],
+    portsNote: "Andere Ports: `--http-port 8080 --https-port 8443`. Docker umgeht UFW — begrenzen per Firewall vor dem Server oder Kette `DOCKER-USER`.",
+    helpTitle: "8  Wenn etwas nicht klappt",
     helpRows: [
       ["Zertifikatswarnung", "Zertifikat auf dem Gerät noch nicht importiert (Schritt 4) — oder eine andere Adresse geöffnet als bei der Installation angegeben."],
       ["Seite nicht erreichbar", "`sudo docker compose ps` — alle drei Dienste „running“, app „healthy“. Protokoll: `sudo docker compose logs -f app`"],
@@ -152,7 +159,7 @@ const L = {
     hwTitle: "1  What you need",
     hwHead: ["", "Minimum", "Recommended"],
     hwRows: [
-      ["Processor", "2 cores (x86_64 or ARM64)", "4 cores"],
+      ["Processor", "2 cores (x86_64)", "4 cores"],
       ["Memory", "4 GB", "8 GB"],
       ["Disk", "20 GB free", "50 GB SSD"],
       ["System", "Ubuntu 22.04 or 24.04, access with sudo", ""],
@@ -195,30 +202,30 @@ const L = {
     ],
     otherModes:
       "Without questions: `sudo bash RUN -- --app-name \"My Team\" --locale en --yes`. With internet and your own domain (online package): `sudo ./install.sh --tls domain --domain tasks.example.com`.",
-    nameTitle: "3  Name, logo, language",
+    nameTitle: "4  Name, logo, language",
     nameRows: [
       ["Name", "Question 1 of the installation. Change it later: `APP_NAME=…` in `/opt/task-tracker/.env`, then `sudo ./update.sh --restart`. Empty = default name per language."],
       ["Logo, colours", "Logo: question 2 (max. 2 MB). Later in the app as superuser: **Settings → Branding**. Included in backups."],
       ["Language", "Question 3 — language of the login page and of the superuser. Every user can switch their own language."],
     ],
     opsIntro: "Run all commands in the folder `/opt/task-tracker`: `cd /opt/task-tracker`",
-    backupTitle: "4  Backup",
+    backupTitle: "5  Backup",
     backupRows: [
       ["automatic", "every night at **03:30**, the last 14 are kept in `/var/backups/task-tracker`"],
       ["`sudo ./backup.sh`", "make a backup now"],
       ["`sudo ./backup.sh --to /media/$USER/USB`", "write the backup straight to a USB stick"],
     ],
     backupWarn:
-      "Copy a backup to USB regularly — a backup on the same server does not help if the server fails. Backups are not encrypted and contain every password: keep them safe.",
-    restoreTitle: "5  Restore",
+      "Copy to USB regularly (a backup on the failed server is gone too). Not encrypted, contains every password: keep it safe.",
+    restoreTitle: "6  Restore",
     restoreRows: [
       ["`sudo ./restore.sh`", "list the available backups"],
       ["`sudo ./restore.sh --from latest --yes`", "restore the newest backup"],
       ["`sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes`", "restore a backup from a USB stick"],
     ],
     restoreNote:
-      "The current state is saved automatically first (`pre-restore-…`) — a wrong restore can be undone.",
-    updateTitle: "6  Update and rollback",
+      "The current state is saved first (`pre-restore-…`) — can be undone.",
+    updateTitle: "7  Update and rollback",
     updateRows: [
       ["`sudo bash task-tracker-onprem-<new>.run`", "new version: detects the installation and offers the update"],
       ["`sudo ./update.sh --rollback`", "undo the last update"],
@@ -226,7 +233,14 @@ const L = {
     ],
     updateNote:
       "Every update backs up everything first. If the new version does not start cleanly, the old one runs again automatically.",
-    helpTitle: "7  If something does not work",
+    portsTitle: "3  Firewall / ports (all inbound, TCP)",
+    portsRows: [
+      ["443 (HTTPS)", "Default “internal” and “domain”: from the LAN (with “domain”: from the internet). Not needed for “http”."],
+      ["80 (HTTP)", "Redirect to HTTPS, certificate `/ca.crt`; the only port for “http”; with “domain” required from the internet."],
+      ["Never open", "PostgreSQL (5432), app (3000) — internal Docker network only. Outbound: nothing (except “domain”)."],
+    ],
+    portsNote: "Other ports: `--http-port 8080 --https-port 8443`. Docker bypasses UFW — restrict with the firewall in front or the `DOCKER-USER` chain.",
+    helpTitle: "8  If something does not work",
     helpRows: [
       ["Certificate warning", "Certificate not imported on that device yet (step 4) — or an address was opened other than the one given at installation."],
       ["Site not reachable", "`sudo docker compose ps` — all three services “running”, app “healthy”. Log: `sudo docker compose logs -f app`"],
@@ -246,7 +260,7 @@ const L = {
     hwTitle: "١  ما تحتاج إليه",
     hwHead: ["", "الحد الأدنى", "المُوصى به"],
     hwRows: [
-      ["المعالج", "نواتان (x86_64 أو ARM64)", "٤ أنوية"],
+      ["المعالج", "نواتان (x86_64)", "٤ أنوية"],
       ["الذاكرة", "4 GB", "8 GB"],
       ["القرص", "20 GB مساحة فارغة", "50 GB SSD"],
       ["النظام", "Ubuntu 22.04 أو 24.04 مع صلاحية sudo", ""],
@@ -289,30 +303,30 @@ const L = {
     ],
     otherModes:
       "دون أسئلة: `sudo bash RUN -- --app-name \"My Team\" --locale ar --yes`. مع إنترنت ونطاق خاص (الحزمة المتصلة): `sudo ./install.sh --tls domain --domain tasks.example.com`.",
-    nameTitle: "٣  الاسم والشعار واللغة",
+    nameTitle: "٤  الاسم والشعار واللغة",
     nameRows: [
       ["الاسم", "السؤال ١ أثناء التثبيت. لتغييره لاحقًا: `APP_NAME=…` في `/opt/task-tracker/.env` ثم `sudo ./update.sh --restart`. فارغ = الاسم الافتراضي لكل لغة."],
       ["الشعار والألوان", "الشعار: السؤال ٢ (حتى 2 MB). لاحقًا داخل التطبيق كمستخدم أعلى: **الإعدادات ← الهوية**. يُحفظ ضمن النسخ الاحتياطية."],
       ["اللغة", "السؤال ٣ — لغة صفحة الدخول ولغة المستخدم الأعلى. ويستطيع كل مستخدم تغيير لغته بنفسه."],
     ],
     opsIntro: "نفّذ كل الأوامر داخل المجلد `/opt/task-tracker`: ‏`cd /opt/task-tracker`",
-    backupTitle: "٤  النسخ الاحتياطي",
+    backupTitle: "٥  النسخ الاحتياطي",
     backupRows: [
       ["تلقائيًا", "كل ليلة الساعة **03:30**، ويُحتفظ بآخر ١٤ نسخة في `/var/backups/task-tracker`"],
       ["`sudo ./backup.sh`", "إنشاء نسخة احتياطية الآن"],
       ["`sudo ./backup.sh --to /media/$USER/USB`", "كتابة النسخة مباشرة على ذاكرة USB"],
     ],
     backupWarn:
-      "انسخ نسخة احتياطية إلى ذاكرة USB بانتظام — النسخة الموجودة على الخادم نفسه لا تنفع إذا تعطّل الخادم. النسخ غير مشفّرة وتحتوي على كل كلمات المرور: احفظها في مكان آمن.",
-    restoreTitle: "٥  الاستعادة",
+      "انسخها إلى USB بانتظام (إذا تعطّل الخادم تضيع النسخة معه). غير مشفّرة وتحتوي كل كلمات المرور: احفظها بأمان.",
+    restoreTitle: "٦  الاستعادة",
     restoreRows: [
       ["`sudo ./restore.sh`", "عرض النسخ الاحتياطية المتاحة"],
       ["`sudo ./restore.sh --from latest --yes`", "استعادة أحدث نسخة"],
       ["`sudo ./restore.sh --from /media/$USER/USB/20261031-033000 --yes`", "استعادة نسخة من ذاكرة USB"],
     ],
     restoreNote:
-      "قبل ذلك تُحفظ الحالة الحالية تلقائيًا (`pre-restore-…`) — لذا يمكن التراجع عن استعادة خاطئة.",
-    updateTitle: "٦  التحديث والتراجع",
+      "تُحفظ الحالة الحالية أولًا (`pre-restore-…`) — يمكن التراجع.",
+    updateTitle: "٧  التحديث والتراجع",
     updateRows: [
       ["`sudo bash task-tracker-onprem-<new>.run`", "إصدار جديد: يتعرّف على التثبيت الحالي ويعرض التحديث"],
       ["`sudo ./update.sh --rollback`", "التراجع عن آخر تحديث"],
@@ -320,7 +334,14 @@ const L = {
     ],
     updateNote:
       "كل تحديث يبدأ بنسخة احتياطية كاملة. وإذا لم يعمل الإصدار الجديد بشكل سليم، يعود الإصدار القديم تلقائيًا.",
-    helpTitle: "٧  إذا لم يعمل شيء ما",
+    portsTitle: "٣  الجدار الناري / المنافذ (كلها واردة، TCP)",
+    portsRows: [
+      ["443 (HTTPS)", "الافتراضي «internal» و«domain»: من الشبكة المحلية (ومع «domain» من الإنترنت). غير مطلوب مع «http»."],
+      ["80 (HTTP)", "تحويل إلى HTTPS والشهادة `/ca.crt`؛ المنفذ الوحيد مع «http»؛ مع «domain» إلزامي من الإنترنت."],
+      ["لا يُفتح أبدًا", "PostgreSQL (5432) والتطبيق (3000) — داخل شبكة Docker فقط. الصادر: لا شيء (إلا «domain»)."],
+    ],
+    portsNote: "منافذ أخرى: `--http-port 8080 --https-port 8443`. يتجاوز Docker قواعد UFW — قيّد الوصول بالجدار الناري أمام الخادم أو سلسلة `DOCKER-USER`.",
+    helpTitle: "٨  إذا لم يعمل شيء ما",
     helpRows: [
       ["تحذير الشهادة", "لم تُستورد الشهادة على هذا الجهاز بعد (الخطوة ٤) — أو فُتح عنوان غير الذي حُدِّد أثناء التثبيت."],
       ["الصفحة غير متاحة", "`sudo docker compose ps` — يجب أن تكون الخدمات الثلاث running و app بحالة healthy. السجل: `sudo docker compose logs -f app`"],
@@ -423,6 +444,9 @@ function buildHtml(t) {
   <h2>${esc(t.instTitle)}</h2>
   <ol class="steps">${steps}</ol>
   <p class="note">${md(t.otherModes)}</p>
+  <h2>${esc(t.portsTitle)}</h2>
+  ${table(t.portsRows)}
+  <p class="note">${md(t.portsNote)}</p>
   <div class="foot"><span>${esc(t.footer)}</span><span dir="ltr">1 / 2</span></div>
 </section>
 
