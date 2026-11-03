@@ -9,6 +9,10 @@ const SLUG = `e2e-${Date.now().toString(36)}`;
 
 test("Projekt-Wissen: anlegen, versionieren, Geheimnis abweisen, suchen, exportieren", async ({ page }) => {
   await login(page, "admin", "Admin-2026!", "de");
+  // Willkommens-Dialog (Onboarding) wegklicken, falls er erscheint
+  const skip = page.getByRole("button", { name: /^Überspringen/ });
+  await skip.click({ timeout: 8000 }).catch(() => {});
+  await expect(page.getByText(/Willkommen,/)).toHaveCount(0);
   await page.goto("/projects");
   const href = await page.locator('a[href^="/projects/c"]').first().getAttribute("href");
   const projectId = href!.split("/")[2];
@@ -36,7 +40,7 @@ test("Projekt-Wissen: anlegen, versionieren, Geheimnis abweisen, suchen, exporti
   // Geheimnis → klare Meldung mit Zeile
   await page.locator('textarea[name="inhalt"]').fill("## Zugang\n\npasswort: Sommer2026!\n");
   await page.getByRole("button", { name: "Speichern" }).click();
-  await expect(page.getByRole("alert")).toContainText("Zeile 3 sieht nach einem Zugangsdatum aus");
+  await expect(page.getByTestId("wissen-editor").getByRole("alert")).toContainText("Zeile 3 sieht nach einem Zugangsdatum aus");
 
   // Verlauf: zwei Versionen, ältere zeigt Diff
   await page.goto(`/projects/${projectId}/wissen/${SLUG}`);
