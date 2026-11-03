@@ -191,6 +191,7 @@ if [ -r /etc/os-release ]; then
 fi
 case "$OS_ID:$OS_VER" in
   ubuntu:22.04|ubuntu:24.04) say "  ✓ ${PRETTY_NAME:-Ubuntu $OS_VER}" ;;
+  opensuse*:*|sles:*|sled:*) say "  ✓ ${PRETTY_NAME:-openSUSE} — Docker must come from zypper first (zypper install docker docker-compose)" ;;
   *) printf '  ! %s is not Ubuntu 22.04/24.04 — tested only there. Continuing.\n' "${PRETTY_NAME:-This system}" >&2 ;;
 esac
 
