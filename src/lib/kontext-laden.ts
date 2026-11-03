@@ -31,7 +31,13 @@ export async function ladeKontexte(
   if (projekte.length === 0) return [];
   const ids = projekte.map((p) => p.id);
 
-  const [fassungen, aufgaben] = await Promise.all([
+  const [wissen, fassungen, aufgaben] = await Promise.all([
+    // TOF-0839: die angepinnten Wissen-Seiten sind jetzt die Quelle; ProjectContext nur noch Rückfall.
+    prisma.wissenSeite.findMany({
+      where: { tenantId, projectId: { in: ids }, deletedAt: null, angepinnt: true },
+      orderBy: [{ art: "asc" }, { titel: "asc" }],
+      select: { projectId: true, titel: true, inhalt: true, aktualisiertAm: true, aktualisiertVon: { select: { name: true } } },
+    }),
     prisma.projectContext.findMany({
       where: { projectId: { in: ids } },
       orderBy: { createdAt: "desc" },
@@ -45,7 +51,7 @@ export async function ladeKontexte(
   ]);
   const fassung = new Map(fassungen.map((f) => [f.projectId, f]));
   return projekte.map((p) => {
-    const f = fassung.get(p.id);
+    const f = ausWissen(wissen.filter((w) => w.projectId === p.id)) ?? fassung.get(p.id);
     return {
       p: {
         id: p.id,
@@ -57,4 +63,15 @@ export async function ladeKontexte(
       aufgaben: aufgaben.filter((a) => a.projectId === p.id),
     };
   });
+}
+
+/** Angepinnte Wissen-Seiten eines Projekts als EIN Kontext-Text (mehrere: je Seite eine Überschrift). */
+function ausWissen(
+  seiten: { titel: string; inhalt: string; aktualisiertAm: Date; aktualisiertVon: { name: string } | null }[],
+): { content: string; createdAt: Date; user: { name: string } } | undefined {
+  if (seiten.length === 0) return undefined;
+  const juengste = seiten.reduce((a, b) => (b.aktualisiertAm > a.aktualisiertAm ? b : a));
+  const content =
+    seiten.length === 1 ? seiten[0].inhalt : seiten.map((s) => `## ${s.titel}\n\n${s.inhalt.trim()}`).join("\n\n");
+  return { content, createdAt: juengste.aktualisiertAm, user: { name: juengste.aktualisiertVon?.name ?? "?" } };
 }

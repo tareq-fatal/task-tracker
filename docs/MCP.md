@@ -88,6 +88,15 @@ Der Reihe nach, jeder Schritt für sich wiederholbar:
 | `--adopt-user` | Holt ein bestehendes Konto in diesen Mandanten — nur wenn es dort nichts besitzt. |
 | `--token-days N` | Befristet den Token. |
 
+### Projekt-Wissen: Anfang und Ende jeder Sitzung (TOF-0839, 03.11.2026)
+
+**Zu Beginn jeder Sitzung `projekt_kontext(projectId)`** (oder `wissen_lesen(projectId)`),
+**am Ende `wissen_schreiben`** (neues Wissen, meist `slug: "stand"` mit `anhang`) **und
+`entscheidung_hinzufuegen`** (jede Entscheidung mit Begründung). Keine Zugangsdaten ins Wissen.
+Einzelheiten, Rechte und Export: [WISSEN.md](WISSEN.md). Der enge Scope `kontext` öffnet im MCP
+genau diese fünf Werkzeuge. Neue Werkzeuge zeigt eine laufende Claude-Sitzung erst nach
+Neustart/Reconnect des MCP-Servers.
+
 ### Arbeitsregeln für Sessions (Tarek, 14.08.2026)
 
 Drei Regeln, die beim Anlegen und Pflegen von Aufgaben gelten. Sie stehen hier,
@@ -291,6 +300,11 @@ weiterhin.
 | `complete_step` | write | Schritt abhaken (oder wieder öffnen) |
 | `upload_attachment` | write | Lokale Datei anhängen (max. 10 MB) |
 | `create_project` | write | Projekt anlegen (nur Admins) |
+| `projekt_kontext` | read / kontext | **Sitzungsstart:** kompakte Zusammenfassung eines Projekts (angepinnte Wissen-Seiten, letzte Entscheidungen, offene P1/P2, wartet auf Tarek) |
+| `wissen_lesen` | read / kontext | Wissen-Seite (`projectId`, `slug`) oder Seitenliste bzw. Projektliste |
+| `wissen_suchen` | read / kontext | Volltext über Seiten und Entscheidungen, Treffer mit Ausschnitt |
+| `wissen_schreiben` | write / kontext | Seite anlegen/neue Version — `inhalt` (ganz) **oder** `anhang` (unten anfügen); unverändert = keine Version; Zugangsdaten werden abgelehnt |
+| `entscheidung_hinzufuegen` | write / kontext | Entscheidung ins Log (nur anhängen; Korrektur = neuer Eintrag mit `korrigiertId`) |
 | `set_active_task` | lokal | Aufgabe für die Mitschrift anheften |
 | `get_active_task` | lokal | Welche Aufgabe ist angeheftet? |
 

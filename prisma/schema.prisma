@@ -43,6 +43,9 @@ model Tenant {
   // Notifications + activity-log entries older than this many days are removed
   // by the daily retention sweep (/api/cron/notification-retention).
   notificationRetentionDays Int @default(30)
+  // TOF-0839: Mandant darf seine Daten (auch das Projekt-Wissen) NIE an externe KI-/Cloud-Dienste
+  // geben. V1 ruft ohnehin nichts Externes auf; V2-Funktionen (z. B. Zusammenfassen) müssen das prüfen.
+  keineExterneKi Boolean @default(false)
   createdAt    DateTime @default(now())
 
   users         User[]
@@ -56,6 +59,9 @@ model Tenant {
   apiTokens     ApiToken[]
   invites       Invite[] // TOF-0783 Einladungslinks
   leads         Lead[] // TOF-0782 Leads je Projekt
+  wissenSeiten  WissenSeite[] // TOF-0839
+  entscheidungen Entscheidung[] // TOF-0839
+  wissenLinks   WissenLink[] // TOF-0839
 }
 
 model Sprint {
@@ -184,6 +190,9 @@ model User {
   apiTokens         ApiToken[]
   projectContexts   ProjectContext[]
   invites           Invite[] // TOF-0783
+  wissenSeiten      WissenSeite[]   @relation("WissenSeiteVon") // TOF-0839
+  wissenVersionen   WissenVersion[] // TOF-0839
+  entscheidungen    Entscheidung[]  // TOF-0839
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -390,6 +399,8 @@ model Project {
   members      ProjectMember[]
   contexts     ProjectContext[] // „Kontext für Claude“, eine Zeile je Fassung
   leads        Lead[] // TOF-0782
+  wissenSeiten   WissenSeite[] // TOF-0839 Projekt-Wissen
+  entscheidungen Entscheidung[] // TOF-0839 Entscheidungs-Log
 
   @@unique([tenantId, externalId])
   @@index([tenantId])
@@ -412,6 +423,93 @@ model ProjectContext {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
+}
+
+// ─── TOF-0839 Projekt-Wissen (Tarek 03.11.2026) ────────────────────────────────
+// Gedächtnis für KI-Sitzungen (jede KI, kein Anbieter): Seiten je Projekt (Stand, Regeln,
+// Adressen, freie Seiten), jede Speicherung eine Version, Entscheidungs-Log (nur anhängen),
+// Verweise auf Aufgaben (TOF-XXXX) und andere Seiten ([[slug]]). Volltext über Postgres
+// (tsvector 'german', GIN) — kein Vektor-Store, keine Cloud. Lösche weich (deletedAt).
+model WissenSeite {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  slug           String // je Projekt eindeutig, z. B. "stand", "regeln", "deploy"
+  titel          String
+  art            String    @default("seite") // stand | regeln | adressen | seite (CHECK in der Migration)
+  inhalt         String // Markdown
+  angepinnt      Boolean   @default(false) // gehört zum Sitzungsstart (projekt_kontext)
+  createdAt      DateTime  @default(now())
+  aktualisiertAm DateTime  @default(now())
+  aktualisiertVonId String?
+  aktualisiertVon   User?   @relation("WissenSeiteVon", fields: [aktualisiertVonId], references: [id], onDelete: SetNull)
+  deletedAt      DateTime?
+  deletedBy      String?
+  // Generierte Spalte (Migration): setweight(titel,'A') || setweight(inhalt,'B'), 'german'.
+  // Achtung migrate dev: erzeugt es „ALTER COLUMN suche DROP DEFAULT“, die Zeile löschen (generierte Spalte).
+  suche          Unsupported("tsvector")?
+
+  versionen WissenVersion[]
+  links     WissenLink[]
+
+  @@unique([projectId, slug])
+  @@index([tenantId, projectId])
+  @@index([suche], type: Gin)
+}
+
+model WissenVersion {
+  id        String      @id @default(cuid())
+  seiteId   String
+  seite     WissenSeite @relation(fields: [seiteId], references: [id], onDelete: Cascade)
+  titel     String
+  art       String
+  inhalt    String
+  userId    String?
+  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  vonName   String // Name zum Zeitpunkt der Speicherung (bleibt, auch wenn der Benutzer weg ist)
+  createdAt DateTime    @default(now())
+
+  @@index([seiteId, createdAt])
+}
+
+// Nur anhängen: eine Korrektur ist ein NEUER Eintrag mit korrigiertId → alter Eintrag.
+model Entscheidung {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  datum        DateTime  @default(now())
+  wer          String
+  was          String
+  warum        String
+  aufgaben     String[]  @default([]) // TOF-Nummern, z. B. ["TOF-0839"]
+  korrigiertId String?
+  createdById  String?
+  createdBy    User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  suche        Unsupported("tsvector")?
+
+  @@index([tenantId, projectId, datum])
+  @@index([suche], type: Gin)
+}
+
+// Verweise aus Seiten: typ "aufgabe" (ziel = "TOF-0839") oder "seite" (ziel = slug im selben Projekt).
+// Beim Speichern einer Seite neu berechnet. Aufgaben werden über die TOF-Nummer im Titel aufgelöst
+// (beim Lesen, mit den üblichen Sichtregeln) — so gelten auch später angelegte Aufgaben.
+model WissenLink {
+  id        String      @id @default(cuid())
+  tenantId  String
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  seiteId   String
+  seite     WissenSeite @relation(fields: [seiteId], references: [id], onDelete: Cascade)
+  typ       String // aufgabe | seite
+  ziel      String
+
+  @@unique([seiteId, typ, ziel])
+  @@index([tenantId, typ, ziel])
 }
 
 model ProjectMember {

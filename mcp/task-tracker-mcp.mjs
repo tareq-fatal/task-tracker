@@ -24,7 +24,7 @@ import path from "node:path";
 import process from "node:process";
 
 const SERVER_NAME = "task-tracker";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "1.1.0";
 const DEFAULT_PROTOCOL = "2024-11-05";
 
 const BASE_URL = (process.env.TASK_TRACKER_URL || "").replace(/\/+$/, "");
@@ -327,6 +327,93 @@ const TOOLS = [
       additionalProperties: false,
     },
     remote: "create_project",
+  },
+  // ── TOF-0839 Projekt-Wissen: Gedächtnis für jede KI-Sitzung ─────────────────
+  // Start: projekt_kontext(projectId). Ende: wissen_schreiben + entscheidung_hinzufuegen.
+  {
+    name: "projekt_kontext",
+    description:
+      "SESSION START: compact summary of a project (pinned knowledge pages Ziel/Stand/Regeln/Adressen, last decisions, open P1/P2 tasks, what waits for Tarek). Call first; at the end write back with wissen_schreiben / entscheidung_hinzufuegen.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id (list_projects / wissen_lesen without arguments)"),
+        entscheidungen: bool("Also return the last 50 decisions as data"),
+      },
+      required: ["projectId"],
+      additionalProperties: false,
+    },
+    remote: "projekt_kontext",
+  },
+  {
+    name: "wissen_lesen",
+    description:
+      "Read project knowledge. projectId + slug: one page (Markdown, who/when; versionen = n for the version list). projectId only: the page list. Nothing: the projects whose knowledge I may read.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id"),
+        slug: str("Page id, e.g. stand, regeln, adressen, deploy"),
+        versionen: int("Also list the last n versions (0-50)", { minimum: 0, maximum: 50 }),
+      },
+      additionalProperties: false,
+    },
+    remote: "wissen_lesen",
+  },
+  {
+    name: "wissen_suchen",
+    description: "Full-text search in project knowledge pages and decisions (German stemming). Returns ranked hits with snippet.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: str("Search words, e.g. 'deploy rollback' or 'TOF-0839'"),
+        projectId: str("Limit to one project"),
+        limit: int("Max hits (1-50)", { minimum: 1, maximum: 50 }),
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    remote: "wissen_suchen",
+  },
+  {
+    name: "wissen_schreiben",
+    description:
+      "Write a knowledge page (new or new version). EITHER inhalt (whole Markdown page) OR anhang (section appended at the end, dated if it has no heading). Unchanged = no new version. Never put credentials here — they are rejected.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id"),
+        slug: str("Page id: a-z, 0-9, '-' (stand, regeln, adressen or any)"),
+        titel: str("Page title (default from slug)"),
+        art: { type: "string", enum: ["stand", "regeln", "adressen", "seite"], description: "Kind of page" },
+        angepinnt: bool("Part of the session-start summary (default: true for stand/regeln/adressen)"),
+        inhalt: str("Whole page as Markdown (replaces the current version)"),
+        anhang: str("Markdown section to append at the end"),
+      },
+      required: ["projectId", "slug"],
+      additionalProperties: false,
+    },
+    remote: "wissen_schreiben",
+  },
+  {
+    name: "entscheidung_hinzufuegen",
+    description:
+      "Append a decision to the project's decision log (append-only; to correct one, add a new entry with korrigiertId).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id"),
+        was: str("What was decided"),
+        warum: str("Why"),
+        wer: str("Who decided (default: me)"),
+        datum: str("YYYY-MM-DD (default: today)"),
+        aufgaben: tagList("TOF numbers, e.g. [\"TOF-0839\"]"),
+        korrigiertId: str("Id of the decision this one corrects"),
+      },
+      required: ["projectId", "was", "warum"],
+      additionalProperties: false,
+    },
+    remote: "entscheidung_hinzufuegen",
   },
   {
     name: "set_active_task",

@@ -67,7 +67,7 @@ async function main() {
   const marine = await prisma.tenant.upsert({
     where: { slug: "marine" },
     update: {},
-    create: { slug: "marine", name: "Marine (Coast Shield)", primaryColor: "#1e3a8a" },
+    create: { slug: "marine", name: "Marine (Coast Shield)", primaryColor: "#1e3a8a", keineExterneKi: true }, // TOF-0839
   });
   const OBJ = objektus.id;
 

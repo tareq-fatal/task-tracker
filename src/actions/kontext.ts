@@ -6,6 +6,7 @@ import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { mintApiToken } from "@/lib/api-token";
 import { KONTEXT_MAX_ZEICHEN } from "@/lib/kontext";
+import { pruefeAufGeheimnisse } from "@/lib/wissen/geheimnis";
 
 export type KontextSpeichernStand = { ok?: boolean; fehler?: string; unveraendert?: boolean };
 
@@ -19,6 +20,9 @@ export async function speichereKontextAction(
   const projectId = String(form.get("projectId") ?? "");
   const content = String(form.get("content") ?? "").replace(/\r\n/g, "\n");
   if (content.length > KONTEXT_MAX_ZEICHEN) return { fehler: `Höchstens ${KONTEXT_MAX_ZEICHEN} Zeichen.` };
+  // TOF-0839: derselbe Geheimnis-Wächter wie im Projekt-Wissen.
+  const geheim = pruefeAufGeheimnisse({ Kontext: content });
+  if (geheim) return { fehler: geheim };
   const projekt = await prisma.project.findFirst({ where: { id: projectId, tenantId: tenant.id, deletedAt: null }, select: { id: true } });
   if (!projekt) return { fehler: "Projekt nicht gefunden." };
   const letzte = await prisma.projectContext.findFirst({ where: { projectId }, orderBy: { createdAt: "desc" }, select: { content: true } });
