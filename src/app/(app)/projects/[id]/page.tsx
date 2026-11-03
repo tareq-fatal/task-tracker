@@ -177,9 +177,9 @@ export default async function ProjectDetailPage({
             </Button>
           )}
           <Button asChild variant="outline">
-            <Link href={`/projects/${project.id}/kontext`}>
+            <Link href={`/projects/${project.id}/wissen`}>
               <Bot className="me-1 h-4 w-4" />
-              {t["kontext.title"]}
+              {t["wissen.title"]}
             </Link>
           </Button>
           {/* TOF-0782 (Tarek 28.10.2026): Leads je Projekt — gleiche Zugriffsregel wie diese Seite */}

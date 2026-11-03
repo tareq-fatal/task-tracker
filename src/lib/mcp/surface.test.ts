@@ -33,7 +33,19 @@ function opBlocks(): Map<string, string> {
 
 const OPS = opBlocks();
 
-const READ_OPS = ["whoami", "list_projects", "list_tasks", "list_users", "sync_status", "get_task", "list_steps"];
+const READ_OPS = [
+  "whoami",
+  "list_projects",
+  "list_tasks",
+  "list_users",
+  "sync_status",
+  "get_task",
+  "list_steps",
+  // TOF-0839 Projekt-Wissen
+  "wissen_suchen",
+  "wissen_lesen",
+  "projekt_kontext",
+];
 const WRITE_OPS = [
   "create_task",
   "update_task",
@@ -44,7 +56,11 @@ const WRITE_OPS = [
   "upload_attachment",
   "link_tasks",
   "create_project",
+  // TOF-0839 Projekt-Wissen
+  "wissen_schreiben",
+  "entscheidung_hinzufuegen",
 ];
+const WISSEN_OPS = ["wissen_suchen", "wissen_lesen", "wissen_schreiben", "entscheidung_hinzufuegen", "projekt_kontext"];
 
 describe("MCP op registry", () => {
   it("parses every declared operation", () => {
@@ -138,6 +154,29 @@ describe("tenant + permission scoping", () => {
 
   it("keeps project creation admin-only", () => {
     expect(OPS.get("create_project")).toContain("isAdminRole(ctx.user.role)");
+  });
+});
+
+describe("TOF-0839 Projekt-Wissen ops", () => {
+  it("only the knowledge ops carry a second scope, and it is exactly \"kontext\"", () => {
+    for (const [name, block] of OPS) {
+      if (WISSEN_OPS.includes(name)) expect(block, name).toContain('alsoScope: "kontext"');
+      else expect(block, name).not.toContain("alsoScope");
+    }
+  });
+
+  it("run with the token's user and tenant, and route every rule through lib/wissen/dienst", () => {
+    for (const name of WISSEN_OPS) {
+      const block = OPS.get(name)!;
+      expect(block, name).toContain("ctx.user, ctx.tenant.id");
+      expect(block, name).toContain("wissenAufruf(");
+      expect(block, name).not.toMatch(/prisma\./);
+    }
+    expect(opsSrc).toMatch(/from "@\/lib\/wissen\/dienst"/);
+  });
+
+  it("route accepts alsoScope only in addition to — never instead of — the scope check", () => {
+    expect(routeSrc).toContain("!requireScope(ctx, operation.scope) && !(operation.alsoScope && requireScope(ctx, operation.alsoScope))");
   });
 });
 

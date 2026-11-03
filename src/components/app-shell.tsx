@@ -39,6 +39,7 @@ import {
   Menu,
   X,
   Gauge,
+  BookOpen,
   KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,7 @@ const MAIN: NavItem[] = [
   { href: "/time", label: "nav.time", icon: Clock },
   { href: "/projects", label: "nav.projects", icon: FolderKanban, tip: "tooltip.projects" },
   { href: "/projektstand", label: "nav.projektstand", icon: Gauge, tip: "tooltip.projektstand" },
+  { href: "/wissen", label: "wissen.title", icon: BookOpen }, // TOF-0839 Projekt-Wissen
 ];
 
 // Mobile bottom nav = the 4 everyday views; everything else lives in "More".

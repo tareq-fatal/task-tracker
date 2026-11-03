@@ -15,7 +15,9 @@ const DISPLAY_CHARS = TOKEN_PREFIX.length + 8;
 
 // "kontext" und "kommentar" (Tarek 15.10.2026) sind bewusst ENG: ein Kontext-Token liest nur
 // /api/kontext.md und /api/projekte/<id>/kontext.md (Kontext + Aufgabenliste), ein Kommentar-Token
-// schreibt nur Kommentare an Aufgaben. Keiner von beiden öffnet das MCP (dort zählt nur read/write).
+// schreibt nur Kommentare an Aufgaben. Im MCP zählt read/write — mit EINER Ausnahme (TOF-0839):
+// „kontext“ öffnet dort genau die Wissen-Ops (wissen_*, entscheidung_hinzufuegen, projekt_kontext,
+// McpOp.alsoScope), sonst nichts.
 export const API_SCOPES = ["read", "write", "kontext", "kommentar"] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 

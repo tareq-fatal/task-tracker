@@ -636,7 +636,7 @@
       },
       "post": {
         "summary": "MCP operation call (RPC)",
-        "description": "Single RPC entry point: `{ \"op\": \"<name>\", \"params\": { … } }`. Deliberately not a REST tree — an agent calls tools by name, so one dispatch point keeps the whole machine-facing surface to exactly one auth check and one scope check.\n\nRead ops: `whoami`, `list_tasks`, `get_task`, `list_steps`, `list_projects`. Write ops (need the `write` scope): `create_task`, `update_task`, `add_comment`, `log_prompt`, `add_step`, `complete_step`, `upload_attachment`, `create_project`.\n\nEvery op inherits the token user's permissions: a task in another tenant reports `404 task not found`, never `403`.",
+        "description": "Single RPC entry point: `{ \"op\": \"<name>\", \"params\": { … } }`. Deliberately not a REST tree — an agent calls tools by name, so one dispatch point keeps the whole machine-facing surface to exactly one auth check and one scope check.\n\nRead ops: `whoami`, `list_tasks`, `get_task`, `list_steps`, `list_projects`. Write ops (need the `write` scope): `create_task`, `update_task`, `add_comment`, `log_prompt`, `add_step`, `complete_step`, `upload_attachment`, `create_project`.\n\nProject knowledge (TOF-0839, also allowed for the narrow `kontext` scope): read `projekt_kontext`, `wissen_lesen`, `wissen_suchen`; write `wissen_schreiben`, `entscheidung_hinzufuegen`. See docs/WISSEN.md.\n\nEvery op inherits the token user's permissions: a task in another tenant reports `404 task not found`, never `403`.",
         "tags": [
           "MCP"
         ],

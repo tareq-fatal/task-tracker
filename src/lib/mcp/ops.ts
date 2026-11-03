@@ -22,6 +22,18 @@ import { applyAutomations } from "@/lib/automation-run";
 import { formatPromptComment } from "./prompt-format";
 import { opSichtbar, type ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
+import {
+  WissenFehler,
+  entscheidungHinzufuegen,
+  entscheidungenListe,
+  projektKontext,
+  seiteLesen,
+  seiteSchreiben,
+  seitenListe,
+  wissenProjekte,
+  wissenSuchen,
+} from "@/lib/wissen/dienst";
+import { WISSEN_ARTEN, WISSEN_MAX_ZEICHEN } from "@/lib/wissen/text";
 
 /**
  * Obergrenze für eine Aufgabenbeschreibung. Die Datenbankspalte ist unbegrenzt;
@@ -277,6 +289,11 @@ const TASK_SELECT = {
 export type McpOp = {
   /** Minimum scope the token must carry. */
   scope: ApiScope;
+  /**
+   * TOF-0839: zweiter Scope, der ebenfalls reicht. Nur die Wissen-Ops setzen ihn auf "kontext" —
+   * so kann ein enger Kontext-Token das Projekt-Wissen lesen und schreiben, aber sonst nichts.
+   */
+  alsoScope?: ApiScope;
   /** One-liner surfaced to the agent as the MCP tool description. */
   describe: string;
   schema: z.ZodTypeAny;
@@ -1197,7 +1214,131 @@ export const OPS: Record<string, McpOp> = {
       return project;
     },
   },
+
+  /* ---------------- TOF-0839 Projekt-Wissen ---------------- */
+  // Alle Regeln (Sichtbarkeit, Schreibrecht, Geheimnis-Wächter, Versionen) liegen in
+  // lib/wissen/dienst.ts — hier nur Übersetzung Parameter ↔ Dienst. Mandant = ctx.tenant.id.
+
+  wissen_suchen: {
+    scope: "read",
+    alsoScope: "kontext",
+    describe:
+      "Search the project knowledge (pages + decisions) — Postgres full text, German. Optional projectId; without it: all projects I may read. Returns ranked hits with snippet.",
+    schema: z
+      .object({
+        query: z.string().trim().min(2).max(200),
+        projectId: idSchema.optional(),
+        limit: z.number().int().min(1).max(50).default(20),
+      })
+      .strict(),
+    run: async (ctx, params: { query: string; projectId?: string; limit: number }) =>
+      wissenAufruf(async () => ({
+        treffer: await wissenSuchen(ctx.user, ctx.tenant.id, params.query, { projectId: params.projectId, limit: params.limit }),
+      })),
+  },
+
+  wissen_lesen: {
+    scope: "read",
+    alsoScope: "kontext",
+    describe:
+      "Read project knowledge. With slug: that page (Markdown, who/when, optional versions). Without slug: the page list of the project. Without projectId: the projects whose knowledge I may read.",
+    schema: z
+      .object({
+        projectId: idSchema.optional(),
+        slug: z.string().trim().min(1).max(60).optional(),
+        versionen: z.number().int().min(0).max(50).default(0),
+      })
+      .strict(),
+    run: async (ctx, params: { projectId?: string; slug?: string; versionen: number }) =>
+      wissenAufruf(async () => {
+        if (!params.projectId) {
+          if (params.slug) throw new McpError("slug needs projectId", 400);
+          return { projekte: await wissenProjekte(ctx.user, ctx.tenant.id) };
+        }
+        if (!params.slug) {
+          const seiten = await seitenListe(ctx.user, ctx.tenant.id, params.projectId);
+          return { projectId: params.projectId, seiten };
+        }
+        const seite = await seiteLesen(ctx.user, ctx.tenant.id, params.projectId, params.slug, { versionen: params.versionen });
+        if (!seite) throw new McpError(`page '${params.slug}' not found — wissen_lesen without slug lists the pages`, 404);
+        return seite;
+      }),
+  },
+
+  wissen_schreiben: {
+    scope: "write",
+    alsoScope: "kontext",
+    describe:
+      "Write a knowledge page (creates it if new). Give EITHER inhalt (whole Markdown page) OR anhang (section appended at the end). Every change is a new version; unchanged → no version. Credentials are rejected.",
+    schema: z
+      .object({
+        projectId: idSchema,
+        slug: z.string().trim().min(1).max(60),
+        titel: z.string().trim().min(1).max(160).optional(),
+        art: z.enum(WISSEN_ARTEN).optional(),
+        angepinnt: z.boolean().optional(),
+        inhalt: z.string().max(WISSEN_MAX_ZEICHEN).optional(),
+        anhang: z.string().min(1).max(WISSEN_MAX_ZEICHEN).optional(),
+      })
+      .strict(),
+    run: async (
+      ctx,
+      params: { projectId: string; slug: string; titel?: string; art?: (typeof WISSEN_ARTEN)[number]; angepinnt?: boolean; inhalt?: string; anhang?: string }
+    ) => wissenAufruf(() => seiteSchreiben(ctx.user, ctx.tenant.id, params)),
+  },
+
+  entscheidung_hinzufuegen: {
+    scope: "write",
+    alsoScope: "kontext",
+    describe:
+      "Append a decision to the project's decision log (append-only): was, warum, optional wer, datum (YYYY-MM-DD), aufgaben (TOF numbers), korrigiertId (the entry this one corrects).",
+    schema: z
+      .object({
+        projectId: idSchema,
+        was: z.string().trim().min(1).max(2000),
+        warum: z.string().trim().min(1).max(2000),
+        wer: z.string().trim().min(1).max(120).optional(),
+        datum: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        aufgaben: z.array(z.string().trim().regex(/^TOF-\d{4}$/i)).max(20).optional(),
+        korrigiertId: idSchema.optional(),
+      })
+      .strict(),
+    run: async (
+      ctx,
+      params: { projectId: string; was: string; warum: string; wer?: string; datum?: string; aufgaben?: string[]; korrigiertId?: string }
+    ) =>
+      wissenAufruf(() =>
+        entscheidungHinzufuegen(ctx.user, ctx.tenant.id, {
+          ...params,
+          datum: params.datum ? new Date(`${params.datum}T12:00:00Z`) : undefined,
+        })
+      ),
+  },
+
+  projekt_kontext: {
+    scope: "read",
+    alsoScope: "kontext",
+    describe:
+      "Session start: compact project summary (≤ ~6k chars) — pinned pages (Ziel/Stand/Regeln/Adressen), last 10 decisions, open P1/P2 tasks, what waits for Tarek. Call this FIRST in every session; at the end call wissen_schreiben / entscheidung_hinzufuegen.",
+    schema: z.object({ projectId: idSchema, entscheidungen: z.boolean().default(false) }).strict(),
+    run: async (ctx, params: { projectId: string; entscheidungen: boolean }) =>
+      wissenAufruf(async () => ({
+        projectId: params.projectId,
+        markdown: await projektKontext(ctx.user, ctx.tenant.id, params.projectId),
+        ...(params.entscheidungen ? { entscheidungen: await entscheidungenListe(ctx.user, ctx.tenant.id, params.projectId, 50) } : {}),
+      })),
+  },
 };
+
+/** Fehler des Wissen-Dienstes als MCP-Fehler mit demselben Status. */
+async function wissenAufruf<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (e) {
+    if (e instanceof WissenFehler) throw new McpError(e.message, e.status);
+    throw e;
+  }
+}
 
 /** Names of every operation, for the MCP server's tools/list. */
 export function opNames(): string[] {
@@ -1211,7 +1352,7 @@ export function opNames(): string[] {
 export function availableOps(scopes: Set<ApiScope>): string[] {
   return Object.entries(OPS)
     // Ein reiner Kontext-/Kommentar-Token (15.10.2026) bekommt hier gar nichts angeboten.
-    .filter(([, op]) => opSichtbar(scopes, op.scope))
+    .filter(([, op]) => opSichtbar(scopes, op.scope) || (op.alsoScope !== undefined && scopes.has(op.alsoScope)))
     .map(([name]) => name);
 }
 

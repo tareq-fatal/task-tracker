@@ -81,6 +81,7 @@ async function main() {
       slug: "marine",
       name: "Marine (Coast Shield)",
       primaryColor: "#1e3a8a",
+      keineExterneKi: true, // TOF-0839: Marine-Daten nie an externe KI
     },
   });
   const OBJ = objektus.id;

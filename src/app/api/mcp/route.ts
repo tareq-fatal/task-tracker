@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
   // Unknown op and forbidden op are both reported plainly — the op list is not
   // a secret (GET /api/mcp hands it out), only the data behind it is.
   if (!operation) return fail(404, `unknown op '${op}'`);
-  if (!requireScope(ctx, operation.scope)) {
+  // TOF-0839: alsoScope (nur Wissen-Ops: "kontext") reicht ebenfalls — sonst nichts.
+  if (!requireScope(ctx, operation.scope) && !(operation.alsoScope && requireScope(ctx, operation.alsoScope))) {
     return fail(403, `op '${op}' requires the '${operation.scope}' scope`);
   }
 

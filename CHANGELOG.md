@@ -6,6 +6,16 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- **Projekt-Wissen (TOF-0839)** — Gedächtnis für KI-Sitzungen, anbieterunabhängig und
+  on-premise-fähig (nur Postgres, keine Cloud, keine Vektor-DB): Seiten je Projekt
+  (Stand, Regeln, Adressen, freie Seiten) mit Versionen, Diff und Wiederherstellen,
+  Entscheidungs-Log (nur anhängen), Volltextsuche (`german`), Verweise auf Aufgaben
+  (`TOF-XXXX`) und Seiten (`[[slug]]`), ZIP-Export als Markdown-Ordner. Neue
+  MCP-Werkzeuge `projekt_kontext`, `wissen_lesen`, `wissen_suchen`, `wissen_schreiben`,
+  `entscheidung_hinzufuegen`; der enge Token-Scope `kontext` öffnet genau diese. Ein
+  Geheimnis-Wächter lehnt Zugangsdaten auf jedem Schreibweg ab (mit Zeilennummer). Der
+  bisherige „Kontext für Claude“ wurde als angepinnte Seite `stand` übernommen; neuer
+  Mandanten-Schalter `keineExterneKi`. Siehe [docs/WISSEN.md](docs/WISSEN.md)
 - **@-mentions in comments** — typing `@` opens a people picker and inserts the
   username, so a mention actually resolves. The mentioned person is notified on
   every channel they have enabled (in-app, web push, Telegram, email, native)

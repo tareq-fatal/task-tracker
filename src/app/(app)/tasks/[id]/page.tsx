@@ -14,6 +14,7 @@ import { RecurringControls } from "@/components/recurring-controls";
 import { describeSchedule } from "@/lib/recurring-describe";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
+import { wissenErwaehnungen } from "@/lib/wissen/dienst";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
@@ -257,6 +258,7 @@ export default async function TaskDetailPage({
   // row and notifies the creator (push + Telegram). Reloads are a no-op via
   // the unique(taskId,userId) constraint. Telegram deep links carry ?src=tg.
   const isCreator = task.createdByUserId === user.id;
+  const wissen = await wissenErwaehnungen(user, tenant.id, task.title).catch(() => ({ seiten: [], entscheidungen: [] })); // TOF-0839
   if (!isCreator) {
     const receipt = await prisma.taskReadReceipt
       .create({
@@ -467,6 +469,29 @@ export default async function TaskDetailPage({
             <span dir="auto">{task.lead.company}</span>
           </Link>
         )}
+        {/* TOF-0839: Wissen-Seiten/Entscheidungen, die diese TOF-Nummer nennen (nur sichtbare Projekte) */}
+        {wissen.seiten.map((w) => (
+          <Link
+            key={`${w.projectId}-${w.slug}`}
+            href={`/projects/${w.projectId}/wissen/${w.slug}`}
+            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+            data-testid="task-wissen"
+          >
+            <span className="text-muted-foreground">{t["wissen.mentioned"]}:</span>
+            <span dir="auto">{w.titel}</span>
+          </Link>
+        ))}
+        {wissen.entscheidungen.map((e) => (
+          <Link
+            key={e.id}
+            href={`/projects/${e.projectId}/wissen#e-${e.id}`}
+            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"
+            data-testid="task-wissen-entscheidung"
+          >
+            <span className="text-muted-foreground">{t["wissen.decisions"]}:</span>
+            <span dir="auto">{e.was.length > 50 ? `${e.was.slice(0, 50)} …` : e.was}</span>
+          </Link>
+        ))}
       </div>
 
       {/* 👁 Read receipts — creators/admins see who opened the task when */}
