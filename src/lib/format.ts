@@ -1,10 +1,11 @@
 import type { Locale } from "./enums";
 
 // Map our app locale to a BCP-47 tag with the right regional conventions:
-// DE → 28.06.2026 / 1.234,56 · EN → 6/28/2026 / 1,234.56 · AR → Arabic digits
-const TAG: Record<Locale, string> = { ar: "ar-EG", de: "de-DE", en: "en-US", tr: "tr-TR" };
+// DE → 28.06.2026 / 1.234,56 · EN → 6/28/2026 / 1,234.56 · AR → Arabic digits,
+// Levantine month names (ar-SY: تشرين الثاني, كانون الأول …) for the Syrian customers
+const TAG: Record<Locale, string> = { ar: "ar-SY", de: "de-DE", en: "en-US", tr: "tr-TR" };
 
-/** BCP-47 tag for an app locale (ar → ar-EG, de → de-DE, …). Use this for every
+/** BCP-47 tag for an app locale (ar → ar-SY, de → de-DE, …). Use this for every
  *  `Intl.*`/`toLocale*` call so month names and digits follow the UI language,
  *  not the browser's — `undefined` gives English month names in an Arabic UI. */
 export function intlTag(locale: Locale): string {

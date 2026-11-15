@@ -1,3 +1,4 @@
+import { intlTag } from "@/lib/format";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Pencil, Pin } from "lucide-react";
@@ -39,7 +40,7 @@ export default async function WissenSeitePage({
   if (!seite) notFound();
   const projektId = rechte.projekt.id;
   const basis = `/projects/${projektId}/wissen`;
-  const datum = (d: Date) => d.toLocaleString(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const datum = (d: Date) => d.toLocaleString(intlTag(locale), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   const version = searchParams.v ? await versionLesen(user, tenant.id, projektId, seite.slug, searchParams.v) : null;
   const bearbeiten = rechte.schreiben && searchParams.bearbeiten === "1" && !version;

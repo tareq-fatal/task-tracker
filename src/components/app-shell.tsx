@@ -337,9 +337,7 @@ export function AppShell({
               ) : (
                 <>
                   <Logo size={24} />
-                  {/* Phones (<480px): logo only — name + section chip + the
-                      action cluster overflowed 390px-wide screens by ~70px. */}
-                  <span className="hidden font-semibold min-[480px]:inline">{t("app.name")}</span>
+                  <span className="truncate font-semibold">{t("app.name")}</span>
                 </>
               )}
             </Link>
@@ -350,15 +348,17 @@ export function AppShell({
                 {t(activeItem.label)}
               </div>
             )}
-            {/* Mobile section chip */}
+            {/* Mobile section chip — hidden below 480px: name + chip + action
+                cluster overflowed 390px phones by ~70px (page shifted sideways).
+                The bottom nav already marks the active section there. */}
             {activeItem && (
-              <span className="ms-1 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
+              <span className="ms-1 hidden min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground min-[480px]:flex md:hidden">
                 <activeItem.icon className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                 {t(activeItem.label)}
               </span>
             )}
 
-            <div data-tour="topbar-actions" className="ms-auto flex items-center gap-2">
+            <div data-tour="topbar-actions" className="ms-auto flex shrink-0 items-center gap-1 sm:gap-2">
               <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />
               <RunningTimer />
               <TooltipHelp textKey="tooltip.new_task">

@@ -18,7 +18,7 @@ import { wissenErwaehnungen } from "@/lib/wissen/dienst";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
-import { formatDate, formatDateTime, formatRelative } from "@/lib/format";
+import { formatDate, formatDateTime, formatRelative, intlTag } from "@/lib/format";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
@@ -216,7 +216,7 @@ export default async function TaskDetailPage({
         <p className="mt-3 text-sm text-muted-foreground">
           {t["deleted.by"]
             .replace("{name}", deletedByUser?.name ?? "—")
-            .replace("{date}", task.deletedAt.toLocaleDateString(getActiveLocale()))}
+            .replace("{date}", task.deletedAt.toLocaleDateString(intlTag(getActiveLocale())))}
         </p>
         {assigneeNames && (
           <p className="mt-1 text-sm text-muted-foreground">

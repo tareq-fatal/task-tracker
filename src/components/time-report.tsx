@@ -1,5 +1,6 @@
 "use client";
 
+import { intlTag } from "@/lib/format";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,7 @@ export function TimeReport({
   };
 
   const selectCls = "h-9 rounded-md border bg-background px-3 text-sm";
-  const range = `${(parseDayKey(fromDay) ?? now).toLocaleDateString(locale)} – ${(parseDayKey(toDay) ?? now).toLocaleDateString(locale)}`;
+  const range = `${(parseDayKey(fromDay) ?? now).toLocaleDateString(intlTag(locale))} – ${(parseDayKey(toDay) ?? now).toLocaleDateString(intlTag(locale))}`;
 
   return (
     <div className="space-y-6">

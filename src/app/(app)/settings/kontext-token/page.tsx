@@ -1,3 +1,4 @@
+import { intlTag } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -23,7 +24,7 @@ export default async function KontextTokenPage() {
     orderBy: { createdAt: "desc" },
     select: { id: true, name: true, prefix: true, scopes: true, createdAt: true, lastUsedAt: true, expiresAt: true, revokedAt: true, user: { select: { name: true } } },
   });
-  const datum = (d: Date | null) => (d ? d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" }) : t["kontext.tokenNever"]);
+  const datum = (d: Date | null) => (d ? d.toLocaleDateString(intlTag(locale), { day: "2-digit", month: "2-digit", year: "numeric" }) : t["kontext.tokenNever"]);
 
   return (
     <div className="container max-w-4xl space-y-6 py-6">
