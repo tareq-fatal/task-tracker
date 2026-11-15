@@ -337,7 +337,9 @@ export function AppShell({
               ) : (
                 <>
                   <Logo size={24} />
-                  <span className="font-semibold">{t("app.name")}</span>
+                  {/* Phones (<480px): logo only — name + section chip + the
+                      action cluster overflowed 390px-wide screens by ~70px. */}
+                  <span className="hidden font-semibold min-[480px]:inline">{t("app.name")}</span>
                 </>
               )}
             </Link>
@@ -350,7 +352,7 @@ export function AppShell({
             )}
             {/* Mobile section chip */}
             {activeItem && (
-              <span className="ms-1 flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
+              <span className="ms-1 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground md:hidden">
                 <activeItem.icon className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
                 {t(activeItem.label)}
               </span>

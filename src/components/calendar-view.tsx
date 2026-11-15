@@ -15,6 +15,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { monthMatrix } from "@/lib/views";
 import { setTaskDueDateAction } from "@/actions/tasks";
 import { useT } from "@/components/i18n-provider";
+import { intlTag } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export type ViewTask = {
@@ -54,7 +55,7 @@ function Chip({ task }: { task: ViewTask }) {
 }
 
 function DayCell({ date, day, inMonth, tasks, onCreate }: {
-  date: string; day: number; inMonth: boolean; tasks: ViewTask[]; onCreate: (d: string) => void;
+  date: string; day: string; inMonth: boolean; tasks: ViewTask[]; onCreate: (d: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: date });
   const today = new Date().toISOString().slice(0, 10) === date;
@@ -82,7 +83,7 @@ function DayCell({ date, day, inMonth, tasks, onCreate }: {
 }
 
 export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
   const now = new Date();
   const [ym, setYm] = useState({ y: now.getUTCFullYear(), m: now.getUTCMonth() });
@@ -90,6 +91,8 @@ export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const weeks = useMemo(() => monthMatrix(ym.y, ym.m), [ym]);
+  // Day numbers in the UI locale's digits, matching the month label above.
+  const dayNum = useMemo(() => new Intl.NumberFormat(intlTag(locale)), [locale]);
   const byDay = useMemo(() => {
     const map = new Map<string, ViewTask[]>();
     for (const tk of tasks) if (tk.dueDate) map.set(tk.dueDate, [...(map.get(tk.dueDate) ?? []), tk]);
@@ -106,7 +109,7 @@ export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
     setTaskDueDateAction(id, date);
   }
 
-  const monthLabel = new Date(Date.UTC(ym.y, ym.m, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const monthLabel = new Date(Date.UTC(ym.y, ym.m, 1)).toLocaleDateString(intlTag(locale), { month: "long", year: "numeric", timeZone: "UTC" });
   const dows = [t("cal.mon"), t("cal.tue"), t("cal.wed"), t("cal.thu"), t("cal.fri"), t("cal.sat"), t("cal.sun")];
 
   return (
@@ -132,7 +135,7 @@ export function CalendarView({ tasks: initial }: { tasks: ViewTask[] }) {
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="grid grid-cols-7 overflow-hidden rounded-b-lg border-x border-b">
           {weeks.flat().map((c) => (
-            <DayCell key={c.date} date={c.date} day={c.day} inMonth={c.inMonth} tasks={byDay.get(c.date) ?? []} onCreate={(d) => router.push(`/tasks/new?due=${d}`)} />
+            <DayCell key={c.date} date={c.date} day={dayNum.format(c.day)} inMonth={c.inMonth} tasks={byDay.get(c.date) ?? []} onCreate={(d) => router.push(`/tasks/new?due=${d}`)} />
           ))}
         </div>
       </DndContext>

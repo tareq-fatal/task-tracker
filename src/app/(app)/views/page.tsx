@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireTenant } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { getActiveLocale } from "@/lib/locale";
+import { intlTag } from "@/lib/format";
 import { getDictionary } from "@/lib/i18n";
 import { taskVisibility } from "@/lib/task-access";
 import { cn } from "@/lib/utils";
@@ -19,7 +20,8 @@ export default async function ViewsPage({
   // /gantt page. The consolidated "الجدول الزمني" view owns them now.
   if (searchParams.view === "gantt" || searchParams.view === "timeline") redirect("/gantt");
   const { user, tenant } = await requireTenant();
-  const t = getDictionary(getActiveLocale());
+  const locale = getActiveLocale();
+  const t = getDictionary(locale);
   const view = searchParams.view === "scrum" ? "scrum" : "calendar";
 
   const projects = await scopedProjectOptions(user, tenant.id);
@@ -48,7 +50,7 @@ export default async function ViewsPage({
   const activeSprint = projectId
     ? await prisma.sprint.findFirst({ where: { tenantId: tenant.id, projectId, status: "active" } })
     : null;
-  const fmt = (d: Date | null) => (d ? d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" }) : "");
+  const fmt = (d: Date | null) => (d ? d.toLocaleDateString(intlTag(locale), { day: "2-digit", month: "2-digit" }) : "");
   const sprintHeader = activeSprint
     ? { name: activeSprint.name, range: activeSprint.startDate && activeSprint.endDate ? `${fmt(activeSprint.startDate)} – ${fmt(activeSprint.endDate)}` : "", goal: activeSprint.goal }
     : null;

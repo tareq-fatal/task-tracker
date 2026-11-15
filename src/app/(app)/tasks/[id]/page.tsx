@@ -18,7 +18,7 @@ import { wissenErwaehnungen } from "@/lib/wissen/dienst";
 import { getDictionary } from "@/lib/i18n";
 import { getActiveLocale } from "@/lib/locale";
 import { initials, isOverdue, commentReadByAll } from "@/lib/tasks";
-import { formatDateTime, formatRelative } from "@/lib/format";
+import { formatDate, formatDateTime, formatRelative } from "@/lib/format";
 import { MarkCommentsRead } from "@/components/mark-comments-read";
 import { Check, CheckCheck, Trash2 } from "lucide-react";
 import { RestoreTaskButton } from "@/components/restore-task-button";
@@ -57,7 +57,7 @@ import { ActivityFeed } from "@/components/activity-feed";
 import { TaskCustomFields } from "@/components/task-custom-fields";
 import { parseOptions, type FieldType } from "@/lib/custom-fields";
 import { CopyLinkButton } from "@/components/copy-link-button";
-import { formatDuration } from "@/lib/tasks";
+import { formatDurationLabel } from "@/lib/tasks";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -588,7 +588,7 @@ export default async function TaskDetailPage({
                 className={cn("font-medium", overdue && "text-rose-600")}
               >
                 {task.dueDate
-                  ? format(task.dueDate, "dd.MM.yyyy")
+                  ? formatDate(task.dueDate, locale)
                   : t["common.none"]}
               </span>
             </div>
@@ -599,11 +599,11 @@ export default async function TaskDetailPage({
                   {t["task.spent"]}:
                 </span>
                 <span className="font-medium tabular-nums">
-                  {formatDuration(task.spentHours)}
+                  {formatDurationLabel(task.spentHours, locale)}
                   {task.estimatedHours != null && (
                     <>
                       {" "}
-                      {t["time.of"]} {formatDuration(task.estimatedHours)}
+                      {t["time.of"]} {formatDurationLabel(task.estimatedHours, locale)}
                     </>
                   )}
                 </span>
@@ -616,7 +616,7 @@ export default async function TaskDetailPage({
                   ? t["task.origin.self"]
                   : `${t["task.origin.assigned"]} ${task.createdBy.name}`}
                 {" · "}
-                {format(task.createdAt, "dd.MM.yyyy")}
+                {formatDate(task.createdAt, locale)}
               </span>
               {isAdminRole(user.role) && (
                 <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
@@ -661,7 +661,7 @@ export default async function TaskDetailPage({
                 <span className="text-muted-foreground">{t["recurrence.nextRun"]}:</span>
                 <span className="font-medium tabular-nums">
                   {task.recurringNextAt
-                    ? format(task.recurringNextAt, "dd.MM.yyyy HH:mm")
+                    ? formatDateTime(task.recurringNextAt, locale)
                     : t["common.none"]}
                   {task.recurringTz ? ` · ${task.recurringTz}` : ""}
                 </span>
@@ -679,7 +679,7 @@ export default async function TaskDetailPage({
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">{t["recurrence.end.until"]}:</span>
                   <span className="font-medium tabular-nums">
-                    {format(task.recurringUntil, "dd.MM.yyyy")}
+                    {formatDate(task.recurringUntil, locale)}
                   </span>
                 </div>
               )}
@@ -902,7 +902,7 @@ export default async function TaskDetailPage({
                   transcript={v.transcript}
                 />
                 <span className="text-xs text-muted-foreground">
-                  {format(v.createdAt, "dd.MM.yyyy HH:mm")}
+                  {formatDateTime(v.createdAt, locale)}
                 </span>
                 {isAdminRole(user.role) && <VoiceNoteDeleteButton voiceNoteId={v.id} />}
               </div>
@@ -965,7 +965,7 @@ export default async function TaskDetailPage({
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{c.user.name}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                      {format(c.createdAt, "dd.MM.yyyy HH:mm")}
+                      {formatDateTime(c.createdAt, locale)}
                       {mine &&
                         (readByAll ? (
                           <CheckCheck className="h-3.5 w-3.5 text-sky-500" aria-label={t["receipt.read"]} />

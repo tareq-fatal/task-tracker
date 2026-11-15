@@ -664,7 +664,7 @@ export const dictionaries = {
     "time.stop": "إيقاف",
     "time.add": "إضافة",
     "time.total": "الإجمالي",
-    "time.durationHint": "المدة (مثل 1h30m أو 90)",
+    "time.durationHint": "المدة بالدقائق (مثل 90)",
     "time.note": "ملاحظة",
     "time.noEntries": "لا تسجيلات بعد.",
     "time.delete": "حذف",

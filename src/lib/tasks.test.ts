@@ -9,6 +9,7 @@ import {
   clampProgress,
   parseDuration,
   formatDuration,
+  formatDurationLabel,
   daysUntil,
   overdueDaysCount,
   runningHours,
@@ -111,6 +112,16 @@ describe("parseDuration", () => {
     expect(parseDuration(null)).toBeNull();
     expect(parseDuration("abc")).toBeNull();
     expect(parseDuration("-2h")).toBeNull();
+  });
+});
+
+describe("formatDurationLabel", () => {
+  it("uses the UI language's units, no Latin h/d in Arabic", () => {
+    expect(formatDurationLabel(7, "ar")).toBe("7 س");
+    expect(formatDurationLabel(16, "ar")).toBe("2 ي");
+    expect(formatDurationLabel(7, "en")).toBe("7h");
+    expect(formatDurationLabel(16, "de")).toBe("2T");
+    expect(formatDurationLabel(null, "ar")).toBe("0 س");
   });
 });
 

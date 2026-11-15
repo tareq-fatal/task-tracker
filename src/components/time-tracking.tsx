@@ -12,7 +12,8 @@ import {
   toggleBillableAction,
   type TimeActionState,
 } from "@/actions/time";
-import { formatMinutes } from "@/lib/time-tracking";
+import { formatMinutesLabel } from "@/lib/time-tracking";
+import { intlTag } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,7 @@ export function TimeTracking({
   /** Deletion is admin-only (2026-08-02) — non-admins never see the trash icon. */
   canDelete?: boolean;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
   const [pending, start] = useTransition();
   const [state, formAction] = useFormState<TimeActionState, FormData>(
@@ -79,7 +80,7 @@ export function TimeTracking({
           </Button>
         )}
         <span className="text-sm text-muted-foreground">
-          {t("time.total")}: <span className="font-semibold text-foreground tabular-nums">{formatMinutes(totalMinutes)}</span>
+          {t("time.total")}: <span className="font-semibold text-foreground tabular-nums">{formatMinutesLabel(totalMinutes, locale)}</span>
         </span>
       </div>
 
@@ -104,10 +105,10 @@ export function TimeTracking({
             <li key={e.id} className="flex items-center gap-2 py-1.5">
               <span className="font-medium">{e.userName}</span>
               <span className="tabular-nums text-indigo-600">
-                {e.endedAt ? formatMinutes(e.minutes) : t("time.running")}
+                {e.endedAt ? formatMinutesLabel(e.minutes, locale) : t("time.running")}
               </span>
               {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}
-              <span className="ms-auto text-xs text-muted-foreground">{new Date(e.startedAt).toLocaleDateString()}</span>
+              <span className="ms-auto text-xs text-muted-foreground">{new Date(e.startedAt).toLocaleDateString(intlTag(locale))}</span>
               {billingEnabled && (
                 <button
                   onClick={() => act(() => toggleBillableAction(e.id))}

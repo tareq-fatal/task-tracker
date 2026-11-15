@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskStatus } from "./enums";
+import type { Locale, TaskPriority, TaskStatus } from "./enums";
 
 /** Tailwind classes for status pills. */
 export const STATUS_STYLES: Record<TaskStatus, string> = {
@@ -120,6 +120,22 @@ export function formatDuration(hours: number | null | undefined): string {
   }
   const rounded = Math.round(hours * 10) / 10;
   return `${rounded}h`;
+}
+
+const DURATION_UNITS: Record<Locale, { h: string; d: string }> = {
+  ar: { h: " س", d: " ي" },
+  de: { h: "h", d: "T" },
+  en: { h: "h", d: "d" },
+  tr: { h: "sa", d: "g" },
+};
+
+/** Display-only variant of formatDuration in the UI language ("7 س" in Arabic
+ *  instead of "7h"). Edit fields keep formatDuration — parseDuration reads h/d. */
+export function formatDurationLabel(hours: number | null | undefined, locale: Locale): string {
+  const s = formatDuration(hours);
+  const unit = s.slice(-1) as "h" | "d";
+  const u = DURATION_UNITS[locale] ?? DURATION_UNITS.en;
+  return `${s.slice(0, -1)}${u[unit]}`;
 }
 
 /** Whole-day difference (due - now), rounded up. Positive = days remaining. */

@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Play, Square, Clock } from "lucide-react";
 import { startTimerAction, stopTimerAction } from "@/actions/tasks";
-import { formatDuration } from "@/lib/tasks";
+import { formatDurationLabel } from "@/lib/tasks";
 import { Button } from "@/components/ui/button";
 import { TooltipHelp } from "@/components/ui/tooltip";
 import { useT } from "@/components/i18n-provider";
@@ -30,7 +30,7 @@ export function TimerControl({
   estimatedHours: number | null;
   timerStartedAt: string | Date | null;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const [pending, startTransition] = useTransition();
 
   // Optimistic local state: respond to Start/Stop INSTANTLY, don't wait for the
@@ -69,11 +69,11 @@ export function TimerControl({
           )}
         />
         <span className="font-medium tabular-nums">
-          {formatDuration(liveSpent)}
+          {formatDurationLabel(liveSpent, locale)}
           {estimatedHours != null && (
             <span className="text-muted-foreground">
               {" "}
-              {t("time.of")} {formatDuration(estimatedHours)}
+              {t("time.of")} {formatDurationLabel(estimatedHours, locale)}
             </span>
           )}
         </span>
