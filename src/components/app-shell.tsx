@@ -411,12 +411,14 @@ export function AppShell({
             </Link>
 
             {/* Seitentitel (kein H1 — die Seite hat ihren eigenen) */}
-            {activeItem && (
+            {activeItem ? (
               <div className="ms-1 flex min-w-0 items-center gap-2 text-[15px] font-semibold md:ms-0">
                 <activeItem.icon className="hidden h-[18px] w-[18px] text-muted-foreground md:block" />
                 <span className="truncate">{t(activeItem.label)}</span>
               </div>
-            )}
+            ) : pathname.startsWith("/tasks/") ? (
+              <div className="ms-1 truncate text-[15px] font-semibold md:ms-0">{t("type.Task")}</div>
+            ) : null}
 
             <div data-tour="topbar-actions" className="ms-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
               <GlobalSearch userId={user.id} tenantSlug={tenant.slug} />

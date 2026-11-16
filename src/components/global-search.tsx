@@ -323,7 +323,7 @@ export function GlobalSearch({
           )}
         />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-foreground">
+          <span dir="auto" className="block truncate text-start font-medium text-foreground">
             <Highlighted
               text={item.title}
               ranges={matchRanges(matches, "title", item.title)}
@@ -391,7 +391,7 @@ export function GlobalSearch({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onInputKeyDown}
-                placeholder={t("ui.cmd.hint")}
+                placeholder={t("search.placeholder")}
                 className="h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
                 role="combobox"
                 aria-expanded={rowCount > 0}

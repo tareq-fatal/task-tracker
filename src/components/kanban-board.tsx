@@ -234,11 +234,15 @@ export function KanbanBoard({
             type="button"
             aria-label={t(`status.${status}` as TKey)}
             onClick={() => goToColumn(i)}
-            className={cn(
-              "h-2 rounded-full transition-all duration-200",
-              i === activeCol ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"
-            )}
-          />
+            className="flex h-11 items-center justify-center px-1.5"
+          >
+            <span
+              className={cn(
+                "h-2 rounded-full transition-all duration-200",
+                i === activeCol ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"
+              )}
+            />
+          </button>
         ))}
       </div>
 

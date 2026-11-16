@@ -62,7 +62,7 @@
     color-scheme: dark;
     --background: 225 14% 7%;
     --foreground: 220 15% 93%;
-    --card: 225 12% 10%;
+    --card: 225 12% 11%;
     --card-foreground: 220 15% 93%;
     --popover: 225 12% 11%;
     --popover-foreground: 220 15% 93%;
@@ -81,7 +81,7 @@
     --destructive-foreground: 0 0% 100%;
     --success: 152 55% 55%;
     --warning: 35 90% 60%;
-    --border: 225 10% 17%;
+    --border: 225 10% 19%;
     --input: 225 10% 22%;
     --ring: 234 85% 72%;
     --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3);

@@ -84,7 +84,7 @@ export function TimeTracking({
       </div>
 
       <form action={formAction} className="mb-3 flex flex-wrap items-end gap-2">
-        <Input name="duration" placeholder={t("time.durationHint")} className="w-28" />
+        <Input name="duration" placeholder={t("time.durationHint")} className="w-40" />
         <Input name="note" placeholder={t("time.note")} className="flex-1 min-w-40" />
         {billingEnabled && (
           <label className="flex h-9 items-center gap-1.5 text-sm text-muted-foreground">

@@ -73,9 +73,9 @@ export function TagBadges({ tags, max = 0 }: { tags?: string[] | null; max?: num
       {shown.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center rounded-full border border-border bg-transparent px-2 py-0.5 text-xs font-medium text-muted-foreground"
+          className="inline-flex max-w-[12rem] items-center whitespace-nowrap rounded-full border border-border bg-transparent px-2 py-0.5 text-xs font-medium text-muted-foreground"
         >
-          #{tag}
+          <bdi dir="ltr" className="truncate">#{tag}</bdi>
         </span>
       ))}
       {rest > 0 && <span className="text-xs text-muted-foreground">+{rest}</span>}

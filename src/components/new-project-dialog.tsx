@@ -53,7 +53,7 @@ export function NewProjectDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <TooltipHelp textKey="tooltip.new_project">
-          <Button>
+          <Button variant="outline">
             <Plus className="me-1 h-4 w-4" />
             {t("projects.new")}
           </Button>

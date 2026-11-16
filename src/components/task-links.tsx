@@ -70,7 +70,7 @@ export function TaskLinks({
 
   return (
     <div className="space-y-3">
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
         <Link2 className="h-4 w-4" />
         {t("links.title")}
       </h2>

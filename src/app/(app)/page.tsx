@@ -262,7 +262,8 @@ export default async function DashboardPage() {
                         </p>
                         <Link
                           href={`/tasks/${a.task.id}`}
-                          className="block truncate text-sm text-foreground/90 underline-offset-2 hover:underline"
+                          dir="auto"
+                          className="block truncate text-start text-sm text-foreground/90 underline-offset-2 hover:underline"
                         >
                           {a.task.title}
                         </Link>
