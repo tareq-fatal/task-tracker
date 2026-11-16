@@ -111,8 +111,9 @@ export function TaskCard({
         </div>
 
         <p
+          dir="auto"
           className={cn(
-            "line-clamp-2 text-sm font-medium leading-snug text-foreground",
+            "line-clamp-2 text-start text-sm font-medium leading-snug text-foreground",
             done && "text-muted-foreground line-through decoration-muted-foreground/40"
           )}
         >

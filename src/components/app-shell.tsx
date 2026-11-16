@@ -131,6 +131,8 @@ const SUPER: NavItem[] = [
 
 function isActive(pathname: string, href: string, match?: string[]) {
   if (href === "/") return pathname === "/";
+  // /tasks = Fokus-Ansicht; /tasks/<id> ist eine Aufgabe, nicht „Fokus“.
+  if (href === "/tasks") return pathname === "/tasks";
   const hit = (h: string) => pathname === h || pathname.startsWith(h + "/");
   return hit(href) || (match ?? []).some(hit);
 }

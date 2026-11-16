@@ -240,7 +240,7 @@ export function TaskTable({
               aria-hidden
             />
             <div className="min-w-0">
-              <Link href={`/tasks/${r.id}`} className="font-medium leading-snug text-foreground underline-offset-2 hover:underline">
+              <Link href={`/tasks/${r.id}`} dir="auto" className="font-medium leading-snug text-foreground underline-offset-2 hover:underline">
                 {r.title}
               </Link>
               {/* Handy: Status/Fälligkeit/Projekt unter dem Titel statt eigener Spalten */}
@@ -325,7 +325,7 @@ export function TaskTable({
               )}
             >
               {s.label}
-              <span className="tabular-nums text-xs text-muted-foreground">{counts[s.key]}</span>
+              <span className="hidden tabular-nums text-xs text-muted-foreground xs:inline">{counts[s.key]}</span>
             </button>
           ))}
         </div>

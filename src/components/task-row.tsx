@@ -61,7 +61,7 @@ export function TaskRow({
         aria-label={t(`priority.${task.priority}` as never)}
       />
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-sm font-medium", done && "text-muted-foreground line-through")}>
+        <span dir="auto" className={cn("block truncate text-start text-sm font-medium", done && "text-muted-foreground line-through")}>
           {task.title}
         </span>
         {showProject && task.project && (
