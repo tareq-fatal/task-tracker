@@ -268,7 +268,7 @@ export function TaskTable({
         </td>
         <td className={cn("hidden px-3 md:table-cell", pad)}><PriorityBadge priority={r.priority} /></td>
         <td className={cn("hidden px-3 xl:table-cell", pad)}>
-          {r.tags && r.tags.length > 0 ? <TagBadges tags={r.tags} max={2} /> : <span className="text-muted-foreground">—</span>}
+          {r.tags && r.tags.length > 0 ? <TagBadges tags={r.tags} max={1} /> : <span className="text-muted-foreground">—</span>}
         </td>
         <td className={cn("hidden px-3 tabular-nums xl:table-cell", pad)}>{r.storyPoints ?? "—"}</td>
         {customFields.map((f) => (
@@ -393,7 +393,7 @@ export function TaskTable({
                 </th>
                 {showImages && <th className="hidden w-20 px-2 py-2.5 text-start font-medium md:table-cell">{t("list.preview")}</th>}
                 {cols.map((c) => (
-                  <th key={c.key} className={cn("px-3 py-2.5 text-start font-medium", c.cls)}>
+                  <th key={c.key} className={cn("whitespace-nowrap px-3 py-2.5 text-start font-medium", c.cls)}>
                     <button onClick={() => toggleSort(c.key)} className="inline-flex min-h-8 items-center gap-1 rounded hover:text-foreground">
                       {c.label}
                       <ArrowUpDown className={cn("h-3 w-3", sortKey === c.key ? "text-primary" : "opacity-40")} />

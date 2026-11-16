@@ -155,7 +155,7 @@ export default async function DashboardPage() {
             </div>
             <div
               className={cn(
-                "mt-2 text-3xl font-semibold tabular-nums tracking-tight",
+                "mt-2 text-2xl font-semibold tabular-nums tracking-tight sm:text-3xl",
                 k.tone === "danger" && "text-destructive"
               )}
             >

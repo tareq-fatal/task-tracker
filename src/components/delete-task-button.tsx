@@ -15,8 +15,9 @@ export function DeleteTaskButton({ taskId }: { taskId: string }) {
     <TooltipHelp textKey="tooltip.delete_task">
       <Button
         type="button"
-        variant="destructive"
+        variant="outline"
         size="sm"
+        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
         disabled={pending}
         onClick={() => {
           if (!confirm(t("task.deleteConfirm"))) return;

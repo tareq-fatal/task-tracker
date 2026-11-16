@@ -6,6 +6,8 @@ const config: Config = {
     "./src/pages/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
     "./src/app/**/*.{ts,tsx}",
+    // TOF-0962: Klassen-Tabellen in src/lib (z. B. STATUS_STYLES mit dark:-Varianten)
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
