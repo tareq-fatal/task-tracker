@@ -51,7 +51,7 @@ export function NotificationSettings({ view }: { view: NotificationPrefsView }) 
                       type="checkbox"
                       name={`${row.event}.${c}`}
                       defaultChecked={row[c]}
-                      className="h-4 w-4 accent-indigo-600"
+                      className="h-4 w-4 accent-[hsl(var(--primary))]"
                     />
                   </td>
                 ))}
@@ -79,7 +79,7 @@ export function NotificationSettings({ view }: { view: NotificationPrefsView }) 
             type="checkbox"
             name="digest"
             defaultChecked={view.digest}
-            className="h-4 w-4 accent-indigo-600"
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
           />
           {t("notif.digest")}
         </label>

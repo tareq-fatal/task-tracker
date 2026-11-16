@@ -23,14 +23,14 @@ const DOT: Record<string, string> = {
   priority: "bg-rose-500",
   comment: "bg-teal-500",
   due: "bg-slate-400",
-  renamed: "bg-indigo-500",
+  renamed: "bg-primary",
   description: "bg-slate-500",
   storyPoints: "bg-fuchsia-500",
   timer: "bg-emerald-500",
   attachment: "bg-cyan-500",
   creator_changed: "bg-orange-500",
   escalated: "bg-rose-600",
-  assist: "bg-indigo-600",
+  assist: "bg-primary",
   coaching: "bg-amber-500",
 };
 

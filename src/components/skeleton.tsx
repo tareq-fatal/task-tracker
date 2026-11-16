@@ -211,15 +211,14 @@ export function KanbanColumnSkeleton({
   dotClass?: string;
 }) {
   return (
-    <div aria-hidden="true" className="board-col flex w-[82vw] shrink-0 flex-col xs:w-[70vw] sm:w-80">
-      <div className="mb-2 flex items-center justify-between px-1">
+    <div aria-hidden="true" className="board-col flex w-[86vw] shrink-0 flex-col xs:w-[72vw] sm:w-[320px]">
+      <div className="mb-2 flex h-9 items-center justify-between px-1">
         <div className="flex h-5 items-center gap-2">
-          <span className={cn("h-2.5 w-2.5 rounded-full opacity-50", dotClass)} />
+          <span className={cn("h-2 w-2 rounded-full opacity-50", dotClass)} />
           <Skeleton className="h-3.5 w-20" />
         </div>
-        <Skeleton className="h-5 w-7 rounded-full" />
       </div>
-      <div className="flex min-h-[62vh] flex-col gap-2.5 rounded-2xl border border-dashed bg-muted/30 p-2.5">
+      <div className="flex min-h-[60vh] flex-col gap-2 rounded-xl bg-secondary/60 p-1.5 dark:bg-secondary/40">
         {cards.map((c, i) => (
           <TaskCardSkeleton key={i} {...c} />
         ))}
@@ -229,8 +228,8 @@ export function KanbanColumnSkeleton({
 }
 
 const BOARD_COLUMNS = [
-  { dotClass: "bg-indigo-500", cards: [CARD_SHAPES[0], CARD_SHAPES[1], CARD_SHAPES[2]] },
-  { dotClass: "bg-amber-500", cards: [CARD_SHAPES[3], CARD_SHAPES[2]] },
+  { dotClass: "bg-slate-400", cards: [CARD_SHAPES[0], CARD_SHAPES[1], CARD_SHAPES[2]] },
+  { dotClass: "bg-sky-500", cards: [CARD_SHAPES[3], CARD_SHAPES[2]] },
   { dotClass: "bg-emerald-500", cards: [CARD_SHAPES[1], CARD_SHAPES[3], CARD_SHAPES[0], CARD_SHAPES[2]] },
 ];
 
@@ -243,7 +242,7 @@ export function KanbanBoardSkeleton() {
         <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
         <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
       </div>
-      <div className="board-scroll flex gap-4 overflow-x-auto pb-4">
+      <div className="board-scroll -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
         {BOARD_COLUMNS.map((col, i) => (
           <KanbanColumnSkeleton key={i} {...col} />
         ))}

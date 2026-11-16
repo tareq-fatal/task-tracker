@@ -28,7 +28,7 @@ export function TooltipToggle() {
         onClick={() => setTooltipsEnabled(!enabled)}
         className={
           "relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors " +
-          (enabled ? "bg-indigo-600" : "bg-input")
+          (enabled ? "bg-primary" : "bg-input")
         }
       >
         <span

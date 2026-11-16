@@ -1,5 +1,6 @@
 "use client";
 
+import { Zap, BookOpen, CheckSquare, CornerDownRight, Bug } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { STATUS_STYLES, PRIORITY_STYLES } from "@/lib/tasks";
 import { sortTags } from "@/lib/tags";
@@ -24,18 +25,19 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 const TYPE_STYLES: Record<string, string> = {
-  Epic: "bg-violet-100 text-violet-700 border-violet-200",
-  Story: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Task: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  Subtask: "bg-slate-100 text-slate-600 border-slate-200",
-  Bug: "bg-rose-100 text-rose-700 border-rose-200",
+  Epic: "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-400/10 dark:text-violet-300 dark:border-violet-400/25",
+  Story: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:border-emerald-400/25",
+  Task: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-400/10 dark:text-slate-300 dark:border-slate-400/20",
+  Subtask: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/20",
+  Bug: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-400/10 dark:text-rose-300 dark:border-rose-400/25",
 };
-const TYPE_ICON: Record<string, string> = {
-  Epic: "⚡",
-  Story: "📗",
-  Task: "✓",
-  Subtask: "◦",
-  Bug: "🐞",
+// TOF-0962: Symbole statt Emoji (ruhig, gleichmäßige Linien)
+const TYPE_ICON: Record<string, React.ElementType> = {
+  Epic: Zap,
+  Story: BookOpen,
+  Task: CheckSquare,
+  Subtask: CornerDownRight,
+  Bug: Bug,
 };
 
 export function TypeBadge({ type }: { type: string }) {
@@ -47,7 +49,10 @@ export function TypeBadge({ type }: { type: string }) {
         TYPE_STYLES[type] ?? TYPE_STYLES.Task
       )}
     >
-      <span aria-hidden>{TYPE_ICON[type] ?? "✓"}</span>
+      {(() => {
+        const Icon = TYPE_ICON[type] ?? CheckSquare;
+        return <Icon className="h-3 w-3" aria-hidden />;
+      })()}
       {t(`type.${type}` as TKey)}
     </span>
   );
@@ -68,7 +73,7 @@ export function TagBadges({ tags, max = 0 }: { tags?: string[] | null; max?: num
       {shown.map((tag) => (
         <span
           key={tag}
-          className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600"
+          className="inline-flex items-center rounded-full border border-border bg-transparent px-2 py-0.5 text-xs font-medium text-muted-foreground"
         >
           #{tag}
         </span>

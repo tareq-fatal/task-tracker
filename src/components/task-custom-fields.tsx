@@ -57,7 +57,7 @@ export function TaskCustomFields({
                   {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               ) : f.type === "checkbox" ? (
-                <input type="checkbox" defaultChecked={f.value === "true"} disabled={pending} onChange={(e) => save(f.id, e.target.checked ? "true" : "false")} className="h-5 w-5 accent-indigo-600" />
+                <input type="checkbox" defaultChecked={f.value === "true"} disabled={pending} onChange={(e) => save(f.id, e.target.checked ? "true" : "false")} className="h-5 w-5 accent-[hsl(var(--primary))]" />
               ) : (
                 <Input
                   type={f.type === "date" ? "date" : f.type === "number" ? "number" : "text"}

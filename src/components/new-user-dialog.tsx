@@ -102,7 +102,7 @@ export function NewUserDialog({ roleOptions = ["SubAdmin", "User"] }: { roleOpti
               name="invite"
               checked={viaInvite}
               onChange={(e) => setViaInvite(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-indigo-600"
+              className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
             />
             <span>
               <span className="font-medium">{t("admin.users.inviteInstead")}</span>

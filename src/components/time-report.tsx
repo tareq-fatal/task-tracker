@@ -140,7 +140,7 @@ export function TimeReport({
                 onClick={() => setBillableFilter(f)}
                 className={cn(
                   "px-3 py-1.5 transition-colors",
-                  billableFilter === f ? "bg-indigo-500/15 font-medium text-indigo-700" : "text-muted-foreground hover:bg-secondary"
+                  billableFilter === f ? "bg-primary/15 font-medium text-primary-soft-foreground" : "text-muted-foreground hover:bg-secondary"
                 )}
               >
                 {f === "all" ? t("timeReport.all") : f === "billable" ? t("time.billable") : t("time.nonBillable")}
@@ -172,7 +172,7 @@ export function TimeReport({
                 </span>
               </>
             )}
-            <span className="rounded-full bg-indigo-500/10 px-3 py-1 font-semibold text-indigo-700">
+            <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary-soft-foreground">
               {t("time.total")}: {formatHoursMinutes(totals.total)} h
             </span>
           </div>
@@ -205,7 +205,7 @@ export function TimeReport({
                       </>
                     ) : (
                       <div
-                        className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400"
+                        className="h-full bg-primary"
                         style={{ width: `${(r.total / max) * 100}%` }}
                       />
                     ))}

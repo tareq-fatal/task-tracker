@@ -36,7 +36,7 @@ export function InsightsView({ data }: { data: InsightsData }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {/* Trend hero */}
-      <Glass className="md:col-span-2 bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-pink-500 text-white">
+      <Glass className="md:col-span-2 bg-primary text-white">
         <p className="text-sm font-medium text-white/80">{t("ins.trend")}</p>
         <div className="mt-1 flex items-end gap-4">
           <span className="text-5xl font-black tabular-nums"><CountUp value={data.trend.current} /></span>
@@ -49,7 +49,7 @@ export function InsightsView({ data }: { data: InsightsData }) {
 
       {/* Forecast */}
       <Glass>
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Gauge className="h-4 w-4 text-indigo-500" /> {t("ins.forecast")}</div>
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Gauge className="h-4 w-4 text-primary" /> {t("ins.forecast")}</div>
         {data.forecast ? (
           data.forecast.daysLeft === null ? (
             <p className="text-lg font-bold text-rose-600">{t("ins.stalled")}</p>

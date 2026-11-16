@@ -51,7 +51,7 @@ export function TenantFeatureToggles({
                 if (!res.ok) setState((s) => ({ ...s, [r.key]: !next }));
               });
             }}
-            className="h-4 w-4 accent-indigo-600"
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
           />
           {t(r.label)}
         </label>

@@ -117,7 +117,7 @@ export function UpdatePrompt() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] flex items-center justify-center gap-3 border-t border-indigo-300 bg-indigo-600 px-4 py-2.5 text-sm text-white shadow-lg dark:border-indigo-400/40">
+    <div className="fixed inset-x-0 bottom-0 z-[100] flex items-center justify-center gap-3 border-t border-primary/50 bg-primary px-4 py-2.5 text-sm text-white shadow-lg dark:border-primary/50/40">
       <RefreshCw className="h-4 w-4" />
       <span className="font-medium">{t("update.available")}</span>
       <button

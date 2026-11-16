@@ -76,7 +76,7 @@ export function RecurrenceField({ d }: { d: TaskDefaults }) {
             {WEEKDAYS.map((code) => (
               <label
                 key={code}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-500/20"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted has-[:checked]:border-primary/50 has-[:checked]:bg-primary-soft dark:has-[:checked]:bg-primary/20"
               >
                 <input
                   type="checkbox"

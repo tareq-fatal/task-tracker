@@ -28,7 +28,7 @@ export type ViewTask = {
 const TYPE_DOT: Record<string, string> = {
   Epic: "bg-violet-500",
   Story: "bg-emerald-500",
-  Task: "bg-indigo-500",
+  Task: "bg-primary",
   Subtask: "bg-slate-400",
   Bug: "bg-rose-500",
 };
@@ -47,7 +47,7 @@ function Chip({ task }: { task: ViewTask }) {
       )}
       title={task.title}
     >
-      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", TYPE_DOT[task.type] ?? "bg-indigo-500")} />
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", TYPE_DOT[task.type] ?? "bg-primary")} />
       <span className="truncate">{task.title}</span>
     </div>
   );
@@ -65,11 +65,11 @@ function DayCell({ date, day, inMonth, tasks, onCreate }: {
       className={cn(
         "min-h-[92px] border p-1 transition-colors",
         !inMonth && "bg-muted/40 text-muted-foreground",
-        isOver && "bg-indigo-50 ring-2 ring-indigo-300",
+        isOver && "bg-primary-soft ring-2 ring-primary/40",
         "hover:bg-secondary/40"
       )}
     >
-      <div className={cn("mb-1 text-right text-[11px]", today && "inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-white")}>
+      <div className={cn("mb-1 text-right text-[11px]", today && "inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white")}>
         {day}
       </div>
       <div className="space-y-1">

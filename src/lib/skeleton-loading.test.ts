@@ -32,7 +32,7 @@ const ROUTES = [
 /** Main return container of a page = LAST `className="container …"` (early
  *  returns like "not found" come before the main JSX in tasks/[id]). */
 function containerOf(src: string): string | undefined {
-  const all = Array.from(src.matchAll(/className="(container\b[^"]*)"/g));
+  const all = Array.from(src.matchAll(/className="((?:container\b|mx-auto w-full max-w-)[^"]*)"/g));
   return all.length ? all[all.length - 1][1] : undefined;
 }
 
@@ -71,10 +71,12 @@ describe("TOF-0789: loading.tsx je Route", () => {
   it("Kanban-Skeleton hat dieselbe Spaltenbreite/Scrollklasse wie kanban-board.tsx", () => {
     const board = read("src/components/kanban-board.tsx");
     const sk = read("src/components/skeleton.tsx");
-    expect(board).toContain('className="board-col flex w-[82vw] shrink-0 flex-col xs:w-[70vw] sm:w-80"');
-    expect(sk).toContain('className="board-col flex w-[82vw] shrink-0 flex-col xs:w-[70vw] sm:w-80"');
-    expect(sk).toContain('className="board-scroll flex gap-4 overflow-x-auto pb-4"');
-    expect(sk).toContain("min-h-[62vh]");
+    // TOF-0962: neue Spaltenbreite/Abstände (Calm-Design)
+    expect(board).toContain('className="board-col flex w-[86vw] shrink-0 flex-col xs:w-[72vw] sm:w-[320px]"');
+    expect(sk).toContain('className="board-col flex w-[86vw] shrink-0 flex-col xs:w-[72vw] sm:w-[320px]"');
+    expect(board).toContain('className="board-scroll -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"');
+    expect(sk).toContain('className="board-scroll -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"');
+    expect(sk).toContain("min-h-[60vh]");
   });
 });
 

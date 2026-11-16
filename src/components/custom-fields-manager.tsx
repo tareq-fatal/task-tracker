@@ -45,12 +45,12 @@ function Row({
         <GripVertical className="h-4 w-4" />
       </button>
       <span className="font-medium">{f.name}</span>
-      <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-700">{t(`cf.type.${f.type}` as never)}</span>
+      <span className="rounded bg-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-primary-soft-foreground">{t(`cf.type.${f.type}` as never)}</span>
       {f.type === "select" && <span className="text-xs text-muted-foreground">{f.options.join(" · ")}</span>}
       <label className="ms-auto flex items-center gap-1 text-xs">
         <input
           type="checkbox" checked={f.required} disabled={pending}
-          onChange={(e) => onToggle(e.target.checked)} className="h-4 w-4 accent-indigo-600"
+          onChange={(e) => onToggle(e.target.checked)} className="h-4 w-4 accent-[hsl(var(--primary))]"
         />
         {t("cf.required")}
       </label>

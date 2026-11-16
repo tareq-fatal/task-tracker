@@ -75,7 +75,7 @@ export default async function GanttPage({
       <TimelineTabs active="gantt" labels={{ gantt: t["nav.gantt"], roadmap: t["nav.roadmap"] }} />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 p-2 text-white shadow-sm">
+          <span className="mt-0.5 rounded-xl bg-primary p-2 text-white shadow-sm">
             <GanttChartSquare className="h-5 w-5" />
           </span>
           <div>

@@ -103,7 +103,7 @@ export function TimeTracking({
           {entries.map((e) => (
             <li key={e.id} className="flex items-center gap-2 py-1.5">
               <span className="font-medium">{e.userName}</span>
-              <span className="tabular-nums text-indigo-600">
+              <span className="tabular-nums text-primary">
                 {e.endedAt ? formatMinutes(e.minutes) : t("time.running")}
               </span>
               {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}

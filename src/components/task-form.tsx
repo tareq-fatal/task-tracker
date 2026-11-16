@@ -387,7 +387,7 @@ export function TaskForm({
               type="checkbox"
               name="requireAllTodosDone"
               defaultChecked={d.requireAllTodosDone ?? false}
-              className="h-4 w-4 accent-indigo-600"
+              className="h-4 w-4 accent-[hsl(var(--primary))]"
             />
             {t("wf.requireTodos")}
           </label>
@@ -397,7 +397,7 @@ export function TaskForm({
               type="checkbox"
               name="requireTimeTracking"
               defaultChecked={d.requireTimeTracking ?? false}
-              className="h-4 w-4 accent-indigo-600"
+              className="h-4 w-4 accent-[hsl(var(--primary))]"
             />
             {t("wf.requireTime")}
           </label>

@@ -44,7 +44,7 @@ export function TelegramGroupSettings({
   return (
     <section className="rounded-2xl border bg-card p-5 print:hidden">
       <h2 className="mb-1 flex items-center gap-2 text-base font-semibold">
-        <Users2 className="h-4 w-4 text-indigo-600" />
+        <Users2 className="h-4 w-4 text-primary" />
         {t("tg.group.title")}
       </h2>
       <p className="mb-4 text-sm text-muted-foreground">{t("tg.group.help", { bot: bot ? `@${bot}` : t("tg.group.botGeneric") })}</p>
@@ -63,13 +63,13 @@ export function TelegramGroupSettings({
         {events.map((ev) => (
           <label
             key={ev}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm has-[:checked]:border-indigo-400 has-[:checked]:bg-indigo-500/10"
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-sm has-[:checked]:border-primary/50 has-[:checked]:bg-primary/10"
           >
             <input
               type="checkbox"
               checked={selected.has(ev)}
               onChange={() => toggle(ev)}
-              className="h-3.5 w-3.5 accent-indigo-600"
+              className="h-3.5 w-3.5 accent-[hsl(var(--primary))]"
             />
             {t(`notif.ev.${ev}` as TKey)}
           </label>

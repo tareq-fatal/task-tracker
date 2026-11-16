@@ -69,7 +69,8 @@ export default async function ListPage({
         },
         customValues: { select: { fieldId: true, value: true } },
       },
-      take: 500,
+      // TOF-0962: Liste blättert selbst (50 je Seite) — Deckel nur als Schutz.
+      take: 3000,
     }),
     prisma.customFieldDef.findMany({
       where: { tenantId: tenant.id },
@@ -89,8 +90,8 @@ export default async function ListPage({
   }
 
   return (
-    <div className="container py-6">
-      <h1 className="mb-4 text-2xl font-bold">{t["list.title"]}</h1>
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
+      <h1 className="mb-4 text-2xl font-semibold tracking-tight">{t["list.title"]}</h1>
       <TaskTable
         rows={rows.map((r) => ({
           id: r.id, title: r.title, status: r.status, priority: r.priority,

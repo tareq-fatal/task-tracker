@@ -12,6 +12,14 @@ import {
   MessageSquare,
   Search,
   User as UserIcon,
+  Plus,
+  LayoutDashboard,
+  KanbanSquare,
+  Table2,
+  CalendarDays,
+  GanttChartSquare,
+  SunMoon,
+  CornerDownLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useT } from "@/components/i18n-provider";
@@ -42,6 +50,37 @@ const MAX_RECENTS = 7;
 
 type Ranked = { item: SearchItem; matches?: readonly FuseResultMatch[] };
 
+/** TOF-0962: Befehle in der Strg+K-Palette (Springen + Aktionen). */
+type Command = {
+  id: string;
+  label: TKey;
+  icon: React.ElementType;
+  href?: string;
+  run?: () => void;
+  kind: "action" | "goto";
+};
+
+function toggleTheme() {
+  const dark = !document.documentElement.classList.contains("dark");
+  document.documentElement.classList.toggle("dark", dark);
+  try {
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  } catch {
+    /* best effort */
+  }
+}
+
+const COMMANDS: Command[] = [
+  { id: "new", label: "ui.cmd.newTask", icon: Plus, href: "/tasks/new", kind: "action" },
+  { id: "theme", label: "ui.cmd.toggleTheme", icon: SunMoon, run: toggleTheme, kind: "action" },
+  { id: "dash", label: "nav.dashboard", icon: LayoutDashboard, href: "/", kind: "goto" },
+  { id: "board", label: "nav.board", icon: KanbanSquare, href: "/board", kind: "goto" },
+  { id: "list", label: "nav.list", icon: Table2, href: "/list", kind: "goto" },
+  { id: "projects", label: "nav.projects", icon: FolderKanban, href: "/projects", kind: "goto" },
+  { id: "views", label: "nav.views", icon: CalendarDays, href: "/views", kind: "goto" },
+  { id: "gantt", label: "nav.timeline", icon: GanttChartSquare, href: "/gantt", kind: "goto" },
+];
+
 /** <mark>-wrap the fuzzy-match ranges fuse reported for this text. */
 function Highlighted({
   text,
@@ -59,7 +98,7 @@ function Highlighted({
     parts.push(
       <mark
         key={start}
-        className="rounded-sm bg-indigo-500/20 px-0 text-inherit"
+        className="rounded-sm bg-primary/15 px-0 text-inherit"
       >
         {text.slice(start, end + 1)}
       </mark>
@@ -191,7 +230,13 @@ export function GlobalSearch({
 
   const flat = useMemo(() => groups.flatMap((g) => g.rows), [groups]);
   const showRecents = !searching && recents.length > 0;
-  const rowCount = searching ? flat.length : recents.length;
+  // Befehle: ohne Eingabe alle, mit Eingabe die passenden (Teilwort).
+  const cmds = useMemo(() => {
+    const q = trimmed.toLowerCase();
+    return COMMANDS.filter((c) => !q || t(c.label).toLowerCase().includes(q));
+  }, [trimmed, t]);
+  const resultCount = searching ? flat.length : recents.length;
+  const rowCount = resultCount + cmds.length;
 
   // Keep the active row visible while arrowing through the list.
   useEffect(() => {
@@ -224,6 +269,12 @@ export function GlobalSearch({
     router.push(item.href);
   }
 
+  function runCommand(c: Command) {
+    setOpen(false);
+    if (c.run) c.run();
+    else if (c.href) router.push(c.href);
+  }
+
   function onInputKeyDown(e: React.KeyboardEvent) {
     if (rowCount === 0) return;
     if (e.key === "ArrowDown") {
@@ -234,8 +285,14 @@ export function GlobalSearch({
       setActive((a) => (a - 1 + rowCount) % rowCount);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const item = searching ? flat[active]?.item : recents[active];
-      if (item) select(item);
+      // Zeilen: zuerst Treffer bzw. Zuletzt, danach die Befehle.
+      if (active < resultCount) {
+        const item = searching ? flat[active]?.item : recents[active];
+        if (item) select(item);
+      } else {
+        const c = cmds[active - resultCount];
+        if (c) runCommand(c);
+      }
     }
   }
 
@@ -253,16 +310,16 @@ export function GlobalSearch({
         onClick={() => select(item)}
         onMouseMove={() => setActive(index)}
         className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm transition-colors",
+          "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-start text-sm transition-colors",
           index === active
-            ? "bg-indigo-500/10 text-foreground"
-            : "text-muted-foreground hover:bg-secondary/60"
+            ? "bg-accent text-foreground"
+            : "text-muted-foreground hover:bg-accent/60"
         )}
       >
         <Icon
           className={cn(
             "h-4 w-4 shrink-0",
-            index === active ? "text-indigo-600" : "opacity-60"
+            index === active ? "text-primary" : "opacity-60"
           )}
         />
         <span className="min-w-0 flex-1">
@@ -297,12 +354,12 @@ export function GlobalSearch({
         type="button"
         onClick={() => setOpen(true)}
         data-tour="global-search"
-        className="hidden h-9 items-center gap-2 rounded-md border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:inline-flex"
+        className="hidden h-9 w-44 items-center gap-2 rounded-lg border bg-card px-3 text-sm text-muted-foreground shadow-card transition-colors hover:bg-accent hover:text-foreground md:inline-flex lg:w-64"
         aria-label={t("search.button")}
       >
         <Search className="h-4 w-4" />
-        <span className="hidden lg:inline">{t("search.button")}</span>
-        <kbd className="hidden rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] lg:inline">
+        <span className="flex-1 truncate text-start">{t("search.button")}</span>
+        <kbd className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium">
           {isMac ? "⌘K" : "Ctrl K"}
         </kbd>
       </button>
@@ -310,7 +367,7 @@ export function GlobalSearch({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:hidden"
+        className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
         aria-label={t("search.button")}
       >
         <Search className="h-5 w-5" />
@@ -318,9 +375,9 @@ export function GlobalSearch({
 
       <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
         <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content
-            className="glass fixed left-[50%] top-[15%] z-50 w-[calc(100%-2rem)] max-w-xl translate-x-[-50%] overflow-hidden rounded-2xl border border-white/40 p-0 shadow-2xl shadow-indigo-900/10 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95"
+            className="fixed left-[50%] top-[8%] z-50 w-[calc(100%-1.5rem)] max-w-xl translate-x-[-50%] overflow-hidden rounded-2xl border bg-popover p-0 text-popover-foreground shadow-overlay duration-200 sm:top-[14%] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95"
             aria-describedby={undefined}
           >
             <DialogPrimitive.Title className="sr-only">
@@ -334,8 +391,8 @@ export function GlobalSearch({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onInputKeyDown}
-                placeholder={t("search.placeholder")}
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                placeholder={t("ui.cmd.hint")}
+                className="h-14 w-full bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
                 role="combobox"
                 aria-expanded={rowCount > 0}
                 aria-controls="global-search-results"
@@ -343,6 +400,12 @@ export function GlobalSearch({
               {loading && (
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
               )}
+              <DialogPrimitive.Close
+                className="inline-flex h-8 shrink-0 items-center rounded-md border px-2 text-[11px] font-medium text-muted-foreground hover:bg-accent coarse:h-11 coarse:px-3"
+                aria-label={t("nav.close")}
+              >
+                Esc
+              </DialogPrimitive.Close>
             </div>
 
             <div
@@ -361,7 +424,7 @@ export function GlobalSearch({
               )}
 
               {!searching && !showRecents && (
-                <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <p className="px-4 pb-1 pt-4 text-center text-sm text-muted-foreground">
                   {t("search.typeToSearch")}
                 </p>
               )}
@@ -374,7 +437,7 @@ export function GlobalSearch({
                 </SkeletonScreen>
               )}
 
-              {searching && !loading && flat.length === 0 && (
+              {searching && !loading && flat.length === 0 && cmds.length === 0 && (
                 <p className="px-4 py-10 text-center text-sm text-muted-foreground">
                   {t("search.noResults", { q: trimmed })}
                 </p>
@@ -395,9 +458,45 @@ export function GlobalSearch({
                     </div>
                   ));
                 })()}
+
+              {cmds.length > 0 && (
+                <div>
+                  <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t("ui.cmd.actions")}
+                  </p>
+                  {cmds.map((c, i) => {
+                    const index = resultCount + i;
+                    const CmdIcon = c.icon;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        data-index={index}
+                        onClick={() => runCommand(c)}
+                        onMouseMove={() => setActive(index)}
+                        className={cn(
+                          "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-start text-sm transition-colors",
+                          index === active ? "bg-accent text-foreground" : "text-foreground hover:bg-accent/60"
+                        )}
+                      >
+                        <CmdIcon className={cn("h-4 w-4 shrink-0", index === active ? "text-primary" : "text-muted-foreground")} />
+                        <span className="flex-1 truncate">
+                          {c.kind === "goto" && (
+                            <span className="text-muted-foreground">{t("ui.cmd.goto")} · </span>
+                          )}
+                          {t(c.label)}
+                        </span>
+                        {index === active && (
+                          <CornerDownLeft className="h-3.5 w-3.5 text-muted-foreground rtl:-scale-x-100" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="flex items-center gap-4 border-t px-4 py-2 text-[11px] text-muted-foreground">
+            <div className="hidden items-center gap-4 border-t px-4 py-2 text-[11px] text-muted-foreground sm:flex">
               <span>
                 <kbd className="rounded border bg-background px-1 font-mono">↑↓</kbd>{" "}
                 {t("search.hintNavigate")}

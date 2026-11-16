@@ -13,7 +13,7 @@ import {
 export default function ProjectBoardLoading() {
   const t = getDictionary(getActiveLocale());
   return (
-    <SkeletonScreen label={t["common.loading"]} className="container py-6">
+    <SkeletonScreen label={t["common.loading"]} className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       <BackLinkSkeleton />
       <div className="mb-5 flex items-center gap-2">
         <Skeleton className="h-4 w-4 rounded-full" />

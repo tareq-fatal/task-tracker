@@ -24,7 +24,7 @@ import { TASK_STATUSES, TASK_PRIORITIES } from "@/lib/enums";
 import type { TKey } from "@/lib/i18n";
 
 const STATUS_COLOR: Record<string, string> = {
-  Todo: "bg-indigo-500",
+  Todo: "bg-primary",
   InProgress: "bg-amber-500",
   Done: "bg-emerald-500",
   Archived: "bg-slate-400",

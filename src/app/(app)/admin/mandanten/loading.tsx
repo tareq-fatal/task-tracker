@@ -39,7 +39,7 @@ export default function Loading() {
         ))}
       </ul>
 
-      <div aria-hidden="true" className="rounded-xl border-2 border-indigo-100 bg-indigo-50/40 p-4">
+      <div aria-hidden="true" className="rounded-xl border-2 border-primary/25 bg-primary-soft/40 p-4">
         <Skeleton className="mb-3 h-5 w-40" />
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 3 }).map((_, i) => (

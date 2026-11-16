@@ -136,11 +136,11 @@ export function NotificationBell() {
         <button
           onClick={toggle}
           aria-label={t("notif.title")}
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground coarse:h-11 coarse:w-11"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-[18px] w-[18px]" />
           {hasUnread && (
-            <span className="absolute -end-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-gradient-to-r from-indigo-500 to-pink-500 px-1 text-[10px] font-bold text-white">
+            <span className="absolute end-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground ring-2 ring-background">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -154,7 +154,7 @@ export function NotificationBell() {
             {hasUnread ? (
               <button
                 onClick={markAll}
-                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-indigo-600 transition-colors hover:bg-indigo-50 dark:hover:bg-indigo-500/10"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors hover:bg-primary-soft dark:hover:bg-primary-soft"
               >
                 <CheckCheck className="h-3.5 w-3.5" />
                 {t("notif.markAllRead")}
@@ -320,7 +320,7 @@ function NotificationRow({
         className={cn(
           "group relative flex cursor-pointer items-start gap-3 overflow-hidden bg-background px-3 py-3 outline-none transition-colors focus-visible:bg-secondary/60",
           dx === 0 && "duration-200",
-          !n.read ? "bg-indigo-50/50 dark:bg-indigo-500/5" : "hover:bg-secondary/50"
+          !n.read ? "bg-primary-soft/50 dark:bg-primary-soft" : "hover:bg-secondary/50"
         )}
       >
         {/* coloured icon chip */}
@@ -342,7 +342,7 @@ function NotificationRow({
         </div>
 
         {/* unread dot */}
-        {!n.read && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />}
+        {!n.read && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />}
 
         {/* desktop hover actions (swipe is the touch equivalent) */}
         <div className="absolute end-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 md:group-hover:flex">

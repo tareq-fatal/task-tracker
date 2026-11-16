@@ -92,7 +92,7 @@ export function AppEnvironmentBanner() {
 
   return (
     <div className="flex items-center gap-3 border-b bg-gradient-to-r from-indigo-500/10 to-pink-500/10 px-4 py-3 text-sm">
-      <Download className="h-5 w-5 shrink-0 text-indigo-600" />
+      <Download className="h-5 w-5 shrink-0 text-primary" />
       <div className="flex-1">
         <p className="font-semibold">{t("env.installTitle")}</p>
         <p className="mt-0.5 text-muted-foreground">

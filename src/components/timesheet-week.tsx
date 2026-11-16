@@ -142,7 +142,7 @@ export function TimesheetWeek({
                 </span>
               </>
             )}
-            <span className="rounded-full bg-indigo-500/10 px-3 py-1 font-semibold text-indigo-700">
+            <span className="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary-soft-foreground">
               {t("time.total")}: {formatHoursMinutes(grid.total)} h
             </span>
           </div>
@@ -156,7 +156,7 @@ export function TimesheetWeek({
                 {days.map((d, i) => (
                   <th
                     key={i}
-                    className={cn("px-2 py-2 text-center font-medium", dayKey(d) === dayKey(now) && "text-indigo-600")}
+                    className={cn("px-2 py-2 text-center font-medium", dayKey(d) === dayKey(now) && "text-primary")}
                   >
                     {fmtDay(d)}
                   </th>
@@ -227,7 +227,7 @@ export function TimesheetWeek({
                       {e.taskTitle}
                     </Link>
                     {e.note && <span className="truncate text-muted-foreground">· {e.note}</span>}
-                    <span className="ms-auto tabular-nums font-medium text-indigo-600">
+                    <span className="ms-auto tabular-nums font-medium text-primary">
                       {e.endedAt ? formatMinutes(entryMinutes(e, now)) : t("time.running")}
                     </span>
                     {billingEnabled && (
