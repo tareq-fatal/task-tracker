@@ -10,9 +10,13 @@ import { useT } from "@/components/i18n-provider";
 const ERRORS: Record<string, string> = {
   NO_FILE: "Keine Datei ausgewählt · No file selected",
   TOO_LARGE: "Datei zu groß (max 10 MB) · File too large (max 10 MB)",
-  BAD_TYPE: "Bilder, PDF & Office · Images, PDF & Office",
+  BAD_TYPE:
+    "Dateityp nicht erlaubt – nur Bilder, PDF, Office, TXT/CSV, ZIP · File type not allowed – images, PDF, Office, TXT/CSV, ZIP only",
   WRITE_FAILED: "Upload fehlgeschlagen (Speicher) · Upload failed (storage)",
+  FAILED: "Upload fehlgeschlagen – bitte erneut versuchen · Upload failed – please try again",
 };
+
+const MAX_BYTES = 10 * 1024 * 1024;
 
 export function AttachmentUpload({ taskId }: { taskId: string }) {
   const { t } = useT();
@@ -24,12 +28,24 @@ export function AttachmentUpload({ taskId }: { taskId: string }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
+    if (file.size > MAX_BYTES) {
+      setError(ERRORS.TOO_LARGE);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
     const fd = new FormData();
     fd.append("file", file);
     startTransition(async () => {
-      const res = await uploadAttachmentAction(taskId, fd);
-      if (res.error) setError(ERRORS[res.error] ?? res.error);
-      if (inputRef.current) inputRef.current.value = "";
+      try {
+        const res = await uploadAttachmentAction(taskId, fd);
+        if (res.error) setError(ERRORS[res.error] ?? ERRORS.FAILED);
+      } catch {
+        // Network drop / body limit / server throw — never leave the user
+        // with a crashed page or a silent no-op.
+        setError(ERRORS.FAILED);
+      } finally {
+        if (inputRef.current) inputRef.current.value = "";
+      }
     });
   }
 
