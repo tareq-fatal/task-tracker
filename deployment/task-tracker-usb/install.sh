@@ -104,6 +104,10 @@ Usage: sudo ./install.sh [options]
   --https-port <port>    Host port mapped to HTTPS.              [default: 443]
   --install-dir <path>   Where to install.        [default: /opt/task-tracker]
   --no-docker-install    Fail instead of installing Docker automatically.
+  --skip-docker          Same as --no-docker-install. Use it when Docker comes
+                         from the distribution (openSUSE/SLES: zypper install
+                         docker docker-compose). An installed Docker is always
+                         used as it is, with or without this option.
   --no-backup-timer      Do not set up the nightly backup timer.
   --yes                  Never ask; accept every default. For unattended runs.
   -h, --help             Show this help.
@@ -131,7 +135,7 @@ while [ $# -gt 0 ]; do
     --http-port) HTTP_PORT="${2:-}"; shift 2 ;;
     --https-port) HTTPS_PORT="${2:-}"; shift 2 ;;
     --install-dir) TT_INSTALL_DIR="${2:-}"; shift 2 ;;
-    --no-docker-install) SKIP_DOCKER_INSTALL=1; shift ;;
+    --no-docker-install|--skip-docker) SKIP_DOCKER_INSTALL=1; shift ;;
     --no-backup-timer) WITH_BACKUP_TIMER=0; shift ;;
     --yes|-y) TT_ASSUME_YES=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -183,6 +187,10 @@ case "$OS_NAME:$OS_VERSION" in
   ubuntu:*|debian:*)
     warn "Operating system: ${PRETTY_NAME:-$OS_NAME $OS_VERSION}"
     warn "Tested on Ubuntu 22.04/24.04 and Debian 12. Continuing anyway." ;;
+  opensuse*:*|sles:*|sled:*)
+    # The bundled Docker packages are .deb files. On openSUSE/SLES Docker comes
+    # from zypper first; everything after that is distribution-neutral.
+    ok "Operating system: ${PRETTY_NAME:-$OS_NAME $OS_VERSION} (with Docker from zypper)" ;;
   *)
     warn "Unrecognised operating system: ${PRETTY_NAME:-$OS_NAME}"
     confirm "Continue anyway?" n || die "Aborted." ;;
@@ -237,6 +245,20 @@ ok "Ports $HTTP_PORT and $HTTPS_PORT are free"
 
 # Minimal cloud images ship without openssl or curl, and every password this
 # installer generates comes out of openssl. Fix that before anything needs them.
+# The bundled .deb files and every apt-get below only serve Debian/Ubuntu.
+# Elsewhere the hints name the local package manager instead.
+PKG_HINT="apt-get install"
+DOCKER_HINT="apt-get install docker.io docker-compose-v2"
+if ! command -v apt-get >/dev/null 2>&1; then
+  if command -v zypper >/dev/null 2>&1; then
+    PKG_HINT="zypper install"
+    DOCKER_HINT="zypper install docker docker-compose && systemctl enable --now docker"
+  elif command -v dnf >/dev/null 2>&1; then
+    PKG_HINT="dnf install"
+    DOCKER_HINT="dnf install docker-ce docker-compose-plugin (from the Docker repository) && systemctl enable --now docker"
+  fi
+fi
+
 MISSING=""
 command -v openssl >/dev/null 2>&1 || MISSING="$MISSING openssl"
 if [ "$OFFLINE" = "0" ]; then
@@ -246,8 +268,10 @@ fi
 if [ -n "$MISSING" ]; then
   if [ "$OFFLINE" = "1" ]; then
     die "These programs are missing and cannot be installed offline:$MISSING
-Install them from your distribution media, then re-run:  apt-get install$MISSING"
+Install them from your distribution media, then re-run:  $PKG_HINT$MISSING"
   fi
+  command -v apt-get >/dev/null 2>&1 || die "These programs are missing:$MISSING
+Install them ($PKG_HINT$MISSING) and re-run this script."
   info "Installing the missing base packages:$MISSING"
   # shellcheck disable=SC2086  # deliberate word splitting of the package list
   DEBIAN_FRONTEND=noninteractive apt-get update -qq >/dev/null 2>&1 \
@@ -317,12 +341,17 @@ install_docker_online() {
 if command -v docker >/dev/null 2>&1; then
   ok "Docker is installed ($(docker --version 2>/dev/null | cut -d, -f1))"
 else
-  [ "$SKIP_DOCKER_INSTALL" = "1" ] && die "Docker is not installed (and --no-docker-install was given)."
+  [ "$SKIP_DOCKER_INSTALL" = "1" ] && die "Docker is not installed (and --no-docker-install/--skip-docker was given). Install it first: $DOCKER_HINT"
   info "Docker is not installed yet."
   confirm "Install Docker now?" y || die "Docker is required. Aborted."
+  if [ "$OFFLINE" = "1" ] && ! command -v dpkg >/dev/null 2>&1; then
+    die "Docker is missing, and the Docker packages on this stick are .deb files for Ubuntu.
+On this system install Docker first:  $DOCKER_HINT
+Then run this installer again — it uses the installed Docker and installs nothing else."
+  fi
   if [ "$OFFLINE" = "1" ]; then
     install_docker_offline || die "Offline Docker install failed: no usable .deb files in $BUNDLE_DIR/packages/.
-Install Docker manually (apt-get install docker.io docker-compose-v2) and re-run this script."
+Install Docker manually ($DOCKER_HINT) and re-run this script."
   else
     install_docker_online || die "Docker installation failed. Install it manually and re-run this script."
   fi
@@ -372,7 +401,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 ok "Docker daemon is running"
 
-resolve_compose || die "Docker Compose is missing. Install the docker-compose-plugin package and re-run."
+resolve_compose || die "Docker Compose is missing. Install it ($DOCKER_HINT) and re-run."
 ok "Docker Compose is available ($DC)"
 
 # =============================================================================
