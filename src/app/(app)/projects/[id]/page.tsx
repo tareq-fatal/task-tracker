@@ -1,3 +1,4 @@
+import { intlTag } from "@/lib/format";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban, Bot, Contact } from "lucide-react";
@@ -96,7 +97,7 @@ export default async function ProjectDetailPage({
         <p className="mt-3 text-sm text-muted-foreground">
           {t["deleted.by"]
             .replace("{name}", deletedByUser?.name ?? "—")
-            .replace("{date}", project.deletedAt.toLocaleDateString(getActiveLocale()))}
+            .replace("{date}", project.deletedAt.toLocaleDateString(intlTag(getActiveLocale())))}
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <Button asChild variant="outline">

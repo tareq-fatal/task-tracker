@@ -1,3 +1,4 @@
+import { intlTag } from "@/lib/format";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
@@ -60,7 +61,7 @@ export default async function ProjektstandPage({ searchParams }: { searchParams:
   const s = berechneProjektstand(aufgaben, sichtbareProjekte, new Date(), wochen);
   const name = (id: string, n: string) => (id === OHNE_PROJEKT ? t["ps.noProject"] : n);
   const projektName = new Map(projekte.map((p) => [p.id, p.name]));
-  const datum = (d: Date | null) => (d ? d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" }) : "—");
+  const datum = (d: Date | null) => (d ? d.toLocaleDateString(intlTag(locale), { day: "2-digit", month: "2-digit", year: "numeric" }) : "—");
   const titelBalken = (e: number, a: number, o: number) => `${t["status.Done"]} ${e} · ${t["status.InProgress"]} ${a} · ${t["status.Todo"]} ${o}`;
 
   const Liste = ({ titel, aufgaben, mitDatum }: { titel: string; aufgaben: StandAufgabe[]; mitDatum: (a: StandAufgabe) => Date | null }) => (

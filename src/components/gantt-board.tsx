@@ -21,6 +21,7 @@ import {
 import { setTaskScheduleAction } from "@/actions/tasks";
 import { ExportButtons } from "@/components/infographic-export";
 import { useT } from "@/components/i18n-provider";
+import { intlTag } from "@/lib/format";
 import type { TKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -62,7 +63,6 @@ const LABEL_W = 240;
 const DRAG_THRESHOLD = 4;
 
 const iso10 = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-const fmt = (ms: number) => new Date(ms).toLocaleDateString(undefined, { day: "2-digit", month: "short" });
 
 type Sched = { start: number; end: number };
 type DragState = {
@@ -82,8 +82,10 @@ export function GanttBoard({
   deps: GanttDep[];
   initialZoom?: ZoomLevel;
 }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const router = useRouter();
+  const fmt = (ms: number) =>
+    new Date(ms).toLocaleDateString(intlTag(locale), { day: "2-digit", month: "short", timeZone: "UTC" });
   const [zoom, setZoom] = useState<ZoomLevel>(initialZoom);
   const [showCritical, setShowCritical] = useState(true);
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -109,7 +111,7 @@ export function GanttBoard({
 
   const schedules = useMemo(() => tasks.map((tk) => sched[tk.id]).filter(Boolean), [tasks, sched]);
   const { from, to } = useMemo(() => ganttWindow(schedules, now, 3), [schedules, now]);
-  const ticks = useMemo(() => axisTicks(from, to, zoom, ppd), [from, to, zoom, ppd]);
+  const ticks = useMemo(() => axisTicks(from, to, zoom, ppd, locale), [from, to, zoom, ppd, locale]);
   const trackW = Math.max(diffDays(from, to), 1) * ppd;
 
   const cpm = useMemo(

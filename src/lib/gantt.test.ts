@@ -108,6 +108,15 @@ describe("axisTicks", () => {
     expect(ticks.map((t) => t.label.slice(0, 3))).toEqual(["Feb", "Mar", "Apr"]);
     expect(ticks.every((t) => t.major)).toBe(true);
   });
+  it("labels months in the UI language (Arabic UI → Levantine month names)", () => {
+    const ar = axisTicks(ms(2026, 1, 15), ms(2026, 4, 2), "month", PX_PER_DAY.month, "ar");
+    expect(ar.map((t) => t.label.split(" ")[0])).toEqual(["شباط", "آذار", "نيسان"]);
+    expect(ar.every((t) => !/[A-Za-z]/.test(t.label))).toBe(true);
+    const day = axisTicks(ms(2026, 6, 29), ms(2026, 7, 3), "day", PX_PER_DAY.day, "ar");
+    expect(day.find((t) => t.major)?.label).toContain("تموز");
+    const de = axisTicks(ms(2026, 1, 15), ms(2026, 4, 2), "month", PX_PER_DAY.month, "de");
+    expect(de[1].label.startsWith("März")).toBe(true);
+  });
   it("returns nothing for an inverted range", () => {
     expect(axisTicks(ms(2026, 7, 10), ms(2026, 7, 1), "day", 40)).toEqual([]);
   });

@@ -2,6 +2,9 @@
 // derivation, and Critical-Path Method (CPM). No React, no DOM — fully unit-tested
 // (see gantt.test.ts). All date math is UTC-day based so it is timezone-stable.
 
+import type { Locale } from "./enums";
+import { intlTag } from "./format";
+
 export const DAY_MS = 86_400_000;
 
 export type ZoomLevel = "day" | "week" | "month";
@@ -109,7 +112,18 @@ export function barGeometry(
 
 export type AxisTick = { x: number; label: string; major: boolean };
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** Axis-label formatters for one locale. UTC, because the ticks are UTC days. */
+function tickFormats(locale: Locale) {
+  const tag = intlTag(locale);
+  const dayMonth = new Intl.DateTimeFormat(tag, { day: "numeric", month: "short", timeZone: "UTC" });
+  const day = new Intl.DateTimeFormat(tag, { day: "numeric", timeZone: "UTC" });
+  const monthYear = new Intl.DateTimeFormat(tag, { month: "short", year: "2-digit", timeZone: "UTC" });
+  return {
+    dayMonth: (t: number) => dayMonth.format(t),
+    day: (t: number) => day.format(t),
+    monthYear: (t: number) => monthYear.format(t),
+  };
+}
 
 /**
  * Time-axis ticks across [from, to] for the given zoom.
@@ -117,8 +131,15 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
  *  - week:  one tick per Monday; major on the Monday starting a month.
  *  - month: one tick per month start; all major.
  */
-export function axisTicks(fromMs: number, toMs: number, zoom: ZoomLevel, pxPerDay: number): AxisTick[] {
+export function axisTicks(
+  fromMs: number,
+  toMs: number,
+  zoom: ZoomLevel,
+  pxPerDay: number,
+  locale: Locale = "en"
+): AxisTick[] {
   if (toMs <= fromMs) return [];
+  const f = tickFormats(locale);
   const ticks: AxisTick[] = [];
   const from = startOfDay(fromMs);
   if (zoom === "day") {
@@ -127,7 +148,7 @@ export function axisTicks(fromMs: number, toMs: number, zoom: ZoomLevel, pxPerDa
       const first = d.getUTCDate() === 1;
       ticks.push({
         x: xForMs(t, from, pxPerDay),
-        label: first ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}` : String(d.getUTCDate()),
+        label: first ? f.dayMonth(t) : f.day(t),
         major: first,
       });
     }
@@ -141,7 +162,7 @@ export function axisTicks(fromMs: number, toMs: number, zoom: ZoomLevel, pxPerDa
       const major = d.getUTCDate() <= 7; // Monday that opens a month
       ticks.push({
         x: xForMs(t, from, pxPerDay),
-        label: major ? `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}` : `${d.getUTCDate()}`,
+        label: major ? f.dayMonth(t) : f.day(t),
         major,
       });
     }
@@ -158,7 +179,7 @@ export function axisTicks(fromMs: number, toMs: number, zoom: ZoomLevel, pxPerDa
       const d = new Date(t);
       ticks.push({
         x: xForMs(t, from, pxPerDay),
-        label: `${MONTHS[d.getUTCMonth()]} ${String(d.getUTCFullYear()).slice(2)}`,
+        label: f.monthYear(t),
         major: true,
       });
       m += 1;

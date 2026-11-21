@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { cn } from "@/lib/utils";
 
 /** Brand mark — gradient rounded square + check. Optional wordmark. */
@@ -14,6 +15,9 @@ export function Logo({
   className?: string;
   animated?: boolean;
 }) {
+  // Unique gradient id per instance: with a fixed id the mobile header's mark
+  // referenced the (display:none) sidebar copy's gradient and rendered blank.
+  const gid = `tt-mark-${useId().replace(/:/g, "")}`;
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <svg
@@ -26,13 +30,13 @@ export function Logo({
         aria-hidden
       >
         <defs>
-          <linearGradient id="tt-mark" x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
+          <linearGradient id={gid} x1="2" y1="2" x2="46" y2="46" gradientUnits="userSpaceOnUse">
             <stop stopColor="#6366F1" />
             <stop offset="0.5" stopColor="#A855F7" />
             <stop offset="1" stopColor="#EC4899" />
           </linearGradient>
         </defs>
-        <rect x="1" y="1" width="46" height="46" rx="13" fill="url(#tt-mark)" />
+        <rect x="1" y="1" width="46" height="46" rx="13" fill={`url(#${gid})`} />
         <rect x="11" y="11" width="26" height="26" rx="7" fill="#fff" fillOpacity="0.14" />
         <path
           d="M14 25.5L20.5 32L34 16"

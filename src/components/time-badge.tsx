@@ -5,7 +5,7 @@ import { ar, de, enUS, tr } from "date-fns/locale";
 import { Clock, CalendarDays, CheckCircle2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  formatDuration,
+  formatDurationLabel,
   runningHours,
   isOverdue,
   isDueToday,
@@ -60,8 +60,8 @@ export function TimeBadge({ task }: { task: TimeInfo }) {
           )}
         >
           <Clock className={cn("h-3 w-3", running && "animate-pulse")} />
-          {formatDuration(effectiveSpent)} {t("time.of")}{" "}
-          {formatDuration(task.estimatedHours)}
+          {formatDurationLabel(effectiveSpent, locale)} {t("time.of")}{" "}
+          {formatDurationLabel(task.estimatedHours, locale)}
         </span>
       )}
 

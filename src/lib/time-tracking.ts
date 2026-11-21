@@ -14,6 +14,17 @@ export function formatMinutes(min: number): string {
   return `${r}m`;
 }
 
+/** formatMinutes in the UI language: Arabic → "1 س 30 د" instead of "1h 30m". */
+export function formatMinutesLabel(min: number, locale: string): string {
+  if (locale !== "ar") return formatMinutes(min);
+  const m = Math.max(0, Math.round(min));
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (h && r) return `${h} س ${r} د`;
+  if (h) return `${h} س`;
+  return `${r} د`;
+}
+
 export type TimeEntryLite = {
   minutes: number;
   startedAt: Date;
