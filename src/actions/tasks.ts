@@ -13,7 +13,6 @@ import {
   subtaskSchema,
   progressSchema,
   MAX_UPLOAD_BYTES,
-  ALLOWED_MIME,
   MIME_EXTENSION,
   ALLOWED_AUDIO_MIME,
   MAX_VOICE_SECONDS,
@@ -30,6 +29,7 @@ import { isTaskStatus, isTaskLinkType, isAdminRole, isTaskType } from "@/lib/enu
 import { can } from "@/lib/roles";
 import { canEditTaskContent, taskVisibility } from "@/lib/task-access";
 import { decodeUploadFilename } from "@/lib/filename-encoding";
+import { resolveUploadMime } from "@/lib/upload-mime";
 import { statusGateFor } from "@/lib/task-workflow-gate";
 import { columnForStatusChange } from "@/lib/scrum";
 import { detectCommentLanguage } from "@/lib/lang-detect";
@@ -1017,17 +1017,19 @@ export async function uploadAttachmentAction(
   if (file.size > MAX_UPLOAD_BYTES) {
     return { error: "TOO_LARGE" };
   }
-  if (!ALLOWED_MIME.includes(file.type)) {
-    return { error: "BAD_TYPE" };
-  }
-
   const bytes = Buffer.from(await file.arrayBuffer());
   // Next's fetch-action multipart parser decodes the filename as Latin-1
   // (busboy without defParamCharset) — repair before the name escapes
   // anywhere (DB, activity log, notifications). See lib/filename-encoding.ts.
   const fileName = decodeUploadFilename(file.name);
+  // Mobile pickers often send an empty/octet-stream type for real PDFs —
+  // resolve it from the file signature (lib/upload-mime.ts, 2026-11-21).
+  const mimeType = resolveUploadMime(file.type, fileName, bytes);
+  if (!mimeType) {
+    return { error: "BAD_TYPE" };
+  }
   // Extension comes from the validated MIME, NOT from the user's filename.
-  const ext = MIME_EXTENSION[file.type];
+  const ext = MIME_EXTENSION[mimeType];
   if (!ext) {
     return { error: "BAD_TYPE" };
   }
@@ -1044,7 +1046,7 @@ export async function uploadAttachmentAction(
 
   // Downscaled preview so task cards can show the picture without shipping the
   // original. Best-effort: null just means "fall back to the full image".
-  const thumbPath = await writeThumbnail(bytes, file.type, `/uploads/${safeName}`);
+  const thumbPath = await writeThumbnail(bytes, mimeType, `/uploads/${safeName}`);
 
   await prisma.taskAttachment.create({
     data: {
@@ -1052,7 +1054,7 @@ export async function uploadAttachmentAction(
       fileName,
       filePath: `/uploads/${safeName}`,
       thumbPath,
-      mimeType: file.type,
+      mimeType,
       sizeBytes: file.size,
       uploadedBy: user.id,
     },
