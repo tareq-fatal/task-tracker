@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { getDictionary } from "@/lib/i18n";
@@ -8,6 +6,7 @@ import { getActiveLocale } from "@/lib/locale";
 import { taskVisibility, canAccessProject } from "@/lib/task-access";
 import { taskCardSelect } from "@/lib/task-select";
 import { KanbanBoard } from "@/components/kanban-board";
+import { BackLink } from "@/components/back-link";
 
 export default async function ProjectBoardPage({
   params,
@@ -32,20 +31,14 @@ export default async function ProjectBoardPage({
   });
 
   return (
-    <div className="container py-6">
-      <Link
-        href={`/projects/${project.id}`}
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        {project.name}
-      </Link>
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
+      <BackLink href={`/projects/${project.id}`} label={project.name} />
       <div className="mb-5 flex items-center gap-2">
         <span
           className="h-4 w-4 rounded-full"
           style={{ backgroundColor: project.color }}
         />
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {project.name} · {t["board.title"]}
         </h1>
       </div>

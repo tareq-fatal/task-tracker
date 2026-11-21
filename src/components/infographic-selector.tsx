@@ -35,7 +35,7 @@ export function InfographicSelector({
             onClick={() => go({ type: ty, id: "" })}
             className={cn(
               "rounded-full px-3 py-1 text-sm font-medium transition-colors",
-              type === ty ? "bg-indigo-100 text-indigo-700" : "text-muted-foreground hover:bg-muted"
+              type === ty ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground hover:bg-muted"
             )}
           >
             {t(`infographic.${ty}` as TKey)}

@@ -40,8 +40,8 @@ export function TenantWizard() {
   const canSubmit = f.name.trim() && f.slug.trim() && (ownerEmpty || ownerComplete);
 
   return (
-    <div className="rounded-xl border-2 border-indigo-100 bg-indigo-50/40 p-4">
-      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-indigo-700">
+    <div className="rounded-xl border-2 border-primary/25 bg-primary-soft/40 p-4">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-primary-soft-foreground">
         <Building2 className="h-4 w-4" /> {t("tenants.new")}
       </h2>
 
@@ -60,7 +60,7 @@ export function TenantWizard() {
         </div>
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-indigo-700/70">{t("tenants.owner")} · {t("admin.users.optional")}</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-primary-soft-foreground/70">{t("tenants.owner")} · {t("admin.users.optional")}</p>
       <p className="mb-2 text-xs text-muted-foreground">{t("tenants.ownerHint")}</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1"><Label htmlFor="tw-oname">{t("tenants.ownerName")}</Label><Input id="tw-oname" value={f.ownerName} onChange={(e) => setF((s) => ({ ...s, ownerName: e.target.value, ownerUsername: s.ownerUsername || slugify(e.target.value) }))} /></div>

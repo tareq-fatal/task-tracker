@@ -73,7 +73,7 @@ export function ReportsDashboard({
 
       <div id="report-capture" className="space-y-5 stagger">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-pink-500 p-6 text-white shadow-lg">
+        <section className="relative overflow-hidden rounded-3xl border bg-primary p-6 text-white shadow-lg">
           <div className="pointer-events-none absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/15 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-12 start-1/3 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
           <div className="relative grid grid-cols-2 gap-6 sm:grid-cols-4">
@@ -143,8 +143,8 @@ export function ReportsDashboard({
                 </span>
               </div>
               {data.prediction.daysLeft != null && (
-                <div className="flex items-center gap-2 rounded-xl bg-indigo-50 px-3 py-2 text-sm">
-                  <TrendingUp className="h-4 w-4 text-indigo-500" />
+                <div className="flex items-center gap-2 rounded-xl bg-primary-soft px-3 py-2 text-sm">
+                  <TrendingUp className="h-4 w-4 text-primary" />
                   <span>
                     <span className="font-semibold">{L.prediction}:</span> ~{data.prediction.daysLeft}{" "}
                     {L.days}

@@ -7,14 +7,14 @@ import { SkeletonScreen, PageTitleSkeleton, Skeleton } from "@/components/skelet
 export default function ProjectsLoading() {
   const t = getDictionary(getActiveLocale());
   return (
-    <SkeletonScreen label={t["common.loading"]} className="container py-6">
+    <SkeletonScreen label={t["common.loading"]} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
       <div className="mb-6 flex items-center justify-between">
         <PageTitleSkeleton className="w-40" />
         <Skeleton className="h-10 w-32" />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} aria-hidden="true" className="h-full rounded-lg border bg-card p-5 shadow-sm">
+          <div key={i} aria-hidden="true" className="h-full rounded-xl border bg-card p-5 shadow-card">
             <div className="mb-2 flex h-6 items-center gap-2">
               <Skeleton className="h-3 w-3 rounded-full" />
               <Skeleton className={i % 2 ? "h-4 w-28" : "h-4 w-40"} />

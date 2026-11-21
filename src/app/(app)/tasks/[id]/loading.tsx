@@ -19,7 +19,7 @@ import {
 export default function TaskDetailLoading() {
   const t = getDictionary(getActiveLocale());
   return (
-    <SkeletonScreen label={t["common.loading"]} className="container max-w-3xl py-6">
+    <SkeletonScreen label={t["common.loading"]} className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <BackLinkSkeleton className="w-20" />
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

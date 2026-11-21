@@ -88,7 +88,7 @@ export function SubtaskList({
   return (
     <div className="space-y-1">
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-sm font-semibold text-foreground">
           {t("task.subtasks")}
         </span>
         {subtasks.length > 0 && (

@@ -74,9 +74,9 @@ export function FeatureHint({
         className
       )}
     >
-      <div className="rounded-2xl border border-indigo-200/70 bg-white p-4 shadow-xl shadow-indigo-900/10 ring-1 ring-black/5 dark:border-indigo-400/20 dark:bg-slate-900">
+      <div className="rounded-2xl border border-primary/25/70 bg-white p-4 shadow-xl  ring-1 ring-black/5 dark:border-primary/50/20 dark:bg-slate-900">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+          <div className="flex items-center gap-2 text-sm font-semibold text-primary-soft-foreground dark:text-primary-soft-foreground">
             <Sparkles className="h-4 w-4" />
             {t(titleKey)}
           </div>
@@ -96,7 +96,7 @@ export function FeatureHint({
           <button
             type="button"
             onClick={dismiss}
-            className="rounded-lg bg-gradient-to-r from-indigo-500 to-pink-500 px-3 py-1.5 text-xs font-medium text-white transition-transform hover:-translate-y-px"
+            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-transform hover:-translate-y-px"
           >
             {t("onboarding.hint.gotIt")}
           </button>

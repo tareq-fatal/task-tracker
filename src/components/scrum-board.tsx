@@ -43,7 +43,7 @@ export type ScrumTask = {
 function Avatar({ name, className }: { name: string; className?: string }) {
   const init = name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <span className={cn("grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-[10px] font-bold text-white ring-2 ring-white", className)} title={name}>
+    <span className={cn("grid h-6 w-6 place-items-center rounded-full bg-primary text-[10px] font-bold text-white ring-2 ring-white", className)} title={name}>
       {init}
     </span>
   );
@@ -93,7 +93,7 @@ function Column({ col, tasks, label, emoji }: { col: ScrumColumn; tasks: ScrumTa
       </div>
       <div
         ref={setNodeRef}
-        className={cn("flex min-h-[60vh] flex-col gap-3 rounded-xl border border-dashed p-2 transition-colors", isOver && "bg-indigo-50 ring-2 ring-indigo-300")}
+        className={cn("flex min-h-[60vh] flex-col gap-3 rounded-xl border border-dashed p-2 transition-colors", isOver && "bg-primary-soft ring-2 ring-primary/40")}
       >
         {tasks.map((t) => (
           <Link key={t.id} href={`/tasks/${t.id}`} onClick={(e) => e.defaultPrevented && e.preventDefault()}>
@@ -142,7 +142,7 @@ export function ScrumBoard({
   return (
     <div className="relative">
       {/* Header bar */}
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-gradient-to-r from-indigo-50 to-pink-50 p-3">
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-primary-soft p-3">
         <div className="min-w-0">
           <div className="font-bold">{sprint ? sprint.name : t("scrum.sprintNone")}</div>
           {sprint && <div className="text-xs text-muted-foreground">{sprint.range}{sprint.goal ? ` · 🎯 ${sprint.goal}` : ""}</div>}
@@ -156,7 +156,7 @@ export function ScrumBoard({
             {team.slice(0, 6).map((n, i) => <Avatar key={i} name={n} />)}
             {team.length > 6 && <span className="grid h-6 w-6 place-items-center rounded-full bg-muted text-[10px] ring-2 ring-white">+{team.length - 6}</span>}
           </div>
-          <button onClick={() => setDraw((d) => !d)} className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", draw && "bg-indigo-100 text-indigo-700")}>
+          <button onClick={() => setDraw((d) => !d)} className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", draw && "bg-primary-soft text-primary-soft-foreground")}>
             <Pencil className="h-3.5 w-3.5" /> {t("scrum.draw")}
           </button>
         </div>

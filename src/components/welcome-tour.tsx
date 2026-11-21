@@ -49,8 +49,9 @@ export function WelcomeTour({
     disableBeacon: true,
   });
   // On mobile the sidebar is hidden → fall back to centered cards.
+  // TOF-0962: eingeklappte Admin-Gruppe → Ziel fehlt → mittig statt hängen.
   const at = (sel: string, key: TKey): Step =>
-    isMobile
+    isMobile || (typeof document !== "undefined" && !document.querySelector(sel))
       ? center(key)
       : { target: sel, content: t(key), disableBeacon: true };
 
@@ -104,7 +105,7 @@ export function WelcomeTour({
       }}
       styles={{
         options: {
-          primaryColor: "#4f46e5",
+          primaryColor: "#3041cf",
           textColor: "#1f2937",
           backgroundColor: "#ffffff",
           arrowColor: "#ffffff",

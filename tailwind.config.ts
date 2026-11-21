@@ -6,6 +6,8 @@ const config: Config = {
     "./src/pages/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
     "./src/app/**/*.{ts,tsx}",
+    // TOF-0962: Klassen-Tabellen in src/lib (z. B. STATUS_STYLES mit dark:-Varianten)
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
@@ -30,7 +32,11 @@ const config: Config = {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          soft: "hsl(var(--primary-soft))",
+          "soft-foreground": "hsl(var(--primary-soft-foreground))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
@@ -56,7 +62,13 @@ const config: Config = {
           foreground: "hsl(var(--card-foreground))",
         },
       },
+      boxShadow: {
+        card: "var(--shadow-card)",
+        raised: "var(--shadow-raised)",
+        overlay: "var(--shadow-overlay)",
+      },
       borderRadius: {
+        xl: "calc(var(--radius) + 2px)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
@@ -77,7 +89,13 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // TOF-0962: `coarse:` = Touch-Geräte → Antippflächen mind. 44 px.
+    function ({ addVariant }: { addVariant: (n: string, v: string) => void }) {
+      addVariant("coarse", "@media (pointer: coarse)");
+    },
+  ],
 };
 
 export default config;

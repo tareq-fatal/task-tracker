@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hexToHsl, resolveBranding, brandStyle, THEMES } from "./branding";
+import { hexToHsl, resolveBranding, brandStyle, THEMES, isDefaultBrand, tenantBrandStyle } from "./branding";
 
 describe("hexToHsl", () => {
   it("converts primaries correctly", () => {
@@ -60,5 +60,18 @@ describe("brandStyle", () => {
     expect(dark).toContain("--brand-foreground:0 0% 100%");
     const light = brandStyle(resolveBranding({ themeName: "custom", primaryColor: "#fbbf24" }));
     expect(light).toContain("--brand-foreground:222 47% 11%");
+  });
+});
+
+describe("tenantBrandStyle (TOF-0962)", () => {
+  it("leaves untouched default tenants to the Calm tokens", () => {
+    expect(isDefaultBrand({ themeName: null, primaryColor: "#4f46e5" })).toBe(true);
+    expect(isDefaultBrand({ themeName: "ocean-pro", primaryColor: "#4F46E5", secondaryColor: "#c026d3", accentColor: "#ec4899" })).toBe(true);
+    expect(tenantBrandStyle({ primaryColor: "#4f46e5" })).toBe("");
+  });
+  it("keeps white-label colours", () => {
+    expect(isDefaultBrand({ themeName: "custom", primaryColor: "#28238b" })).toBe(false);
+    expect(isDefaultBrand({ themeName: "sage-modern" })).toBe(false);
+    expect(tenantBrandStyle({ themeName: "custom", primaryColor: "#28238b" })).toContain("--primary:");
   });
 });

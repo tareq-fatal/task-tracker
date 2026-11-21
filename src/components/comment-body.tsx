@@ -25,7 +25,7 @@ export function CommentBody({
       {segments.map((seg, i) => {
         if (seg.type === "text") return <span key={i}>{seg.value}</span>;
         const chip = (
-          <span className="rounded bg-indigo-100 px-1 font-medium text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+          <span className="rounded bg-primary-soft px-1 font-medium text-primary-soft-foreground dark:bg-primary-soft dark:text-primary-soft-foreground">
             {seg.value}
           </span>
         );

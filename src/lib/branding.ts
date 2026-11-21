@@ -75,3 +75,23 @@ export function brandStyle(b: Branding): string {
   const fg = hslForegroundFor(b.primary);
   return `:root,.dark{--brand-from:${p};--brand-via:${s};--brand-to:${a};--brand-foreground:${fg};--primary:${p};--primary-foreground:${fg};--ring:${p};}`;
 }
+
+/** TOF-0962: Hat der Mandant das Standard-Ocean-Pro-Schema nie geändert, gilt
+ *  das ruhige Calm-Design aus globals.css (mit echten Dunkel-Werten) — dann
+ *  wird nichts überschrieben. Eigene Farben (White-Label) wirken wie bisher. */
+const OLD_DEFAULTS = { primary: "#4f46e5", secondary: "#c026d3", accent: "#ec4899" };
+export function isDefaultBrand(t: TenantBrand): boolean {
+  const theme = t.themeName ?? "ocean-pro";
+  if (theme !== "ocean-pro" && theme !== "custom") return false;
+  const eq = (v: string | null | undefined, d: string) => !v || v.trim().toLowerCase() === d;
+  return (
+    eq(t.primaryColor, OLD_DEFAULTS.primary) &&
+    eq(t.secondaryColor, OLD_DEFAULTS.secondary) &&
+    eq(t.accentColor, OLD_DEFAULTS.accent)
+  );
+}
+
+/** CSS-Überschreibung für den Mandanten oder "" (Calm-Standard). */
+export function tenantBrandStyle(t: TenantBrand): string {
+  return isDefaultBrand(t) ? "" : brandStyle(resolveBranding(t));
+}

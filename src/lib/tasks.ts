@@ -2,18 +2,19 @@ import type { TaskPriority, TaskStatus } from "./enums";
 
 /** Tailwind classes for status pills. */
 export const STATUS_STYLES: Record<TaskStatus, string> = {
-  Todo: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  InProgress: "bg-amber-100 text-amber-700 border-amber-200",
-  Done: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  Archived: "bg-slate-100 text-slate-500 border-slate-200",
+  // TOF-0962: helle Plaketten mit Dunkel-Varianten (Kontrast per Skript ≥ 4,5:1)
+  Todo: "bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-400/10 dark:text-slate-300 dark:border-slate-400/20",
+  InProgress: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-400/10 dark:text-sky-300 dark:border-sky-400/25",
+  Done: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-400/10 dark:text-emerald-300 dark:border-emerald-400/25",
+  Archived: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/20",
 };
 
 /** Tailwind classes for priority pills. */
 export const PRIORITY_STYLES: Record<TaskPriority, string> = {
-  Low: "bg-slate-100 text-slate-600 border-slate-200",
-  Medium: "bg-amber-100 text-amber-700 border-amber-200",
-  High: "bg-orange-100 text-orange-700 border-orange-200",
-  Critical: "bg-red-100 text-red-700 border-red-200",
+  Low: "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-400/10 dark:text-slate-400 dark:border-slate-400/20",
+  Medium: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-400/10 dark:text-amber-300 dark:border-amber-400/25",
+  High: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-400/10 dark:text-orange-300 dark:border-orange-400/25",
+  Critical: "bg-red-50 text-red-700 border-red-200 dark:bg-red-400/10 dark:text-red-300 dark:border-red-400/25",
 };
 
 export const PRIORITY_ORDER: Record<TaskPriority, number> = {

@@ -62,7 +62,7 @@ export default async function ViewsPage({
   const tab = (v: string, label: string) => (
     <Link
       href={`/views?view=${v}${projectId ? `&project=${projectId}` : ""}`}
-      className={cn("rounded-full px-3 py-1 text-sm font-medium transition-colors", view === v ? "bg-indigo-100 text-indigo-700" : "text-muted-foreground hover:bg-muted")}
+      className={cn("rounded-full px-3 py-1 text-sm font-medium transition-colors", view === v ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground hover:bg-muted")}
     >
       {label}
     </Link>

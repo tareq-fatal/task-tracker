@@ -12,7 +12,7 @@ import {
 export default function BoardLoading() {
   const t = getDictionary(getActiveLocale());
   return (
-    <SkeletonScreen label={t["common.loading"]} className="container py-6">
+    <SkeletonScreen label={t["common.loading"]} className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       <PageTitleSkeleton className="mb-4 w-40" />
       <FilterBarSkeleton />
       <KanbanBoardSkeleton />

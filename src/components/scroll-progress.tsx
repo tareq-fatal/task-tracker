@@ -37,7 +37,7 @@ export function ScrollProgress() {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-40 h-[3px]">
       <div
-        className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 transition-transform duration-75 ease-out motion-reduce:transition-none"
+        className="h-full bg-primary transition-transform duration-75 ease-out motion-reduce:transition-none"
         style={{ transform: `scaleX(${pct})`, transformOrigin: rtl ? "right" : "left" }}
       />
     </div>

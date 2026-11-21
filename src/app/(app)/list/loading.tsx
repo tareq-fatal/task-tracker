@@ -13,12 +13,13 @@ import {
 export default function ListLoading() {
   const t = getDictionary(getActiveLocale());
   return (
-    <SkeletonScreen label={t["common.loading"]} className="container py-6">
+    <SkeletonScreen label={t["common.loading"]} className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6">
       <PageTitleSkeleton className="mb-4 w-40" />
       <div className="pb-20">
-        <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
-          <Skeleton className="h-9 w-36" />
-          <Skeleton className="h-9 w-11" />
+        <div className="mb-3 flex flex-col gap-2 lg:flex-row lg:items-center">
+          <Skeleton className="h-10 w-full lg:w-80" />
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-9 w-40 lg:ms-auto" />
         </div>
         <TableRowsSkeleton
           columns={["w-4", "w-9", "w-48", "w-16", "w-24", "w-20", "w-14", "w-16", "w-6"]}

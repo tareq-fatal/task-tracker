@@ -14,7 +14,7 @@ export default async function AdminBulkImportPage() {
   return (
     <div className="container max-w-4xl py-6">
       <div className="mb-1 flex items-center gap-2">
-        <FileSpreadsheet className="h-6 w-6 text-indigo-600" />
+        <FileSpreadsheet className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold">{t["bulkImport.title"]}</h1>
       </div>
       <p className="mb-6 text-sm text-muted-foreground">

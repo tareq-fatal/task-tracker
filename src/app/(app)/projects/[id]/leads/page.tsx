@@ -140,7 +140,7 @@ export default async function LeadsPage({ params, searchParams }: { params: { id
           </Link>
         ))}
         <Link href={href({ archived: !filter.showArchived })} className={cn(chip, "ms-auto", filter.showArchived ? "border-primary bg-primary/10" : "hover:bg-muted")}>
-          <input type="checkbox" readOnly checked={filter.showArchived} className="me-1.5 h-3 w-3 align-middle accent-indigo-600" tabIndex={-1} aria-hidden />
+          <input type="checkbox" readOnly checked={filter.showArchived} className="me-1.5 h-3 w-3 align-middle accent-[hsl(var(--primary))]" tabIndex={-1} aria-hidden />
           {t["leads.showArchived"]}
         </Link>
       </div>

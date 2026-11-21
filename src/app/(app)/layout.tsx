@@ -11,7 +11,7 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { UpdatePrompt } from "@/components/update-prompt";
 import { PushBootstrap } from "@/components/push-bootstrap";
 import { SentryUserContext } from "@/components/sentry-user-context";
-import { resolveBranding, brandStyle } from "@/lib/branding";
+import { tenantBrandStyle } from "@/lib/branding";
 import { brandName } from "@/lib/brand";
 
 export default async function AppLayout({
@@ -30,13 +30,12 @@ export default async function AppLayout({
 
   const locale = getActiveLocale();
   const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
-  const branding = resolveBranding(tenant);
 
   return (
     // TOF-0795: Instanz-Name zur Laufzeit (APP_NAME) an die Client-Komponenten.
     <I18nProvider locale={locale} appName={brandName()}>
       {/* Per-tenant white-label: override the Ocean-Pro brand vars */}
-      <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
+      <style dangerouslySetInnerHTML={{ __html: tenantBrandStyle(tenant) }} />
       <ToastProvider>
         <NoticeToast />
         <SentryUserContext user={user} />

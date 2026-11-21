@@ -48,67 +48,93 @@ function DraggableCard({ task }: { task: BoardTask }) {
 }
 
 const COLUMN_TINT: Record<TaskStatus, string> = {
-  Todo: "bg-indigo-500",
-  InProgress: "bg-amber-500",
+  Todo: "bg-slate-400",
+  InProgress: "bg-sky-500",
   Done: "bg-emerald-500",
   Archived: "bg-slate-400",
 };
+
+// TOF-0962 Tempo: je Spalte zuerst nur so viele Karten rendern, Rest auf Klick.
+const PAGE = 40;
 
 function Column({
   status,
   tasks,
   label,
   innerRef,
+  totalCount,
+  footer,
 }: {
   status: TaskStatus;
   tasks: BoardTask[];
   label: string;
   innerRef: (el: HTMLDivElement | null) => void;
+  /** Gesamtzahl laut Server (z. B. alle Erledigten), wenn nicht alle geladen sind. */
+  totalCount?: number;
+  footer?: React.ReactNode;
 }) {
+  const { t } = useT();
   const { setNodeRef, isOver } = useDroppable({ id: status });
+  const [limit, setLimit] = useState(PAGE);
+  const shown = tasks.slice(0, limit);
+  const rest = tasks.length - shown.length;
 
   return (
-    <div
+    <section
       ref={innerRef}
-      className="board-col flex w-[82vw] shrink-0 flex-col xs:w-[70vw] sm:w-80"
+      aria-label={label}
+      className="board-col flex w-[86vw] shrink-0 flex-col xs:w-[72vw] sm:w-[320px]"
     >
-      <div className="mb-2 flex items-center justify-between px-1">
+      <header className="mb-2 flex h-9 items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className={cn("h-2.5 w-2.5 rounded-full", COLUMN_TINT[status])} />
-          <h3 className="text-sm font-semibold">{label}</h3>
+          <span className={cn("h-2 w-2 rounded-full", COLUMN_TINT[status])} aria-hidden />
+          <h2 className="text-sm font-semibold">{label}</h2>
+          <span className="text-sm tabular-nums text-muted-foreground">{totalCount ?? tasks.length}</span>
         </div>
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-          {tasks.length}
-        </span>
-      </div>
+      </header>
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-[62vh] flex-col gap-2.5 rounded-2xl border bg-muted/30 p-2.5 transition-all duration-200",
-          isOver
-            ? "border-indigo-400 bg-indigo-50 ring-2 ring-indigo-300/60"
-            : "border-dashed"
+          "flex min-h-[60vh] flex-col gap-2 rounded-xl p-1.5 transition-colors duration-150",
+          isOver ? "bg-primary-soft ring-2 ring-primary/40" : "bg-secondary/60 dark:bg-secondary/40"
         )}
       >
-        {tasks.map((task) => (
+        {shown.map((task) => (
           <DraggableCard key={task.id} task={task} />
         ))}
+        {rest > 0 && (
+          <button
+            type="button"
+            onClick={() => setLimit((l) => l + PAGE)}
+            className="h-10 rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-card hover:text-foreground coarse:h-11"
+          >
+            {t("board.showMore" as TKey, { n: Math.min(rest, PAGE) })}
+          </button>
+        )}
+        {footer}
         {tasks.length === 0 && (
           <div
             className={cn(
-              "flex flex-1 items-center justify-center rounded-xl border border-dashed py-10 text-center text-xs text-muted-foreground transition-colors",
-              isOver && "border-indigo-300 text-indigo-600"
+              "flex flex-1 items-center justify-center rounded-lg border border-dashed py-10 text-center text-xs text-muted-foreground transition-colors",
+              isOver && "border-primary/50 text-primary"
             )}
           >
             {isOver ? "⤵" : "—"}
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
-export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
+export function KanbanBoard({
+  initialTasks,
+  doneTotal,
+}: {
+  initialTasks: BoardTask[];
+  /** TOF-0962: Server lädt nur die letzten Erledigten; hier die Gesamtzahl. */
+  doneTotal?: number;
+}) {
   const { t } = useT();
   const { toast } = useToast();
   const [tasks, setTasks] = useState<BoardTask[]>(initialTasks);
@@ -208,35 +234,52 @@ export function KanbanBoard({ initialTasks }: { initialTasks: BoardTask[] }) {
             type="button"
             aria-label={t(`status.${status}` as TKey)}
             onClick={() => goToColumn(i)}
-            className={cn(
-              "h-2 rounded-full transition-all duration-200",
-              i === activeCol
-                ? "w-6 bg-gradient-to-r from-indigo-500 to-pink-500"
-                : "w-2 bg-muted-foreground/30"
-            )}
-          />
+            className="flex h-11 items-center justify-center px-1.5"
+          >
+            <span
+              className={cn(
+                "h-2 rounded-full transition-all duration-200",
+                i === activeCol ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30"
+              )}
+            />
+          </button>
         ))}
       </div>
 
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="board-scroll flex gap-4 overflow-x-auto pb-4"
+        className="board-scroll -mx-4 flex gap-3 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0"
       >
-        {BOARD_STATUSES.map((status, i) => (
-          <Column
-            key={status}
-            status={status}
-            label={t(`status.${status}` as TKey)}
-            tasks={tasks.filter((x) => x.status === status)}
-            innerRef={(el) => (colRefs.current[i] = el)}
-          />
-        ))}
+        {BOARD_STATUSES.map((status, i) => {
+          const colTasks = tasks.filter((x) => x.status === status);
+          const limitedDone = status === "Done" && doneTotal != null && doneTotal > colTasks.length;
+          return (
+            <Column
+              key={status}
+              status={status}
+              label={t(`status.${status}` as TKey)}
+              tasks={colTasks}
+              totalCount={limitedDone ? doneTotal : undefined}
+              innerRef={(el) => (colRefs.current[i] = el)}
+              footer={
+                limitedDone ? (
+                  <a
+                    href="/list"
+                    className="flex h-10 items-center justify-center rounded-lg text-xs text-muted-foreground transition-colors hover:bg-card hover:text-foreground coarse:h-11"
+                  >
+                    {t("board.doneRecent" as TKey, { n: colTasks.length })} · {t("board.allDone" as TKey)}
+                  </a>
+                ) : null
+              }
+            />
+          );
+        })}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>
+      <DragOverlay dropAnimation={{ duration: 180, easing: "ease" }}>
         {activeTask ? (
-          <div className="w-[82vw] rotate-3 scale-[1.03] cursor-grabbing shadow-2xl xs:w-[70vw] sm:w-80">
+          <div className="w-[86vw] rotate-2 cursor-grabbing rounded-xl shadow-overlay xs:w-[72vw] sm:w-[320px]">
             <TaskCard task={activeTask} showStatus={false} />
           </div>
         ) : null}

@@ -52,7 +52,7 @@ export default async function InvitePage({ params }: { params: { token: string }
       >
         <div className="pointer-events-none absolute -top-24 -start-24 h-72 w-72 rounded-full bg-indigo-300/30 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -end-24 h-72 w-72 rounded-full bg-pink-300/30 blur-3xl" />
-        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10">
+        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl ">
           <div className="h-1.5 w-full brand-gradient" />
           <CardHeader className="items-center pt-8 text-center">
             {valid && invite!.tenant.logo ? (

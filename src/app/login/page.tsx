@@ -118,7 +118,7 @@ export default async function LoginPage({
         <div className="absolute end-4 top-4">
           <LocaleSwitcher current={locale} />
         </div>
-        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl shadow-indigo-900/10">
+        <Card className="glass w-full max-w-sm overflow-hidden border-white/50 shadow-2xl ">
           <div className="h-1.5 w-full brand-gradient" />
           <CardHeader className="items-center pt-8 text-center">
             {brandTenant?.logo ? (
@@ -129,7 +129,7 @@ export default async function LoginPage({
             ) : (
               <div className="relative mb-3 grid h-20 w-20 place-items-center">
                 <span className="brand-gradient absolute inset-0 rounded-3xl opacity-25 blur-xl" />
-                <span className="tt-pulse-ring absolute inset-1 rounded-3xl border-2 border-indigo-400/40" />
+                <span className="tt-pulse-ring absolute inset-1 rounded-3xl border-2 border-primary/50/40" />
                 <Logo size={64} animated />
               </div>
             )}

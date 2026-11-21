@@ -185,11 +185,11 @@ export function BulkImportClient() {
                   className={cn(
                     "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-sm font-medium transition-all",
                     active
-                      ? "border-indigo-400 bg-indigo-50 text-indigo-700"
+                      ? "border-primary/50 bg-primary-soft text-primary-soft-foreground"
                       : "text-muted-foreground hover:bg-secondary/70"
                   )}
                 >
-                  <Icon className={cn("h-5 w-5", active && "text-indigo-600")} />
+                  <Icon className={cn("h-5 w-5", active && "text-primary")} />
                   {t(e.label)}
                 </button>
               );

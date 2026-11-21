@@ -52,7 +52,7 @@ export function ApkDownloadLink({ apk = true }: { apk?: boolean } = {}) {
       <div className="mt-4 text-center">
         <a
           href="/download/task-tracker-latest.apk"
-          className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
+          className="text-xs font-medium text-primary underline-offset-4 hover:underline"
         >
           {t("login.downloadApp")}
         </a>
@@ -66,7 +66,7 @@ export function ApkDownloadLink({ apk = true }: { apk?: boolean } = {}) {
         {installEvt ? (
           <button
             onClick={() => installEvt.prompt()}
-            className="text-xs font-medium text-indigo-600 underline-offset-4 hover:underline"
+            className="text-xs font-medium text-primary underline-offset-4 hover:underline"
           >
             {t("login.installAndroid")}
           </button>

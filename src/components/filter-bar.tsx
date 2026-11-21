@@ -150,7 +150,7 @@ export function FilterBar({
                 <Users className="h-4 w-4" />
                 {t("task.assignee")}
                 {current.assignees.length > 0 && (
-                  <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+                  <span className="rounded-full bg-primary-soft px-1.5 text-xs text-primary-soft-foreground">
                     {current.assignees.length}
                   </span>
                 )}
@@ -173,7 +173,7 @@ export function FilterBar({
                       className={cn(
                         "flex h-4 w-4 items-center justify-center rounded border",
                         checked
-                          ? "border-indigo-500 bg-indigo-500 text-white"
+                          ? "border-primary/50 bg-primary text-white"
                           : "border-input"
                       )}
                     >
@@ -224,7 +224,7 @@ export function FilterBar({
                 <Tag className="h-4 w-4" />
                 {t("task.tags")}
                 {current.tags.length > 0 && (
-                  <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+                  <span className="rounded-full bg-primary-soft px-1.5 text-xs text-primary-soft-foreground">
                     {current.tags.length}
                   </span>
                 )}
@@ -247,7 +247,7 @@ export function FilterBar({
                       className={cn(
                         "flex h-4 w-4 items-center justify-center rounded border",
                         checked
-                          ? "border-indigo-500 bg-indigo-500 text-white"
+                          ? "border-primary/50 bg-primary text-white"
                           : "border-input"
                       )}
                     >
@@ -397,7 +397,7 @@ export function FilterBar({
             <Filter className="me-1 h-4 w-4" />
             {t("common.filters")}
             {activeCount > 0 && (
-              <span className="ms-1 rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-700">
+              <span className="ms-1 rounded-full bg-primary-soft px-1.5 text-xs text-primary-soft-foreground">
                 {activeCount}
               </span>
             )}

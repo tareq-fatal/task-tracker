@@ -3,78 +3,94 @@
 @tailwind utilities;
 
 /*
-  "Ocean-Pro" — fresh, vivid, premium. Airy white canvas with an Indigo→Pink
-  brand gradient, Indigo primary, Emerald success accent, Rose for danger.
+  "Calm" (TOF-0962, 16.11.2026) — ruhig, hochwertig, viel Weißraum.
+  Neutrale Slate-Basis, EINE Akzentfarbe (Indigo), Status-Farben nur als
+  kleine Plaketten. Alle Text/Grund-Paare per Skript auf WCAG AA geprüft
+  (Text ≥ 4,5:1). Mandanten-Branding überschreibt weiterhin --brand-*.
 */
 @layer base {
   :root {
-    --background: 240 24% 99%; /* airy white w/ a hint of indigo */
-    --foreground: 222 30% 16%;
+    --background: 220 20% 97%;
+    --foreground: 222 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 30% 16%;
+    --card-foreground: 222 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 30% 16%;
+    --popover-foreground: 222 25% 12%;
 
-    /* Indigo primary (#4f46e5) */
-    --primary: 243 75% 59%;
+    --primary: 234 62% 50%;
     --primary-foreground: 0 0% 100%;
+    /* weicher Akzentgrund (aktive Navigation, Auswahl) */
+    --primary-soft: 234 80% 96%;
+    --primary-soft-foreground: 234 62% 46%;
 
-    --secondary: 240 30% 96%;
-    --secondary-foreground: 222 30% 16%;
+    --secondary: 220 16% 94%;
+    --secondary-foreground: 222 25% 12%;
 
-    --muted: 240 30% 96%;
-    --muted-foreground: 222 14% 40%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 9% 38%;
 
-    /* Emerald success accent (#10b981) */
-    --accent: 160 84% 39%;
-    --accent-foreground: 0 0% 100%;
+    /* Hover-/Fokusfläche (shadcn-Konvention) — neutral, keine Signalfarbe */
+    --accent: 220 16% 94%;
+    --accent-foreground: 222 25% 12%;
 
-    /* Rose for destructive / overdue (#e11d48) */
-    --destructive: 347 77% 50%;
+    --destructive: 354 70% 45%;
     --destructive-foreground: 0 0% 100%;
+    --success: 152 65% 28%;
+    --warning: 28 90% 34%;
 
-    --border: 240 24% 91%;
-    --input: 240 24% 91%;
-    --ring: 243 75% 59%;
+    --border: 220 13% 90%;
+    --input: 220 13% 86%;
+    --ring: 234 62% 50%;
 
-    --radius: 0.85rem;
+    --radius: 0.75rem;
 
-    /* brand gradient stops */
-    --brand-from: 243 75% 59%; /* indigo */
-    --brand-via: 292 84% 61%; /* fuchsia */
-    --brand-to: 330 81% 60%; /* pink */
-    /* text on top of the brand gradient (tenant themes may pick light brands) */
+    --shadow-card: 0 1px 2px hsl(222 25% 12% / 0.04), 0 1px 3px hsl(222 25% 12% / 0.04);
+    --shadow-raised: 0 2px 4px hsl(222 25% 12% / 0.04), 0 8px 24px -6px hsl(222 25% 12% / 0.10);
+    --shadow-overlay: 0 24px 64px -12px hsl(222 25% 12% / 0.28);
+
+    /* Marken-Verlauf: bewusst fast einfarbig (ruhig). Mandanten können ihn
+       über das Branding weiterhin setzen. */
+    --brand-from: 234 62% 50%;
+    --brand-via: 238 60% 52%;
+    --brand-to: 244 56% 54%;
     --brand-foreground: 0 0% 100%;
   }
 
-  /* Dark theme — real tokens (not just an inverse). Applied via .dark on <html>. */
   .dark {
     color-scheme: dark;
-    --background: 222 30% 8%;
-    --foreground: 240 20% 92%;
-    --card: 222 26% 11%;
-    --card-foreground: 240 20% 92%;
-    --popover: 222 26% 11%;
-    --popover-foreground: 240 20% 92%;
-    --primary: 243 80% 68%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 222 20% 18%;
-    --secondary-foreground: 240 20% 92%;
-    --muted: 222 20% 18%;
-    --muted-foreground: 240 12% 66%;
-    --accent: 160 70% 45%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 347 72% 56%;
+    --background: 225 14% 7%;
+    --foreground: 220 15% 93%;
+    --card: 225 12% 11%;
+    --card-foreground: 220 15% 93%;
+    --popover: 225 12% 11%;
+    --popover-foreground: 220 15% 93%;
+    /* hell genug als Text auf Karten (5,6:1); Knöpfe tragen dunklen Text */
+    --primary: 234 85% 72%;
+    --primary-foreground: 228 40% 8%;
+    --primary-soft: 234 40% 18%;
+    --primary-soft-foreground: 234 85% 80%;
+    --secondary: 225 10% 16%;
+    --secondary-foreground: 220 15% 93%;
+    --muted: 225 10% 14%;
+    --muted-foreground: 220 9% 64%;
+    --accent: 225 10% 16%;
+    --accent-foreground: 220 15% 93%;
+    --destructive: 354 65% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 222 16% 22%;
-    --input: 222 16% 22%;
-    --ring: 243 80% 68%;
-    --brand-from: 243 80% 66%;
-    --brand-via: 292 80% 64%;
-    --brand-to: 330 78% 62%;
-    --brand-foreground: 0 0% 100%;
+    --success: 152 55% 55%;
+    --warning: 35 90% 60%;
+    --border: 225 10% 19%;
+    --input: 225 10% 22%;
+    --ring: 234 85% 72%;
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3);
+    --shadow-raised: 0 2px 4px hsl(0 0% 0% / 0.3), 0 12px 28px -8px hsl(0 0% 0% / 0.5);
+    --shadow-overlay: 0 24px 64px -12px hsl(0 0% 0% / 0.7);
+    --brand-from: 234 85% 72%;
+    --brand-via: 236 82% 72%;
+    --brand-to: 240 78% 72%;
+    --brand-foreground: 228 40% 8%;
   }
 }
 
@@ -82,18 +98,37 @@
   * {
     @apply border-border;
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply bg-background text-foreground;
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    line-height: 1.5;
   }
   h1,
   h2,
   h3 {
-    letter-spacing: -0.015em;
+    letter-spacing: -0.018em;
+    line-height: 1.25;
+  }
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3 {
+    letter-spacing: 0; /* arabische Schrift bleibt verbunden */
   }
   ::selection {
-    background-color: hsl(243 75% 59% / 0.18);
+    background-color: hsl(var(--primary) / 0.2);
+  }
+  /* sichtbarer Tastatur-Fokus überall, auch ohne Komponente */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -118,7 +153,7 @@
 }
 /* Frosted glass (modals, sticky bars) */
 .glass {
-  background-color: hsl(0 0% 100% / 0.72);
+  background-color: hsl(var(--popover) / 0.86);
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
 }
@@ -140,7 +175,7 @@ a[data-kbd-selected] {
 @keyframes tt-page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -149,7 +184,7 @@ a[data-kbd-selected] {
   }
 }
 .tt-page-in {
-  animation: tt-page-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tt-page-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 /* Floating hero element */
 @keyframes tt-float {
@@ -218,7 +253,7 @@ a[data-kbd-selected] {
 /* Horizontal Kanban: thin scrollbar + mobile swipe snapping */
 .board-scroll {
   scrollbar-width: thin;
-  scrollbar-color: hsl(214 32% 85%) transparent;
+  scrollbar-color: hsl(var(--border)) transparent;
   -webkit-overflow-scrolling: touch;
   scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain;
@@ -227,7 +262,7 @@ a[data-kbd-selected] {
   height: 8px;
 }
 .board-scroll::-webkit-scrollbar-thumb {
-  background-color: hsl(214 32% 85%);
+  background-color: hsl(var(--border));
   border-radius: 9999px;
 }
 .board-scroll::-webkit-scrollbar-track {
@@ -281,4 +316,20 @@ a[data-kbd-selected] {
     animation: none;
     opacity: 0;
   }
+}
+
+/* ---- Calm-Design: Hilfsklassen (TOF-0962) ----------------------------- */
+/* dezente Scrollbar für Seitenleisten/Listen */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+/* große Listen: Zeilen außerhalb des Sichtfelds nicht rendern (Tempo) */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.cv-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
 }

@@ -67,7 +67,7 @@ export function CommentShell({
               className={cn(
                 "flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
                 c.mine
-                  ? "border-indigo-300 bg-indigo-500/10 text-indigo-700"
+                  ? "border-primary/50 bg-primary/10 text-primary-soft-foreground"
                   : "bg-card text-muted-foreground hover:bg-secondary"
               )}
             >
@@ -172,7 +172,7 @@ export function RestoreCommentButton({ commentId }: { commentId: string }) {
           router.refresh();
         })
       }
-      className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline"
+      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
     >
       {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
       {t("deleted.restore")}

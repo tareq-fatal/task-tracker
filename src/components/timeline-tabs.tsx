@@ -20,7 +20,7 @@ export function TimelineTabs({
       className={cn(
         "rounded-full px-3 py-1 text-sm font-medium transition-colors",
         active === key
-          ? "bg-indigo-100 text-indigo-700"
+          ? "bg-primary-soft text-primary-soft-foreground"
           : "text-muted-foreground hover:bg-muted"
       )}
     >

@@ -83,7 +83,7 @@ export function WelcomeModal({
         onPointerDownOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-pink-500 text-white shadow-lg shadow-indigo-500/30 sm:mx-0">
+          <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-indigo-500/30 sm:mx-0">
             <Rocket className="h-7 w-7" />
           </div>
           <DialogTitle className="text-xl">
@@ -98,7 +98,7 @@ export function WelcomeModal({
         <ul className="grid gap-2">
           {features.map(({ icon: Icon, key }) => (
             <li key={key} className="flex items-center gap-2.5 text-sm">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-indigo-600 dark:text-indigo-300">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-primary dark:text-primary-soft-foreground">
                 <Icon className="h-4 w-4" />
               </span>
               <span className="text-muted-foreground">{t(key)}</span>

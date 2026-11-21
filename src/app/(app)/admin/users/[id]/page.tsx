@@ -14,7 +14,7 @@ import { UserDetailHeader } from "@/components/user-detail-header";
 import { FilterBar } from "@/components/filter-bar";
 
 const STATUS_DOT: Record<string, string> = {
-  Todo: "bg-indigo-500",
+  Todo: "bg-primary",
   InProgress: "bg-amber-500",
   Done: "bg-emerald-500",
   Archived: "bg-slate-400",

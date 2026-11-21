@@ -69,7 +69,7 @@ export function FreehandCanvas({ onClose }: { onClose: () => void }) {
         ))}
         <span className="mx-1 h-4 w-px bg-border" />
         {SIZES.map((s) => (
-          <button key={s} onClick={() => setSize(s)} className={`grid h-6 w-6 place-items-center rounded ${size === s ? "bg-indigo-100" : ""}`} aria-label="size">
+          <button key={s} onClick={() => setSize(s)} className={`grid h-6 w-6 place-items-center rounded ${size === s ? "bg-primary-soft" : ""}`} aria-label="size">
             <span className="rounded-full bg-foreground" style={{ width: s + 2, height: s + 2 }} />
           </button>
         ))}

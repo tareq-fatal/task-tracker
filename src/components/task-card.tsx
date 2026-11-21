@@ -1,16 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Paperclip, ListChecks, AlertTriangle, CalendarClock } from "lucide-react";
+import { MessageSquare, Paperclip, ListChecks, AlertTriangle, CalendarClock, Clock, CheckCircle2 } from "lucide-react";
+import { formatDistanceToNowStrict } from "date-fns";
+import { de, enUS, ar, tr } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { initials, PRIORITY_ACCENT } from "@/lib/tasks";
+import { initials, formatDuration } from "@/lib/tasks";
 import type { TaskPriority } from "@/lib/enums";
 import { dueBucket, type DueBucket } from "@/lib/due";
 import { isImageMime } from "@/lib/attachment-view";
 import { formatDate } from "@/lib/format";
 import { StatusBadge, PriorityBadge, TagBadges } from "@/components/task-badges";
-import { ProgressBar } from "@/components/progress-bar";
-import { TimeBadge } from "@/components/time-badge";
 import { useT } from "@/components/i18n-provider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
@@ -36,20 +36,20 @@ export type TaskCardData = {
   attachments?: { id: string; fileName: string; mimeType: string }[];
 };
 
-const PRIORITY_DOT: Record<TaskPriority, string> = {
-  Low: "bg-slate-400",
-  Medium: "bg-sky-500",
-  High: "bg-amber-500",
-  Critical: "bg-rose-500",
-};
+const DATE_LOCALES = { de, en: enUS, ar, tr } as const;
 
+// TOF-0962: Fälligkeit als ruhige Textzeile, nur „überfällig/heute“ farbig.
 const DUE_STYLE: Record<DueBucket, string> = {
-  overdue: "border-rose-200 bg-rose-50 text-rose-700",
-  today: "border-orange-200 bg-orange-50 text-orange-700",
-  week: "border-sky-200 bg-sky-50 text-sky-700",
-  far: "border-slate-200 bg-slate-50 text-slate-500",
+  overdue: "font-medium text-red-700 dark:text-red-300",
+  today: "font-medium text-orange-700 dark:text-orange-300",
+  week: "text-foreground",
+  far: "text-muted-foreground",
 };
 
+/**
+ * TOF-0962 „Calm“-Karte: Projekt · Titel · Plaketten · eine Fußzeile.
+ * Keine farbige Seitenkante, kein Verlauf; Bilder nur als kleine Leiste.
+ */
 export function TaskCard({
   task,
   showStatus = true,
@@ -60,9 +60,9 @@ export function TaskCard({
   const { t, locale } = useT();
   const done = task.status === "Done" || task.status === "Archived";
   const subtaskCount = task._count?.subtasks ?? 0;
-  const showBar = task.progress > 0 || subtaskCount > 0;
   const bucket = done ? null : dueBucket(task.dueDate, new Date());
-  const avatarSrc = task.assignedTo?.avatar && /^https?:|^\//.test(task.assignedTo.avatar) ? task.assignedTo.avatar : undefined;
+  const avatarSrc =
+    task.assignedTo?.avatar && /^https?:|^\//.test(task.assignedTo.avatar) ? task.assignedTo.avatar : undefined;
   // SVG is deliberately excluded from inline rendering everywhere (stored-XSS),
   // so it is not previewed here either.
   const previews = (task.attachments ?? []).filter((a) => isImageMime(a.mimeType));
@@ -70,76 +70,74 @@ export function TaskCard({
   const openStatus = (s: string) => s !== "Done" && s !== "Archived";
   const waitingOn = done
     ? 0
-    : (task.linksFrom ?? []).filter((l) => openStatus(l.linkedTask.status))
-        .length +
+    : (task.linksFrom ?? []).filter((l) => openStatus(l.linkedTask.status)).length +
       (task.linksTo ?? []).filter((l) => openStatus(l.task.status)).length;
+  const running = Boolean(task.timerStartedAt);
 
   return (
-    <Link href={`/tasks/${task.id}`} className="block">
-      <div
+    <Link
+      href={`/tasks/${task.id}`}
+      className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <article
         className={cn(
-          "group rounded-xl border border-s-4 bg-card p-4 shadow-sm transition-all duration-200",
-          PRIORITY_ACCENT[task.priority as TaskPriority] ?? "border-s-slate-300",
-          "hover:-translate-y-0.5 hover:shadow-lg",
-          "active:scale-[0.99]",
-          done && "opacity-60"
+          "group rounded-xl border bg-card p-3.5 shadow-card transition-[border-color,box-shadow] duration-150",
+          "hover:border-foreground/15 hover:shadow-raised",
+          done && "bg-card/70"
         )}
       >
-        {task.project && (
-          <div className="mb-2 flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: task.project.color }}
-            />
-            <span className="truncate text-xs text-muted-foreground">
-              {task.project.name}
+        <div className="mb-1.5 flex items-center gap-2">
+          {task.project ? (
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: task.project.color }} />
+              <span className="truncate">{task.project.name}</span>
             </span>
-          </div>
-        )}
-
-        <div className="mb-3 flex items-start gap-2">
-          <span
-            className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", PRIORITY_DOT[task.priority as TaskPriority] ?? "bg-slate-300")}
-            aria-hidden
-          />
-          <p
-            className={cn(
-              "line-clamp-2 text-sm font-medium leading-snug",
-              done && "line-through decoration-muted-foreground/40"
-            )}
-          >
-            {task.title}
-          </p>
+          ) : (
+            <span className="flex-1" />
+          )}
           {task.storyPoints != null && (
-            <span className="ms-auto shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
+            <span className="shrink-0 rounded-md bg-secondary px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-secondary-foreground">
               {task.storyPoints} P
             </span>
           )}
+          {task.assignedTo && (
+            <Avatar className="h-6 w-6 shrink-0" title={task.assignedTo.name}>
+              {avatarSrc && <AvatarImage src={avatarSrc} alt={task.assignedTo.name} />}
+              <AvatarFallback className="bg-primary-soft text-[10px] font-semibold text-primary-soft-foreground">
+                {task.assignedTo.avatar && !avatarSrc ? task.assignedTo.avatar : initials(task.assignedTo.name)}
+              </AvatarFallback>
+            </Avatar>
+          )}
         </div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <PriorityBadge priority={task.priority} />
-          <TagBadges tags={task.tags} max={3} />
-          {showStatus && <StatusBadge status={task.status} />}
-          {bucket && (
-            <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium", DUE_STYLE[bucket])}>
-              <CalendarClock className="h-3 w-3" />
-              {formatDate(task.dueDate!, locale)}
-            </span>
+        <p
+          dir="auto"
+          className={cn(
+            "line-clamp-2 text-start text-sm font-medium leading-snug text-foreground",
+            done && "text-muted-foreground line-through decoration-muted-foreground/40"
           )}
-          {waitingOn > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-              <AlertTriangle className="h-3 w-3" />
-              {t("links.waiting", { n: waitingOn })}
-            </span>
-          )}
-        </div>
+        >
+          {task.title}
+        </p>
+
+        {(!done || showStatus || (task.tags?.length ?? 0) > 0 || waitingOn > 0) && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {!done && <PriorityBadge priority={task.priority as TaskPriority} />}
+            {showStatus && <StatusBadge status={task.status} />}
+            <TagBadges tags={task.tags} max={2} />
+            {waitingOn > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-400/25 dark:bg-amber-400/10 dark:text-amber-200">
+                <AlertTriangle className="h-3 w-3" />
+                {t("links.waiting", { n: waitingOn })}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Bildvorschau — "164 Zeilen Text helfen nicht" (Tarek, 14.08.2026).
-            Thumbnails come from the access-checked download route; a broken or
-            missing preview simply leaves the strip out. */}
+            Fehlt eine Datei, wird das Bild ausgeblendet statt kaputt gezeigt. */}
         {previews.length > 0 && (
-          <div className="mb-3 flex gap-1.5">
+          <div className="mt-2.5 flex gap-1.5">
             {previews.map((a) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -147,63 +145,72 @@ export function TaskCard({
                 src={`/download/attachment/${a.id}?thumb=1`}
                 alt={a.fileName}
                 loading="lazy"
-                className="h-14 w-14 rounded-md object-cover ring-1 ring-black/5"
+                decoding="async"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+                className="h-12 w-12 rounded-md bg-secondary object-cover ring-1 ring-border"
               />
             ))}
             {extraImages > 0 && (
-              <span className="grid h-14 w-14 place-items-center rounded-md bg-secondary text-xs font-medium text-muted-foreground">
+              <span className="grid h-12 w-12 place-items-center rounded-md bg-secondary text-xs font-medium text-muted-foreground">
                 +{extraImages}
               </span>
             )}
           </div>
         )}
 
-        {showBar && (
-          <div className="mb-3 space-y-1">
-            <ProgressBar value={task.progress} />
-            <div className="flex justify-between text-[11px] text-muted-foreground">
-              {subtaskCount > 0 ? (
-                <span className="inline-flex items-center gap-1">
-                  <ListChecks className="h-3 w-3" />
-                  {subtaskCount}
-                </span>
-              ) : (
-                <span />
-              )}
-              <span className="tabular-nums">{task.progress}%</span>
+        {task.progress > 0 && !done && (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-secondary" role="progressbar" aria-valuenow={task.progress} aria-valuemin={0} aria-valuemax={100} aria-label={`${task.progress}%`}>
+              <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, task.progress)}%` }} />
             </div>
+            <span className="text-[11px] tabular-nums text-muted-foreground">{task.progress}%</span>
           </div>
         )}
 
-        <div className="mb-3">
-          <TimeBadge task={task} />
-        </div>
-
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
+        <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+          {done && task.completedAt ? (
+            <span className="inline-flex items-center gap-1 text-success">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {t("time.doneAgo", {
+                ago: formatDistanceToNowStrict(new Date(task.completedAt), { locale: DATE_LOCALES[locale] }),
+              })}
+            </span>
+          ) : task.dueDate ? (
+            <span className={cn("inline-flex items-center gap-1 tabular-nums", bucket ? DUE_STYLE[bucket] : "")}>
+              <CalendarClock className="h-3.5 w-3.5" />
+              {formatDate(task.dueDate, locale)}
+            </span>
+          ) : null}
+          {task.estimatedHours != null && !done && (
+            <span className={cn("inline-flex items-center gap-1 tabular-nums", running && "font-medium text-primary")}>
+              <Clock className={cn("h-3.5 w-3.5", running && "motion-safe:animate-pulse")} />
+              {formatDuration(task.spentHours)} / {formatDuration(task.estimatedHours)}
+            </span>
+          )}
+          <span className="ms-auto inline-flex items-center gap-2.5">
+            {subtaskCount > 0 && (
+              <span className="inline-flex items-center gap-1" title={t("task.subtasks" as never)}>
+                <ListChecks className="h-3.5 w-3.5" />
+                {subtaskCount}
+              </span>
+            )}
             {task._count && task._count.comments > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <MessageSquare className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1">
+                <MessageSquare className="h-3.5 w-3.5" />
                 {task._count.comments}
               </span>
             )}
             {task._count && task._count.attachments > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <Paperclip className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1">
+                <Paperclip className="h-3.5 w-3.5" />
                 {task._count.attachments}
               </span>
             )}
-          </div>
-          {task.assignedTo && (
-            <Avatar className="h-6 w-6 ring-2 ring-background" title={task.assignedTo.name}>
-              {avatarSrc && <AvatarImage src={avatarSrc} alt={task.assignedTo.name} />}
-              <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-fuchsia-400 text-[10px] font-semibold text-white">
-                {task.assignedTo.avatar && !avatarSrc ? task.assignedTo.avatar : initials(task.assignedTo.name)}
-              </AvatarFallback>
-            </Avatar>
-          )}
+          </span>
         </div>
-      </div>
+      </article>
     </Link>
   );
 }

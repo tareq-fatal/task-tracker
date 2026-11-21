@@ -63,3 +63,40 @@ export function ThemeToggle() {
     </div>
   );
 }
+
+/**
+ * TOF-0962: kompakter Hell/Dunkel-Schalter für die Kopfzeile (ein Klick).
+ * Wechselt zwischen hell und dunkel; „System“ bleibt in den Einstellungen.
+ */
+export function ThemeQuickToggle({ className }: { className?: string }) {
+  const { t } = useT();
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+  function toggle() {
+    const next: Mode = dark ? "light" : "dark";
+    try {
+      localStorage.setItem("theme", next);
+    } catch {
+      /* Speicher gesperrt — Umschalten gilt dann nur für diese Seite */
+    }
+    apply(next);
+    setDark(!dark);
+  }
+  const Icon = dark ? Sun : Moon;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={t("ui.theme.toggle" as TKey)}
+      title={t("ui.theme.toggle" as TKey)}
+      className={cn(
+        "inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground coarse:h-11 coarse:w-11",
+        className
+      )}
+    >
+      <Icon className="h-[18px] w-[18px]" />
+    </button>
+  );
+}

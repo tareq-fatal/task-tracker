@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { notFound, redirect } from "next/navigation";
 import { format } from "date-fns";
 import {
-  ArrowLeft,
   Pencil,
   CalendarClock,
   User as UserIcon,
@@ -392,14 +392,8 @@ export default async function TaskDetailPage({
   });
 
   return (
-    <div className="container max-w-3xl py-6">
-      <Link
-        href="/"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        {t["common.back"]}
-      </Link>
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+      <BackLink href="/" label={t["common.back"]} />
 
       {tenant.parentTasksEnabled && task.parent && (
         <div className="mb-2 flex items-center gap-1 text-sm text-muted-foreground">
@@ -412,7 +406,9 @@ export default async function TaskDetailPage({
       )}
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-2xl font-bold">{task.title}</h1>
+        <h1 className="min-w-0 flex-1 text-2xl font-semibold leading-tight tracking-tight sm:text-[26px]" dir="auto">
+          {task.title}
+        </h1>
         <div className="flex flex-wrap gap-2">
           <CopyLinkButton />
           {canEditContent && (
@@ -442,7 +438,7 @@ export default async function TaskDetailPage({
         <PriorityBadge priority={task.priority} />
         <TagBadges tags={task.tags} />
         {tenant.storyPointsEnabled && task.storyPoints != null && (
-          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary-soft-foreground">
             {task.storyPoints} SP
           </span>
         )}
@@ -552,88 +548,100 @@ export default async function TaskDetailPage({
         </div>
       )}
 
+      {/* TOF-0962: zwei Spalten ab lg — Inhalt links, Details rechts (klebend). */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
+      <aside className="lg:sticky lg:top-20 lg:order-2">
+        <Card>
+          <CardContent className="p-0">
+            <h2 className="border-b px-5 py-3 text-sm font-semibold">{t["task.details"]}</h2>
+            <dl className="divide-y text-sm">
+              <div className="px-5 py-3">
+                <dt className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <UserIcon className="h-3.5 w-3.5" />
+                  {t["task.assignee"]}
+                </dt>
+                <dd className="flex flex-wrap items-center gap-1.5">
+                  {task.assignedTo ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary-soft-foreground">
+                      {task.assignedTo.name}
+                      <span className="font-normal opacity-80">· {t["task.hauptkopf"]}</span>
+                    </span>
+                  ) : (
+                    <span className="font-medium">{t["task.unassigned"]}</span>
+                  )}
+                  {coAssignees.map((u) => (
+                    <span
+                      key={u.id}
+                      className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
+                    >
+                      {u.name}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-5 py-3">
+                <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  {t["task.dueDate"]}
+                </dt>
+                <dd className={cn("font-medium tabular-nums", overdue && "text-destructive")}>
+                  {task.dueDate ? format(task.dueDate, "dd.MM.yyyy") : t["common.none"]}
+                </dd>
+              </div>
+              {(task.estimatedHours != null || task.spentHours > 0) && (
+                <div className="flex items-center justify-between gap-3 px-5 py-3">
+                  <dt className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    {t["task.spent"]}
+                  </dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatDuration(task.spentHours)}
+                    {task.estimatedHours != null && (
+                      <>
+                        {" "}
+                        {t["time.of"]} {formatDuration(task.estimatedHours)}
+                      </>
+                    )}
+                  </dd>
+                </div>
+              )}
+              {/* #39 — origin is a quiet footnote, not a badge. No colours, no shield. */}
+              <div className="flex flex-wrap items-center gap-2 px-5 py-3 text-xs text-muted-foreground">
+                <span>
+                  {task.createdByUserId === user.id
+                    ? t["task.origin.self"]
+                    : `${t["task.origin.assigned"]} ${task.createdBy.name}`}
+                  {" · "}
+                  {format(task.createdAt, "dd.MM.yyyy")}
+                </span>
+                {isAdminRole(user.role) && (
+                  <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
+                )}
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      </aside>
+
+      <div className="min-w-0 lg:order-1">
       <Card className="mb-6">
-        <CardContent className="space-y-4 p-5">
+        <CardContent className="p-5 sm:p-6">
           {task.description ? (
-            <p className="whitespace-pre-wrap text-sm">{task.description}</p>
+            <p className="whitespace-pre-wrap text-[15px] leading-relaxed" dir="auto">{task.description}</p>
           ) : (
             <p className="text-sm text-muted-foreground">{t["common.none"]}</p>
           )}
-
-          <div className="grid grid-cols-1 gap-3 border-t pt-4 text-sm sm:grid-cols-2">
-            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
-              <UserIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{t["task.assignee"]}:</span>
-              {task.assignedTo ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
-                  🎖️ {task.assignedTo.name}
-                  <span className="opacity-70">· {t["task.hauptkopf"]}</span>
-                </span>
-              ) : (
-                <span className="font-medium">{t["task.unassigned"]}</span>
-              )}
-              {coAssignees.map((u) => (
-                <span
-                  key={u.id}
-                  className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium"
-                >
-                  {u.name}
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">{t["task.dueDate"]}:</span>
-              <span
-                className={cn("font-medium", overdue && "text-rose-600")}
-              >
-                {task.dueDate
-                  ? format(task.dueDate, "dd.MM.yyyy")
-                  : t["common.none"]}
-              </span>
-            </div>
-            {(task.estimatedHours != null || task.spentHours > 0) && (
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {t["task.spent"]}:
-                </span>
-                <span className="font-medium tabular-nums">
-                  {formatDuration(task.spentHours)}
-                  {task.estimatedHours != null && (
-                    <>
-                      {" "}
-                      {t["time.of"]} {formatDuration(task.estimatedHours)}
-                    </>
-                  )}
-                </span>
-              </div>
-            )}
-            {/* #39 — origin is a quiet footnote, not a badge. No colours, no shield. */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span>
-                {task.createdByUserId === user.id
-                  ? t["task.origin.self"]
-                  : `${t["task.origin.assigned"]} ${task.createdBy.name}`}
-                {" · "}
-                {format(task.createdAt, "dd.MM.yyyy")}
-              </span>
-              {isAdminRole(user.role) && (
-                <ChangeCreator taskId={task.id} users={tenantUsers} currentCreatorId={task.createdByUserId} />
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       {/* Recurrence — this task is a series template */}
       {(task.recurringRule || task.recurringCron) && (
-        <Card className="mb-6 border-indigo-200 dark:border-indigo-500/30">
+        <Card className="mb-6 border-primary/25 dark:border-primary/30">
           <CardContent className="p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Repeat className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <Repeat className="h-4 w-4 text-primary dark:text-primary-soft-foreground" />
+                <h2 className="text-sm font-semibold text-foreground">
                   {t["recurrence.title"]}
                 </h2>
               </div>
@@ -701,14 +709,14 @@ export default async function TaskDetailPage({
           <Card className="mb-6">
             <CardContent className="p-5">
               <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                <h2 className="text-sm font-semibold text-foreground">
                   {t["hierarchy.children"]} ({r.done}/{r.total}
                   {r.totalPoints > 0 ? ` · ${r.donePoints}/${r.totalPoints} SP` : ""})
                 </h2>
-                <span className="text-sm font-semibold text-indigo-600">{r.progress}%</span>
+                <span className="text-sm font-semibold text-primary">{r.progress}%</span>
               </div>
               <div className="mb-3 h-2 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-pink-500" style={{ width: `${r.progress}%` }} />
+                <div className="h-full rounded-full bg-primary" style={{ width: `${r.progress}%` }} />
               </div>
               <ul className="divide-y">
                 {task.children.map((c) => (
@@ -732,7 +740,7 @@ export default async function TaskDetailPage({
       {/* Time tracking */}
       <Card className="mb-6">
         <CardContent className="p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
             {t["time.title"]}
           </h2>
           <TimeTracking
@@ -805,7 +813,7 @@ export default async function TaskDetailPage({
       {/* Attachments */}
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold text-foreground">
             {t["task.attachments"]} ({task.attachments.length})
           </h2>
           <AttachmentUpload taskId={task.id} />
@@ -881,7 +889,7 @@ export default async function TaskDetailPage({
       {/* Voice notes (MediaRecorder, max 2 min) */}
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold text-foreground">
             {t["voice.title"]} ({task.voiceNotes.length})
           </h2>
           <VoiceRecorder action={addVoiceNoteAction.bind(null, task.id)} />
@@ -913,7 +921,7 @@ export default async function TaskDetailPage({
 
       {/* Comments */}
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           {t["task.comments"]} ({visibleComments.length})
         </h2>
         <div className="mb-4 space-y-3">
@@ -961,7 +969,7 @@ export default async function TaskDetailPage({
                   canDelete={canDeleteContent(user.role)}
                   canReact={canReact(user.role)}
                 >
-                <div className="flex-1 rounded-lg border bg-card p-3">
+                <div className="flex-1 rounded-xl border bg-card p-3.5 shadow-card">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{c.user.name}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -1011,7 +1019,7 @@ export default async function TaskDetailPage({
 
       {/* Activity */}
       <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="mb-3 text-sm font-semibold text-foreground">
           {t["activity.title"]}
         </h2>
         <ActivityFeed
@@ -1032,6 +1040,8 @@ export default async function TaskDetailPage({
           }))}
         />
       </section>
+      </div>
+      </div>
     </div>
   );
 }

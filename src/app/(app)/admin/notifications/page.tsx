@@ -68,7 +68,7 @@ export default async function AdminNotificationsPage({
     <div className="container max-w-4xl py-6">
       <AutoRefresh seconds={30} />
       <h1 className="flex items-center gap-2 text-2xl font-bold">
-        <BellRing className="h-6 w-6 text-indigo-600" />
+        <BellRing className="h-6 w-6 text-primary" />
         {t["adminNotif.title"]}
       </h1>
       <p className="mb-4 mt-1 text-sm text-muted-foreground">{t["adminNotif.subtitle"]}</p>

@@ -59,7 +59,7 @@ export function TemplatesManager({ initial }: { initial: TemplateLite[] }) {
               <ul className="space-y-2">
                 {groups[key].map((tpl) => (
                   <li key={tpl.id} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3" data-testid="tpl-item">
-                    <FileStack className="h-4 w-4 text-indigo-500" />
+                    <FileStack className="h-4 w-4 text-primary" />
                     <span className="font-medium">{tpl.name}</span>
                     <span className="text-xs text-muted-foreground">{tpl.title} · {t(`type.${tpl.type}` as never)} · {t(`priority.${tpl.priority}` as never)}{tpl.subtasks.length ? ` · ${tpl.subtasks.length} ☑` : ""}</span>
                     <Tooltip content={t("tpl.create")}>

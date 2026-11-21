@@ -24,7 +24,7 @@ export function NotifyAllToggle({ initial }: { initial: boolean }) {
             if (!res.ok) setOn(!next);
           });
         }}
-        className="mt-0.5 h-4 w-4 accent-indigo-600"
+        className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
       />
       <span>
         {t("settings.allEvents")}
