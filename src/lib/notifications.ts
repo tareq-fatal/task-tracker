@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "./prisma";
+import { isHiddenTarget } from "./hidden-projects/service";
 import { notifyUser as webPush } from "./push";
 import { notifyUserTelegram, broadcastToTelegramGroup } from "./telegram";
 import { sendEmail, basicEmailTemplate } from "./email";
@@ -62,6 +63,14 @@ export async function notify(input: NotifyInput): Promise<void> {
     for (const k of Object.keys(ch) as (keyof ChannelPrefs)[]) {
       if (input.channelMask[k] === false) ch[k] = false;
     }
+  }
+  // TOF-0966: ein verborgenes Projekt verrät sich nie per Push/Telegram/
+  // E-Mail. Der In-App-Eintrag bleibt (vom zentralen Filter ausgeblendet)
+  // und taucht erst wieder auf, wenn das Projekt eingeblendet wird.
+  if (await isHiddenTarget(input).catch(() => false)) {
+    ch.webPush = false;
+    ch.email = false;
+    ch.native = false;
   }
 
   // Localise the title into the RECIPIENT's locale at create time (no migration:
@@ -147,6 +156,8 @@ export async function notifyMany(
 ): Promise<void> {
   const unique = [...new Set(recipientUserIds)].filter(Boolean);
   await Promise.all(unique.map((id) => notify({ ...base, recipientUserId: id })));
+  // TOF-0966: keine Gruppen-/Admin-Spiegelung für verborgene Projekte.
+  if (await isHiddenTarget(base).catch(() => false)) return;
   // Optional tenant broadcast group — mirrored ONCE per event (not per
   // recipient), in the tenant's primary locale, admin-configured per event.
   const groupTitle = base.titleKey

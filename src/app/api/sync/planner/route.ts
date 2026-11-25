@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueSyncs } from "@/lib/planner-sync-runner";
+import { withHiddenProjects } from "@/lib/hidden-projects/scope";
 
 // Cron entry point for continuous Planner sync. Call this every few minutes from
 // an external scheduler (system cron / GitHub Actions / uptime pinger), e.g.:
@@ -20,6 +21,7 @@ async function handle(req: NextRequest) {
   if (req.headers.get("x-sync-secret") !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  const result = await runDueSyncs();
+  // TOF-0966: System-Job — verborgene Projekte laufen normal weiter.
+  const result = await withHiddenProjects(() => runDueSyncs());
   return NextResponse.json({ ok: true, ...result });
 }

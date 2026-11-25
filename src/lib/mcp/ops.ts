@@ -19,6 +19,7 @@ import { unknownMentions } from "@/lib/mention-render";
 import { notifyReviewRequested } from "@/lib/review-notify";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
+import { setProjectHidden } from "@/lib/hidden-projects/service";
 import { formatPromptComment } from "./prompt-format";
 import { opSichtbar, type ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
@@ -330,6 +331,7 @@ export const OPS: Record<string, McpOp> = {
           name: true,
           description: true,
           color: true,
+          hiddenAt: true,
           // Nested _count bypasses the soft-delete client extension, so the
           // filter has to be spelled out here (see count-consistency.test.ts).
           _count: { select: { tasks: { where: { deletedAt: null } } } },
@@ -343,6 +345,7 @@ export const OPS: Record<string, McpOp> = {
         description: p.description,
         color: p.color,
         taskCount: p._count.tasks,
+        ...(p.hiddenAt ? { hidden: true } : {}),
       }));
     },
   },
@@ -1212,6 +1215,20 @@ export const OPS: Record<string, McpOp> = {
         select: { id: true, name: true, description: true, color: true },
       });
       return project;
+    },
+  },
+
+  hide_project: {
+    scope: "write",
+    describe:
+      "Hide or unhide a project (admins only). A hidden project is invisible everywhere — lists, search, counters, notifications, API — until unhidden. To find a hidden project again, call list_projects with includeHidden: true.",
+    schema: z.object({ projectId: idSchema, hidden: z.boolean() }).strict(),
+    run: async (ctx, params: { projectId: string; hidden: boolean }) => {
+      if (!isAdminRole(ctx.user.role)) throw new McpError("forbidden", 403);
+      // Mandanten-gebunden im Service (tenantId aus dem Token, nie aus params).
+      const ok = await setProjectHidden(ctx.tenant.id, params.projectId, params.hidden, ctx.user.id);
+      if (!ok) throw new McpError("project not found", 404);
+      return { projectId: params.projectId, hidden: params.hidden };
     },
   },
 

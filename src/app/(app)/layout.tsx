@@ -6,6 +6,8 @@ import { isSuperAdmin } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { NoticeToast } from "@/components/notice-toast";
+import { RevealBanner } from "@/components/reveal-hidden-toggle";
+import { getRevealState } from "@/actions/hidden-projects";
 import { AppShell } from "@/components/app-shell";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { UpdatePrompt } from "@/components/update-prompt";
@@ -31,6 +33,7 @@ export default async function AppLayout({
   const locale = getActiveLocale();
   const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
   const branding = resolveBranding(tenant);
+  const reveal = await getRevealState(); // TOF-0966
 
   return (
     // TOF-0795: Instanz-Name zur Laufzeit (APP_NAME) an die Client-Komponenten.
@@ -39,6 +42,7 @@ export default async function AppLayout({
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
         <NoticeToast />
+        {reveal.active && <RevealBanner />}
         <SentryUserContext user={user} />
         <AppShell
           user={user}

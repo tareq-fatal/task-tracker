@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import { hash, verify } from "@node-rs/argon2";
 import { prisma } from "./prisma";
+import { REVEAL_COOKIE } from "./hidden-projects/reveal-token";
 import type { Role } from "./enums";
 import { isAdminRole } from "./enums";
 import { cookieSecure } from "./cookie-security";
@@ -58,6 +59,7 @@ export async function destroySession(): Promise<void> {
     await prisma.session.deleteMany({ where: { token } });
   }
   cookies().delete(SESSION_COOKIE);
+  cookies().delete(REVEAL_COOKIE); // TOF-0966: Anzeigemodus endet mit der Sitzung
 }
 
 export type SessionUser = {

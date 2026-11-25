@@ -56,8 +56,11 @@ async function writeActiveTask(state) {
 /* HTTP client                                                         */
 /* ------------------------------------------------------------------ */
 
-async function callApi(op, params) {
+async function callApi(op, rawParams) {
   if (!BASE_URL) throw new Error("TASK_TRACKER_URL is not set");
+  // TOF-0966: `includeHidden` ist kein Op-Parameter, sondern ein Schalter
+  // der ganzen Anfrage (nur Admins) — auf die oberste Ebene heben.
+  const { includeHidden, ...params } = rawParams ?? {};
   if (!TOKEN) throw new Error("TASK_TRACKER_TOKEN is not set");
 
   const res = await fetch(`${BASE_URL}/api/mcp`, {
@@ -66,7 +69,7 @@ async function callApi(op, params) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${TOKEN}`,
     },
-    body: JSON.stringify({ op, params }),
+    body: JSON.stringify({ op, params, ...(includeHidden === true ? { includeHidden: true } : {}) }),
   });
 
   let payload;
@@ -157,6 +160,7 @@ const TOOLS = [
         openOnly: bool("Hide Done and Archived tasks"),
         sort: str("Order: updated (default), created, priority (P1 first), due, title", { enum: SORTS }),
         limit: int("Max rows (1-100, default 25)", { minimum: 1, maximum: 100 }),
+        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
       },
       additionalProperties: false,
     },
@@ -168,7 +172,10 @@ const TOOLS = [
       "Read one task in full: description, checklist steps, recent comments and attachments.",
     inputSchema: {
       type: "object",
-      properties: { taskId: str("Task id") },
+      properties: {
+        taskId: str("Task id"),
+        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
+      },
       required: ["taskId"],
       additionalProperties: false,
     },
@@ -308,10 +315,28 @@ const TOOLS = [
     description: "List the projects I can see, with task counts.",
     inputSchema: {
       type: "object",
-      properties: { limit: int("Max rows (1-100)", { minimum: 1, maximum: 100 }) },
+      properties: {
+        limit: int("Max rows (1-100)", { minimum: 1, maximum: 100 }),
+        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
+      },
       additionalProperties: false,
     },
     remote: "list_projects",
+  },
+  {
+    name: "hide_project",
+    description:
+      "Hide or unhide a project (admins only). A hidden project is invisible everywhere — lists, search, counters, notifications, API — until unhidden. Find hidden ones with list_projects { includeHidden: true }.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id"),
+        hidden: bool("true = hide, false = show again"),
+      },
+      required: ["projectId", "hidden"],
+      additionalProperties: false,
+    },
+    remote: "hide_project",
   },
   {
     name: "create_project",

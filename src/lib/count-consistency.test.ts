@@ -42,7 +42,19 @@ describe("counter consistency (soft-delete)", () => {
       "src/app/(app)/admin/users/page.tsx",
     ]) {
       const src = readFileSync(file, "utf8");
-      expect(src, file).toMatch(/where:\s*\{\s*deletedAt:\s*null\s*\}/);
+      // TOF-0966: COUNTED_TASK/COUNTED_PROJECT tragen Soft-Delete UND Verborgen.
+      expect(src, file).toMatch(/where:\s*(\{\s*deletedAt:\s*null\s*\}|COUNTED_(TASK|PROJECT)\b)/);
+    }
+  });
+
+  it("the shared hidden-aware counters still exclude soft-deleted rows", async () => {
+    const { COUNTED_TASK, COUNTED_PROJECT } = await import("./hidden-projects/policy");
+    expect(COUNTED_TASK.deletedAt).toBeNull();
+    expect(COUNTED_TASK.OR).toEqual([{ projectId: null }, { project: { hiddenAt: null } }]);
+    expect(COUNTED_PROJECT).toEqual({ deletedAt: null, hiddenAt: null });
+    // Wer verborgene Projekte zählen darf, nutzt die Konstante — nicht nur deletedAt.
+    for (const file of ["src/app/(app)/admin/users/page.tsx", "src/actions/tenants.ts"]) {
+      expect(readFileSync(file, "utf8"), file).toContain("COUNTED_TASK");
     }
   });
 });
