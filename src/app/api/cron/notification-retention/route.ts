@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runNotificationRetention } from "@/lib/notification-retention";
-import { withHiddenProjects } from "@/lib/hidden-projects/scope";
+import { withAllProjects } from "@/lib/project-visibility/scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ async function handle(req: NextRequest) {
   if (req.headers.get("x-sync-secret") !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  // TOF-0966: System-Job — verborgene Projekte laufen normal weiter.
-  const result = await withHiddenProjects(() => runNotificationRetention());
+  // TOF-0966/0967: System-Job — läuft für ALLE Projekte (Verborgen/Anzeige-Ebene egal).
+  const result = await withAllProjects(() => runNotificationRetention());
   return NextResponse.json({ ok: true, ...result });
 }

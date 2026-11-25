@@ -62,7 +62,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
-import { nestedVisibleTask } from "@/lib/hidden-projects/service";
+import { nestedVisibleTask } from "@/lib/project-visibility/service";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -84,7 +84,7 @@ export default async function TaskDetailPage({
   // tenant switch is on; then only for foreign-language text comments.
   const translationOn = translationConfigured() && tenant.translationEnabled;
 
-  // TOF-0966: verschachtelte Aufgaben aus verborgenen Projekten ausblenden.
+  // TOF-0966/0967: verschachtelte Aufgaben aus unsichtbaren Projekten ausblenden.
   const nestedVisible = await nestedVisibleTask();
   const loaded = await prisma.task.findUnique({
     where: { id: params.id },
@@ -94,7 +94,7 @@ export default async function TaskDetailPage({
       createdBy: { select: { name: true } },
       project: { select: { id: true, name: true, color: true } },
       lead: { select: { id: true, company: true, tenantId: true, projectId: true } }, // TOF-0782
-      parent: { select: { id: true, title: true, type: true, project: { select: { hiddenAt: true } } } },
+      parent: { select: { id: true, title: true, type: true } },
       children: {
         where: nestedVisible,
         select: { id: true, title: true, status: true, type: true, storyPoints: true, progress: true },
@@ -146,12 +146,14 @@ export default async function TaskDetailPage({
       },
     },
   });
-  // Elternaufgabe aus einem verborgenen Projekt: Verweis weglassen (to-one-
-  // Relationen lassen sich in Prisma nicht per where filtern).
-  const task =
-    loaded && loaded.parent?.project?.hiddenAt && Object.keys(nestedVisible).length > 0
-      ? { ...loaded, parent: null }
-      : loaded;
+  // Elternaufgabe aus einem unsichtbaren Projekt: Verweis weglassen (to-one-
+  // Relationen lassen sich in Prisma nicht per where filtern — die gefilterte
+  // Einzelabfrage entscheidet).
+  const parentVisible =
+    !loaded?.parent || Object.keys(nestedVisible).length === 0
+      ? true
+      : (await prisma.task.count({ where: { id: loaded.parent.id } })) > 0;
+  const task = loaded && !parentVisible ? { ...loaded, parent: null } : loaded;
 
   if (!task || task.tenantId !== tenant.id) notFound();
 

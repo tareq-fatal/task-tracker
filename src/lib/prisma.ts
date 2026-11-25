@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { createHiddenGuard, type HiddenGuard } from "./hidden-projects/guard";
-import { revealHiddenProjects } from "./hidden-projects/scope";
+import { createVisibilityGuard, type VisibilityGuard } from "./project-visibility/guard";
+import { currentVisibilityScope, type VisibilityScope } from "./project-visibility/scope";
+import { isAffiliation, visibleProjectWhere, visibleTaskWhere, type Concealment } from "./project-visibility/policy";
 
 const createClient = () => {
   const base = new PrismaClient({
@@ -61,20 +62,33 @@ const createClient = () => {
     },
   });
 
-  // TOF-0966 — verborgene Projekte: EIN Filter für alle Lese-Zugriffe auf
+  // TOF-0966/0967 — Projekt-Sichtbarkeit (Verborgen + Anzeige-Ebene): EIN Filter für alle Lese-Zugriffe auf
   // Projekt, Aufgabe und jede Tabelle, die daran hängt (Regeln in
-  // lib/hidden-projects/policy.ts). Anders als der Soft-Delete-Filter oben
+  // lib/project-visibility/policy.ts). Anders als der Soft-Delete-Filter oben
   // gilt er auch für findUnique — ein verborgenes Projekt soll auch per
   // direktem Link „nicht existieren“. Interne Abfragen laufen über `base`,
   // damit der Guard sich nicht selbst filtert.
-  hiddenGuard = createHiddenGuard({
-    loadHiddenProjectIds: async () =>
-      (await base.project.findMany({ where: { hiddenAt: { not: null } }, select: { id: true } })).map((p) => p.id),
-    loadTaskIds: async (projectIds) =>
-      (await base.task.findMany({ where: { projectId: { in: projectIds } }, select: { id: true } })).map((t) => t.id),
-    reveal: revealHiddenProjects,
+  visibilityGuard = createVisibilityGuard({
+    loadIndex: async () => {
+      const [hidden, tenants] = await Promise.all([
+        base.project.findMany({ where: { hiddenAt: { not: null } }, select: { id: true } }),
+        base.tenant.findMany({ where: { NOT: { displayAffiliations: { isEmpty: true } } }, select: { id: true, displayAffiliations: true } }),
+      ]);
+      return {
+        hiddenProjectIds: hidden.map((p) => p.id),
+        restrictions: tenants.map((t) => ({ tenantId: t.id, allowed: t.displayAffiliations.filter(isAffiliation) })),
+      };
+    },
+    loadConcealedIds: async (c) => {
+      const [projects, tasks] = await Promise.all([
+        base.project.findMany({ where: { NOT: visibleProjectWhere(c) }, select: { id: true } }),
+        base.task.findMany({ where: { NOT: visibleTaskWhere(c) }, select: { id: true } }),
+      ]);
+      return { projectIds: projects.map((p) => p.id), taskIds: tasks.map((t) => t.id) };
+    },
+    scope: currentVisibilityScope,
   });
-  const guard = hiddenGuard;
+  const guard = visibilityGuard;
   return softDeleted.$extends({
     query: {
       $allModels: {
@@ -86,24 +100,30 @@ const createClient = () => {
   });
 };
 
-let hiddenGuard: HiddenGuard | undefined;
+let visibilityGuard: VisibilityGuard | undefined;
 
-/** Nach Verbergen/Einblenden aufrufen, damit der Filter sofort greift. */
-export function invalidateHiddenProjects(): void {
-  hiddenGuard?.invalidate();
-  globalForPrisma.hiddenGuard?.invalidate();
+/** Nach Verbergen, Zugehörigkeit oder Anzeige-Ebene ändern: Filter sofort neu laden. */
+export function invalidateProjectVisibility(): void {
+  visibilityGuard?.invalidate();
+  globalForPrisma.visibilityGuard?.invalidate();
+}
+
+/** Effektive Verbergung (Verborgen + Anzeige-Ebene) für den laufenden oder einen vorgegebenen Scope. */
+export async function projectConcealment(scope?: VisibilityScope): Promise<Concealment> {
+  const g = visibilityGuard ?? globalForPrisma.visibilityGuard;
+  return g ? g.concealment(scope) : { hidden: false, restrictions: [] };
 }
 
 type ExtendedClient = ReturnType<typeof createClient>;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: ExtendedClient | undefined;
-  hiddenGuard: HiddenGuard | undefined;
+  visibilityGuard: VisibilityGuard | undefined;
 };
 
 export const prisma = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
-  globalForPrisma.hiddenGuard ??= hiddenGuard;
+  globalForPrisma.visibilityGuard ??= visibilityGuard;
 }

@@ -6,14 +6,14 @@ import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { SESSION_COOKIE } from "@/lib/auth";
 import { cookieSecure } from "@/lib/cookie-security";
-import { setProjectHidden } from "@/lib/hidden-projects/service";
-import { revealHiddenProjects } from "@/lib/hidden-projects/scope";
+import { setProjectHidden } from "@/lib/project-visibility/service";
+import { revealHiddenProjects } from "@/lib/project-visibility/scope";
 import {
   REVEAL_COOKIE,
   REVEAL_MAX_MS,
   createRevealToken,
   revealTokenExpiry,
-} from "@/lib/hidden-projects/reveal-token";
+} from "@/lib/project-visibility/reveal-token";
 
 /**
  * TOF-0966 — Admin-Verwaltung verborgener Projekte.

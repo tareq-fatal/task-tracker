@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { AFFILIATIONS } from "@/lib/project-visibility/policy";
+import { useAffiliationLabel } from "@/components/display-level";
 
 const COLORS = [
   "#6366f1",
@@ -40,6 +42,7 @@ function Submit({ label }: { label: string }) {
 
 export function NewProjectDialog() {
   const { t } = useT();
+  const label = useAffiliationLabel();
   const [open, setOpen] = useState(false);
   const [color, setColor] = useState(COLORS[0]);
   const [state, formAction] = useFormState(createProjectAction, {});
@@ -71,6 +74,18 @@ export function NewProjectDialog() {
           <div className="space-y-2">
             <Label htmlFor="description">{t("projects.description")}</Label>
             <Textarea id="description" name="description" rows={3} />
+          </div>
+          {/* TOF-0967 — leer = aktive Anzeige-Ebene bzw. „Meine“ (Server entscheidet) */}
+          <div className="space-y-2">
+            <Label htmlFor="affiliation">{t("project.affiliation")}</Label>
+            <select id="affiliation" name="affiliation" defaultValue="" className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+              <option value="">—</option>
+              {AFFILIATIONS.map((a) => (
+                <option key={a} value={a}>
+                  {label(a)}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="space-y-2">
             <Label>{t("projects.color")}</Label>

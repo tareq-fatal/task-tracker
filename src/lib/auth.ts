@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { randomBytes } from "crypto";
 import { hash, verify } from "@node-rs/argon2";
 import { prisma } from "./prisma";
-import { REVEAL_COOKIE } from "./hidden-projects/reveal-token";
+import { REVEAL_COOKIE } from "./project-visibility/reveal-token";
 import type { Role } from "./enums";
 import { isAdminRole } from "./enums";
 import { cookieSecure } from "./cookie-security";

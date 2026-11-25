@@ -6,7 +6,7 @@ import { randomBytes } from "crypto";
 // Läuft nur mit HIDDEN_TEST_DATABASE_URL (migrierte Wegwerf-DB, NIE Produktion):
 //   docker run -d --name hidden-pg -e POSTGRES_PASSWORD=… -p 55433:5432 postgres:16-alpine
 //   DATABASE_URL=<url> npx prisma migrate deploy
-//   HIDDEN_TEST_DATABASE_URL=<url> npx vitest run src/lib/hidden-projects/hidden.db.test.ts
+//   HIDDEN_TEST_DATABASE_URL=<url> npx vitest run src/lib/project-visibility/hidden.db.test.ts
 
 const URL_ = process.env.HIDDEN_TEST_DATABASE_URL;
 vi.mock("server-only", () => ({}));

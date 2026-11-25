@@ -16,21 +16,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/components/i18n-provider";
+import { AFFILIATIONS, type Affiliation } from "@/lib/project-visibility/policy";
+import { useAffiliationLabel } from "@/components/display-level";
 
 /** Admin-only rename/edit for a project (name + description). */
 export function EditProjectDialog({
   projectId,
   name,
   description,
+  affiliation,
 }: {
   projectId: string;
   name: string;
   description: string | null;
+  affiliation: Affiliation;
 }) {
   const { t } = useT();
+  const label = useAffiliationLabel();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name, description: description ?? "" });
+  const [form, setForm] = useState({ name, description: description ?? "", affiliation: affiliation as string });
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -40,7 +45,7 @@ export function EditProjectDialog({
       onOpenChange={(o) => {
         setOpen(o);
         if (o) {
-          setForm({ name, description: description ?? "" });
+          setForm({ name, description: description ?? "", affiliation });
           setErr(null);
         }
       }}
@@ -74,6 +79,23 @@ export function EditProjectDialog({
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
+          </div>
+          {/* TOF-0967 */}
+          <div className="space-y-2">
+            <Label htmlFor="edit-project-affiliation">{t("project.affiliation")}</Label>
+            <select
+              id="edit-project-affiliation"
+              data-testid="edit-project-affiliation"
+              value={form.affiliation}
+              onChange={(e) => setForm({ ...form, affiliation: e.target.value })}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              {AFFILIATIONS.map((a) => (
+                <option key={a} value={a}>
+                  {label(a)}
+                </option>
+              ))}
+            </select>
           </div>
           {err && (
             <p className="text-sm font-medium text-destructive">

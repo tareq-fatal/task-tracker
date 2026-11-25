@@ -2,11 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prisma, invalidateProjectVisibility } from "@/lib/prisma";
 import { requireTenant } from "@/lib/tenant";
 import { isAdminRole } from "@/lib/enums";
 import { can } from "@/lib/roles";
 import { projectSchema } from "@/lib/validation";
+import { isAffiliation } from "@/lib/project-visibility/policy";
+import { getTenantDisplayLevel } from "@/lib/project-visibility/service";
 
 export type ProjectFormState = { error?: string };
 
@@ -27,11 +29,18 @@ export async function createProjectAction(
     return { error: parsed.error.issues[0]?.message ?? "INVALID" };
   }
 
+  // TOF-0967: Zugehörigkeit aus dem Formular; ohne Angabe die aktive
+  // Anzeige-Ebene (sonst wäre das neue Projekt sofort unsichtbar), sonst „Meine“.
+  const requested = formData.get("affiliation");
+  const level = await getTenantDisplayLevel(tenant.id);
+  const affiliation = isAffiliation(requested) ? requested : level[0] ?? "tarek";
+
   const project = await prisma.project.create({
     data: {
       name: parsed.data.name,
       description: parsed.data.description || null,
       color: parsed.data.color,
+      affiliation,
       createdByUserId: user.id,
       tenantId: tenant.id,
     },
@@ -44,7 +53,7 @@ export async function createProjectAction(
 /** Rename/edit a project (name + description) — admin-only, tenant-scoped. */
 export async function updateProjectAction(
   projectId: string,
-  input: { name: string; description: string }
+  input: { name: string; description: string; affiliation?: string }
 ): Promise<{ ok?: boolean; error?: string }> {
   const { user, tenant } = await requireTenant();
   if (!isAdminRole(user.role)) return { error: "FORBIDDEN" };
@@ -57,8 +66,13 @@ export async function updateProjectAction(
 
   await prisma.project.update({
     where: { id: projectId },
-    data: { name: parsed.data.name, description: parsed.data.description || null },
+    data: {
+      name: parsed.data.name,
+      description: parsed.data.description || null,
+      ...(isAffiliation(input.affiliation) ? { affiliation: input.affiliation } : {}),
+    },
   });
+  invalidateProjectVisibility(); // TOF-0967: Zugehörigkeit kann sich geändert haben
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };

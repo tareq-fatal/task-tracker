@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueRecurring } from "@/lib/recurring-runner";
-import { withHiddenProjects } from "@/lib/hidden-projects/scope";
+import { withAllProjects } from "@/lib/project-visibility/scope";
 
 // Cron entry for recurring tasks. Spawns every due series instance and advances
 // its schedule (honouring pause, end-count, until-date). Guarded by SYNC_SECRET
@@ -22,7 +22,7 @@ async function handle(req: NextRequest) {
   if (req.headers.get("x-sync-secret") !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  // TOF-0966: System-Job — verborgene Projekte laufen normal weiter.
-  const result = await withHiddenProjects(() => runDueRecurring());
+  // TOF-0966/0967: System-Job — läuft für ALLE Projekte (Verborgen/Anzeige-Ebene egal).
+  const result = await withAllProjects(() => runDueRecurring());
   return NextResponse.json({ ok: true, ...result });
 }

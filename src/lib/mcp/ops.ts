@@ -19,7 +19,8 @@ import { unknownMentions } from "@/lib/mention-render";
 import { notifyReviewRequested } from "@/lib/review-notify";
 import { dispatchWebhookEvent } from "@/lib/webhooks-dispatch";
 import { applyAutomations } from "@/lib/automation-run";
-import { setProjectHidden } from "@/lib/hidden-projects/service";
+import { setProjectAffiliation, setProjectHidden } from "@/lib/project-visibility/service";
+import { AFFILIATIONS } from "@/lib/project-visibility/policy";
 import { formatPromptComment } from "./prompt-format";
 import { opSichtbar, type ApiScope } from "@/lib/api-token";
 import type { McpContext } from "./auth";
@@ -332,6 +333,7 @@ export const OPS: Record<string, McpOp> = {
           description: true,
           color: true,
           hiddenAt: true,
+          affiliation: true,
           // Nested _count bypasses the soft-delete client extension, so the
           // filter has to be spelled out here (see count-consistency.test.ts).
           _count: { select: { tasks: { where: { deletedAt: null } } } },
@@ -345,6 +347,7 @@ export const OPS: Record<string, McpOp> = {
         description: p.description,
         color: p.color,
         taskCount: p._count.tasks,
+        affiliation: p.affiliation,
         ...(p.hiddenAt ? { hidden: true } : {}),
       }));
     },
@@ -1199,9 +1202,11 @@ export const OPS: Record<string, McpOp> = {
           .trim()
           .regex(/^#[0-9a-fA-F]{6}$/)
           .default("#6366f1"),
+        // TOF-0967: Meine (tarek) / objektus / marine
+        affiliation: z.enum(AFFILIATIONS).default("tarek"),
       })
       .strict(),
-    run: async (ctx, params: { name: string; description?: string; color: string }) => {
+    run: async (ctx, params: { name: string; description?: string; color: string; affiliation: (typeof AFFILIATIONS)[number] }) => {
       // Project creation is an admin action in the UI; SubAdmin reads only.
       if (!isAdminRole(ctx.user.role)) throw new McpError("forbidden", 403);
       const project = await prisma.project.create({
@@ -1209,12 +1214,27 @@ export const OPS: Record<string, McpOp> = {
           name: params.name,
           description: params.description || null,
           color: params.color,
+          affiliation: params.affiliation,
           createdByUserId: ctx.user.id,
           tenantId: ctx.tenant.id,
         },
-        select: { id: true, name: true, description: true, color: true },
+        select: { id: true, name: true, description: true, color: true, affiliation: true },
       });
       return project;
+    },
+  },
+
+  set_project_affiliation: {
+    scope: "write",
+    describe:
+      "Set a project's affiliation (admins only): tarek (Meine), objektus or marine. The company's display level shows only projects of the selected affiliations.",
+    schema: z.object({ projectId: idSchema, affiliation: z.enum(AFFILIATIONS) }).strict(),
+    run: async (ctx, params: { projectId: string; affiliation: (typeof AFFILIATIONS)[number] }) => {
+      if (!isAdminRole(ctx.user.role)) throw new McpError("forbidden", 403);
+      // Mandanten-gebunden im Service (tenantId aus dem Token, nie aus params).
+      const ok = await setProjectAffiliation(ctx.tenant.id, params.projectId, params.affiliation);
+      if (!ok) throw new McpError("project not found", 404);
+      return { projectId: params.projectId, affiliation: params.affiliation };
     },
   },
 
