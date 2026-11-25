@@ -160,7 +160,7 @@ const TOOLS = [
         openOnly: bool("Hide Done and Archived tasks"),
         sort: str("Order: updated (default), created, priority (P1 first), due, title", { enum: SORTS }),
         limit: int("Max rows (1-100, default 25)", { minimum: 1, maximum: 100 }),
-        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
+        includeHidden: bool("Admins only: return EVERYTHING — hidden projects and projects outside the company's display level (default false)"),
       },
       additionalProperties: false,
     },
@@ -174,7 +174,7 @@ const TOOLS = [
       type: "object",
       properties: {
         taskId: str("Task id"),
-        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
+        includeHidden: bool("Admins only: return EVERYTHING — hidden projects and projects outside the company's display level (default false)"),
       },
       required: ["taskId"],
       additionalProperties: false,
@@ -317,11 +317,26 @@ const TOOLS = [
       type: "object",
       properties: {
         limit: int("Max rows (1-100)", { minimum: 1, maximum: 100 }),
-        includeHidden: bool("Admins only: also return hidden projects and their tasks (default false)"),
+        includeHidden: bool("Admins only: return EVERYTHING — hidden projects and projects outside the company's display level (default false)"),
       },
       additionalProperties: false,
     },
     remote: "list_projects",
+  },
+  {
+    name: "set_project_affiliation",
+    description:
+      "Set a project's affiliation (admins only): tarek (Meine), objektus or marine. The company's display level (Settings) shows only projects of the selected affiliations everywhere, API included.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        projectId: str("Project id"),
+        affiliation: str("tarek | objektus | marine", { enum: ["tarek", "objektus", "marine"] }),
+      },
+      required: ["projectId", "affiliation"],
+      additionalProperties: false,
+    },
+    remote: "set_project_affiliation",
   },
   {
     name: "hide_project",
@@ -347,6 +362,7 @@ const TOOLS = [
         name: str("Project name"),
         description: str("What the project is about"),
         color: str("Hex colour, e.g. #6366f1"),
+        affiliation: str("tarek (Meine) | objektus | marine — default tarek", { enum: ["tarek", "objektus", "marine"] }),
       },
       required: ["name"],
       additionalProperties: false,

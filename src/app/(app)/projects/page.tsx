@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { visibleProjectIds } from "@/lib/task-access";
 import { isAdminRole } from "@/lib/enums";
+import { AffiliationChip } from "@/components/display-level";
 
 export default async function ProjectsPage() {
   const { user, tenant } = await requireTenant();
@@ -49,6 +50,7 @@ export default async function ProjectsPage() {
                       style={{ backgroundColor: p.color }}
                     />
                     <h3 className="font-semibold">{p.name}</h3>
+                    <AffiliationChip affiliation={p.affiliation} />
                     {p.hiddenAt && (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
                         {t["project.hidden.badge"]}

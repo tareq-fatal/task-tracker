@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import { getActiveTenant, listTenants } from "@/lib/tenant";
 import { getActiveLocale } from "@/lib/locale";
-import { isSuperAdmin } from "@/lib/enums";
+import { isSuperAdmin, isAdminRole } from "@/lib/enums";
 import { I18nProvider } from "@/components/i18n-provider";
 import { ToastProvider } from "@/components/toast";
 import { NoticeToast } from "@/components/notice-toast";
@@ -15,6 +15,8 @@ import { PushBootstrap } from "@/components/push-bootstrap";
 import { SentryUserContext } from "@/components/sentry-user-context";
 import { resolveBranding, brandStyle } from "@/lib/branding";
 import { brandName } from "@/lib/brand";
+import { DisplayLevelBanner } from "@/components/display-level";
+import { getTenantDisplayLevel } from "@/lib/project-visibility/service";
 
 export default async function AppLayout({
   children,
@@ -34,6 +36,7 @@ export default async function AppLayout({
   const tenants = isSuperAdmin(user.role) ? await listTenants() : [];
   const branding = resolveBranding(tenant);
   const reveal = await getRevealState(); // TOF-0966
+  const displayLevel = isAdminRole(user.role) ? await getTenantDisplayLevel(tenant.id) : []; // TOF-0967
 
   return (
     // TOF-0795: Instanz-Name zur Laufzeit (APP_NAME) an die Client-Komponenten.
@@ -42,6 +45,7 @@ export default async function AppLayout({
       <style dangerouslySetInnerHTML={{ __html: brandStyle(branding) }} />
       <ToastProvider>
         <NoticeToast />
+        {displayLevel.length > 0 && <DisplayLevelBanner level={displayLevel} />}
         {reveal.active && <RevealBanner />}
         <SentryUserContext user={user} />
         <AppShell

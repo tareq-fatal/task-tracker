@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateMcp, requireScope } from "@/lib/mcp/auth";
 import { OPS, McpError, availableOps } from "@/lib/mcp/ops";
 import { isAdminRole } from "@/lib/enums";
-import { withHiddenProjects } from "@/lib/hidden-projects/scope";
+import { withAllProjects } from "@/lib/project-visibility/scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
 
   const { op, params, includeHidden } = body as { op?: unknown; params?: unknown; includeHidden?: unknown };
   if (typeof op !== "string" || !op) return fail(400, "missing 'op'");
-  // TOF-0966: verborgene Projekte bleiben auch hier unsichtbar — außer ein
-  // ADMIN fragt ausdrücklich danach. Eine Stelle für alle Ops.
+  // TOF-0966/0967: verborgene Projekte und die Anzeige-Ebene gelten auch hier —
+  // außer ein ADMIN fragt ausdrücklich nach allem. Eine Stelle für alle Ops.
   const reveal = includeHidden === true;
   if (reveal && !isAdminRole(ctx.user.role)) return fail(403, "includeHidden requires an admin");
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const run = () => operation.run(ctx, parsed.data as never);
-    const data = reveal ? await withHiddenProjects(run) : await run();
+    const data = reveal ? await withAllProjects(run) : await run();
     return NextResponse.json({ ok: true, data }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof McpError) return fail(err.status, err.message);

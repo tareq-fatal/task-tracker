@@ -7,7 +7,7 @@ import { requireTenant, setTenantCookie } from "@/lib/tenant";
 import { can } from "@/lib/roles";
 import { isTenantFeature } from "@/lib/tenant-features";
 import { parseTenantInput } from "@/lib/tenant-input";
-import { COUNTED_TASK, COUNTED_PROJECT } from "@/lib/hidden-projects/policy";
+import { countedTaskWhere, countedProjectWhere } from "@/lib/project-visibility/service";
 
 export type TenantState = { ok?: boolean; error?: string; slug?: string };
 export type TenantRow = { id: string; slug: string; name: string; primaryColor: string | null; users: number; tasks: number; projects: number; openTasks: number; leads: number; billingEnabled: boolean; parentTasksEnabled: boolean; storyPointsEnabled: boolean; translationEnabled: boolean };
@@ -20,9 +20,10 @@ async function requireSuper() {
 
 export async function getTenants(): Promise<TenantRow[]> {
   await requireSuper();
+  const [countedTasks, countedProjects] = await Promise.all([countedTaskWhere(), countedProjectWhere()]);
   const tenants = await prisma.tenant.findMany({
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { users: true, tasks: { where: COUNTED_TASK }, projects: { where: COUNTED_PROJECT }, leads: { where: { archivedAt: null } } } } },
+    include: { _count: { select: { users: true, tasks: { where: countedTasks }, projects: { where: countedProjects }, leads: { where: { archivedAt: null } } } } },
   });
   // TOF-0788: offene Aufgaben je Mandant (Todo + InProgress, nicht gelöscht) für die Übersicht.
   const open = await prisma.task.groupBy({

@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { SwitchAccountButton } from "@/components/switch-account-button";
+import { AffiliationChip } from "@/components/display-level";
 
 export default async function ProjectDetailPage({
   params,
@@ -156,6 +157,7 @@ export default async function ProjectDetailPage({
               style={{ backgroundColor: project.color }}
             />
             <h1 className="text-2xl font-bold">{project.name}</h1>
+            <AffiliationChip affiliation={project.affiliation} />
             {project.hiddenAt && (
               <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
                 {t["project.hidden.badge"]}
@@ -170,7 +172,7 @@ export default async function ProjectDetailPage({
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
-            <EditProjectDialog projectId={project.id} name={project.name} description={project.description} />
+            <EditProjectDialog projectId={project.id} name={project.name} description={project.description} affiliation={project.affiliation} />
           )}
           {isAdmin && (
             <ProjectHideButton

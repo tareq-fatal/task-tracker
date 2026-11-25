@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runDueReminders } from "@/lib/notification-cron";
-import { withHiddenProjects } from "@/lib/hidden-projects/scope";
+import { withAllProjects } from "@/lib/project-visibility/scope";
 
 // Daily reminder cron (due-soon + overdue), SYNC_SECRET-guarded:
 //   0 7 * * *  curl -H "x-sync-secret: $SYNC_SECRET" https://tasks.coastshield.net/api/cron/notifications
@@ -17,7 +17,7 @@ async function handle(req: NextRequest) {
   if (req.headers.get("x-sync-secret") !== secret) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  // TOF-0966: System-Job — verborgene Projekte laufen normal weiter.
-  const result = await withHiddenProjects(() => runDueReminders());
+  // TOF-0966/0967: System-Job — läuft für ALLE Projekte (Verborgen/Anzeige-Ebene egal).
+  const result = await withAllProjects(() => runDueReminders());
   return NextResponse.json({ ok: true, ...result });
 }

@@ -23,6 +23,8 @@ import { getRevealState } from "@/actions/hidden-projects";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 import { apkDownloadEnabled } from "@/lib/onprem";
+import { DisplayLevelSettings } from "@/components/display-level";
+import { getTenantDisplayLevel } from "@/lib/project-visibility/service";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -37,6 +39,7 @@ export default async function SettingsPage() {
   const notifyAll = isAdminRole(user.role) ? await getNotifyAllEvents() : false;
   const tenantCtx = isAdmin ? await getActiveTenant() : null;
   const reveal = isAdmin ? await getRevealState() : null;
+  const displayLevel = isAdmin && tenantCtx ? await getTenantDisplayLevel(tenantCtx.tenant.id) : null;
 
   return (
     <div className="container max-w-xl py-6">
@@ -99,6 +102,18 @@ export default async function SettingsPage() {
           {isAdmin && <NotifyAllToggle initial={notifyAll} />}
         </CardContent>
       </Card>
+
+      {/* TOF-0967: Anzeige-Ebene der Firma (Admin) — Hauptweg zum Vorzeigen */}
+      {isAdmin && displayLevel && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{t["settings.displayLevel"]}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DisplayLevelSettings initial={displayLevel} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* TOF-0966: Anzeigemodus für verborgene Projekte (Admin, pro Sitzung) */}
       {isAdmin && reveal && (

@@ -16,7 +16,7 @@ import { InviteLinkButton } from "@/components/invite-link-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { COUNTED_TASK } from "@/lib/hidden-projects/policy";
+import { countedTaskWhere } from "@/lib/project-visibility/service";
 
 export default async function AdminUsersPage() {
   const { user: me, tenant } = await requireTenant();
@@ -27,11 +27,12 @@ export default async function AdminUsersPage() {
   const isAdmin = isAdminRole(me.role);
   const roleOptions = assignableRoles(me.role) as string[];
 
+  const countedTasks = await countedTaskWhere(); // TOF-0966/0967
   const users = await prisma.user.findMany({
     where: { tenantId: tenant.id },
     orderBy: { createdAt: "asc" },
     include: {
-      _count: { select: { assignedTasks: { where: COUNTED_TASK }, createdTasks: { where: COUNTED_TASK } } },
+      _count: { select: { assignedTasks: { where: countedTasks }, createdTasks: { where: countedTasks } } },
     },
   });
 

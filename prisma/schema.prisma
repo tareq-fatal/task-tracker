@@ -16,10 +16,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// TOF-0967 — Zugehörigkeit eines Projekts (Eigentümer-Trennung, TOF-0963).
+enum ProjectAffiliation {
+  tarek    // „Meine (Tarek)“
+  objektus
+  marine
+}
+
 model Tenant {
   id           String   @id @default(cuid())
   slug           String  @unique // "objektus", "tarek", "marine"
   name           String
+  // TOF-0967 Anzeige-Ebene: leer = Alle. Sonst zeigt der ganze Tracker nur
+  // Projekte dieser Zugehörigkeiten (zentraler Filter, lib/project-visibility).
+  displayAffiliations ProjectAffiliation[] @default([])
   logo           String? // white-label logo URL (/uploads/tenants/{slug}/logo.*)
   primaryColor   String?
   secondaryColor String?
@@ -383,6 +393,8 @@ model Project {
   // lib/hidden-projects.ts; nur der Admin-Anzeigemodus blendet es wieder ein.
   hiddenAt      DateTime?
   hiddenBy      String?
+  // TOF-0967: Meine (Tarek) / Objektus / Marine — Grundlage der Anzeige-Ebene.
+  affiliation   ProjectAffiliation @default(tarek)
   color         String   @default("#6366f1") // indigo
   // MS Planner plan id (import idempotency). Unique PER TENANT, never globally:
   // a global unique made the import upsert match a foreign tenant's row and
@@ -411,6 +423,7 @@ model Project {
   @@index([tenantId])
   @@index([deletedAt])
   @@index([hiddenAt])
+  @@index([tenantId, affiliation])
 }
 
 // Explicit project access grant. When a project has ≥1 member, non-admin
