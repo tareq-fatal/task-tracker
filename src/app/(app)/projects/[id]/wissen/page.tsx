@@ -1,3 +1,4 @@
+import { intlTag } from "@/lib/format";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Pin, Search } from "lucide-react";
@@ -32,7 +33,7 @@ export default async function WissenPage({ params, searchParams }: { params: { i
   const tofs = [...new Set(entscheidungen.flatMap((e) => e.aufgaben))];
   const aufgaben = await aufgabenZuTof(user, tenant.id, tofs);
   const tofLink = new Map(aufgaben.filter((a) => a.tof).map((a) => [a.tof!, a.id]));
-  const datum = (d: Date) => d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
+  const datum = (d: Date) => d.toLocaleDateString(intlTag(locale), { day: "2-digit", month: "2-digit", year: "numeric" });
 
   return (
     <div className="container space-y-6 py-6">

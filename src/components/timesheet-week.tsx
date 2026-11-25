@@ -1,5 +1,6 @@
 "use client";
 
+import { intlTag } from "@/lib/format";
 import { useMemo, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,8 +58,8 @@ export function TimesheetWeek({
   const grid = useMemo(() => buildWeekGrid(entries, weekStart, now), [entries, weekStart, now]);
   const days = useMemo(() => weekDays(weekStart), [weekStart]);
 
-  const fmtDay = (d: Date) => d.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "numeric" });
-  const range = `${weekStart.toLocaleDateString(locale)} – ${addDays(weekStart, 6).toLocaleDateString(locale)}`;
+  const fmtDay = (d: Date) => d.toLocaleDateString(intlTag(locale), { weekday: "short", day: "numeric", month: "numeric" });
+  const range = `${weekStart.toLocaleDateString(intlTag(locale))} – ${addDays(weekStart, 6).toLocaleDateString(intlTag(locale))}`;
 
   const href = (start: Date, user: string) => {
     const p = new URLSearchParams({ week: dayKey(start) });
@@ -214,14 +215,14 @@ export function TimesheetWeek({
           return (
             <div key={dayKey(d)} className="rounded-2xl border bg-card p-4">
               <h3 className="mb-2 text-sm font-semibold">
-                {d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" })}
+                {d.toLocaleDateString(intlTag(locale), { weekday: "long", day: "numeric", month: "long" })}
               </h3>
               <ul className="divide-y text-sm">
                 {list.map((e) => (
                   <li key={e.id} className="flex items-center gap-2 py-1.5">
                     <span className="w-24 shrink-0 tabular-nums text-xs text-muted-foreground">
-                      {e.startedAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
-                      {e.endedAt && <> – {e.endedAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}</>}
+                      {e.startedAt.toLocaleTimeString(intlTag(locale), { hour: "2-digit", minute: "2-digit" })}
+                      {e.endedAt && <> – {e.endedAt.toLocaleTimeString(intlTag(locale), { hour: "2-digit", minute: "2-digit" })}</>}
                     </span>
                     <Link href={`/tasks/${e.taskId}`} className="truncate font-medium hover:underline">
                       {e.taskTitle}

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   elapsedMinutes,
   formatMinutes,
+  formatMinutesLabel,
   totalMinutes,
   parseDurationToMinutes,
 } from "./time-tracking";
@@ -43,5 +44,14 @@ describe("parseDurationToMinutes", () => {
   it("rejects garbage", () => {
     expect(parseDurationToMinutes("abc")).toBeNull();
     expect(parseDurationToMinutes("")).toBeNull();
+  });
+});
+
+describe("formatMinutesLabel", () => {
+  it("uses Arabic units in Arabic, falls back to formatMinutes otherwise", () => {
+    expect(formatMinutesLabel(90, "ar")).toBe("1 س 30 د");
+    expect(formatMinutesLabel(0, "ar")).toBe("0 د");
+    expect(formatMinutesLabel(120, "ar")).toBe("2 س");
+    expect(formatMinutesLabel(90, "en")).toBe("1h 30m");
   });
 });
