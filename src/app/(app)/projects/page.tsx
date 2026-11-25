@@ -49,6 +49,11 @@ export default async function ProjectsPage() {
                       style={{ backgroundColor: p.color }}
                     />
                     <h3 className="font-semibold">{p.name}</h3>
+                    {p.hiddenAt && (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                        {t["project.hidden.badge"]}
+                      </span>
+                    )}
                   </div>
                   {p.description && (
                     <p className="mb-3 line-clamp-2 text-sm text-muted-foreground">

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, KanbanSquare, Plus, Columns3, Trash2, Ban, Bot, Contact } from "lucide-react";
 import { DeleteProjectButton } from "@/components/delete-project-button";
+import { ProjectHideButton } from "@/components/project-hide-button";
+import { getRevealState } from "@/actions/hidden-projects";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
 import { AddTasksToProjectDialog } from "@/components/add-tasks-to-project-dialog";
 import { RestoreProjectButton } from "@/components/restore-project-button";
@@ -154,6 +156,11 @@ export default async function ProjectDetailPage({
               style={{ backgroundColor: project.color }}
             />
             <h1 className="text-2xl font-bold">{project.name}</h1>
+            {project.hiddenAt && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                {t["project.hidden.badge"]}
+              </span>
+            )}
           </div>
           {project.description && (
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -164,6 +171,13 @@ export default async function ProjectDetailPage({
         <div className="flex flex-wrap gap-2">
           {isAdmin && (
             <EditProjectDialog projectId={project.id} name={project.name} description={project.description} />
+          )}
+          {isAdmin && (
+            <ProjectHideButton
+              projectId={project.id}
+              hidden={Boolean(project.hiddenAt)}
+              revealActive={(await getRevealState()).active}
+            />
           )}
           {isAdmin && (
             <DeleteProjectButton projectId={project.id} projectName={project.name} />

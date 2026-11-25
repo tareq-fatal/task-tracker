@@ -378,6 +378,11 @@ model Project {
   // extension in lib/prisma.ts; old links show a friendly "deleted" page.
   deletedAt     DateTime?
   deletedBy     String?
+  // Verborgen (TOF-0966): ein verborgenes Projekt ist ueberall unsichtbar —
+  // Listen, Suche, Zaehler, Benachrichtigungen, API/MCP. Zentraler Filter in
+  // lib/hidden-projects.ts; nur der Admin-Anzeigemodus blendet es wieder ein.
+  hiddenAt      DateTime?
+  hiddenBy      String?
   color         String   @default("#6366f1") // indigo
   // MS Planner plan id (import idempotency). Unique PER TENANT, never globally:
   // a global unique made the import upsert match a foreign tenant's row and
@@ -405,6 +410,7 @@ model Project {
   @@unique([tenantId, externalId])
   @@index([tenantId])
   @@index([deletedAt])
+  @@index([hiddenAt])
 }
 
 // Explicit project access grant. When a project has ≥1 member, non-admin

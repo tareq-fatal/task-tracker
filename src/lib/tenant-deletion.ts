@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import type { SessionUser } from "./auth";
 import { isSuperAdmin } from "./enums";
 import { createRateLimiter } from "./rate-limit";
+import { withHiddenProjects } from "@/lib/hidden-projects/scope";
 
 // ---------------------------------------------------------------------------
 // Hard-delete a whole tenant (Mandant) and every scrap of data belonging to it.
@@ -46,6 +47,11 @@ export type DeleteError =
 export async function previewTenantDeletion(
   id: string
 ): Promise<TenantDeletionPreview | null> {
+  // TOF-0966: die Löschvorschau zählt ALLES, auch verborgene Projekte.
+  return withHiddenProjects(() => collectTenantDeletionPreview(id));
+}
+
+async function collectTenantDeletionPreview(id: string): Promise<TenantDeletionPreview | null> {
   const tenant = await prisma.tenant.findUnique({ where: { id } });
   if (!tenant) return null;
 

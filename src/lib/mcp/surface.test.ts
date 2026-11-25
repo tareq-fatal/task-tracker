@@ -56,6 +56,7 @@ const WRITE_OPS = [
   "upload_attachment",
   "link_tasks",
   "create_project",
+  "hide_project",
   // TOF-0839 Projekt-Wissen
   "wissen_schreiben",
   "entscheidung_hinzufuegen",

@@ -18,6 +18,8 @@ import { getNotificationPrefs } from "@/actions/notifications";
 import { TelegramConnect } from "@/components/telegram-connect";
 import { getTelegramStatus, getNotifyAllEvents } from "@/actions/telegram";
 import { NotifyAllToggle } from "@/components/notify-all-toggle";
+import { RevealHiddenToggle } from "@/components/reveal-hidden-toggle";
+import { getRevealState } from "@/actions/hidden-projects";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Locale } from "@/lib/enums";
 import { apkDownloadEnabled } from "@/lib/onprem";
@@ -34,6 +36,7 @@ export default async function SettingsPage() {
   const telegramStatus = await getTelegramStatus();
   const notifyAll = isAdminRole(user.role) ? await getNotifyAllEvents() : false;
   const tenantCtx = isAdmin ? await getActiveTenant() : null;
+  const reveal = isAdmin ? await getRevealState() : null;
 
   return (
     <div className="container max-w-xl py-6">
@@ -96,6 +99,18 @@ export default async function SettingsPage() {
           {isAdmin && <NotifyAllToggle initial={notifyAll} />}
         </CardContent>
       </Card>
+
+      {/* TOF-0966: Anzeigemodus für verborgene Projekte (Admin, pro Sitzung) */}
+      {isAdmin && reveal && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-base">{t["settings.hiddenProjects"]}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RevealHiddenToggle initial={reveal.active} />
+          </CardContent>
+        </Card>
+      )}
 
       {isAdmin && (
         <Card className="mb-6">
