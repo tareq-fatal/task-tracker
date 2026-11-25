@@ -102,10 +102,21 @@ const createClient = () => {
 
 let visibilityGuard: VisibilityGuard | undefined;
 
-/** Nach Verbergen, Zugehörigkeit oder Anzeige-Ebene ändern: Filter sofort neu laden. */
+// Next.js lädt dieses Modul in Produktion je Bundle-Schicht (Server-Actions,
+// RSC, Route-Handler) als EIGENE Instanz — jede mit eigenem Guard-Cache. Eine
+// Änderung aus einer Action muss ALLE erreichen, sonst zeigt das Rendering bis
+// zum Cache-Ablauf den alten Stand (Fund aus der Live-Prüfung TOF-0967).
+// Darum registriert sich jeder Guard prozessweit.
+const registry = globalThis as unknown as { __ttVisibilityGuards?: Set<VisibilityGuard> };
+function registerGuard(g: VisibilityGuard | undefined): void {
+  if (!g) return;
+  (registry.__ttVisibilityGuards ??= new Set()).add(g);
+}
+
+/** Nach Verbergen, Zugehörigkeit oder Anzeige-Ebene ändern: Filter in ALLEN Instanzen sofort neu laden. */
 export function invalidateProjectVisibility(): void {
+  for (const g of registry.__ttVisibilityGuards ?? []) g.invalidate();
   visibilityGuard?.invalidate();
-  globalForPrisma.visibilityGuard?.invalidate();
 }
 
 /** Effektive Verbergung (Verborgen + Anzeige-Ebene) für den laufenden oder einen vorgegebenen Scope. */
@@ -122,6 +133,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 export const prisma = globalForPrisma.prisma ?? createClient();
+registerGuard(visibilityGuard);
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
